@@ -1,0 +1,199 @@
+{
+    "global": {
+        "signature_img": {
+            "x": 466,
+            "y": 613,
+            "w": 150,
+            "h": 54,
+            "enable": true,
+            "type": "image"
+        },
+        "Stt": {
+            "x": 40,
+            "y": 50,
+            "size": 30,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Tên đơn vị": {
+            "x": 199,
+            "y": 159,
+            "size": 15,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Họ tên": {
+            "x": 265,
+            "y": 330,
+            "size": 13,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Ngày sinh": {
+            "x": 227,
+            "y": 384,
+            "size": 12,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Giới tính": {
+            "x": 308,
+            "y": 359,
+            "size": 12,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Nơi cư trú": {
+            "x": 241,
+            "y": 408,
+            "size": 13,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Số cccd": {
+            "x": 242,
+            "y": 436,
+            "size": 19,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Số thẻ cử tri": {
+            "x": 262,
+            "y": 482,
+            "size": 16,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Khu vực bỏ phiếu": {
+            "x": 259,
+            "y": 529,
+            "size": 12,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Thành phố": {
+            "x": 221,
+            "y": 571,
+            "size": 13,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text",
+            "bold": false,
+            "upper": false
+        },
+        "Người ký": {
+            "x": 465,
+            "y": 659,
+            "size": 30,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text"
+        },
+        "Hình ảnh chữ ký": {
+            "x": 50,
+            "y": 50,
+            "size": 30,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text"
+        },
+        "Xã/phường/đặc khu": {
+            "x": 50,
+            "y": 50,
+            "size": 30,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "type": "text"
+        }
+    },
+    "custom": {
+        "0": {
+            "signature_img": {
+                "x": 466,
+                "y": 613,
+                "w": 150,
+                "h": 54,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/alink1.jpg"
+            },
+            "Xã/phường/đặc khu": {
+                "x": 312,
+                "y": 505,
+                "size": 17,
+                "enable": true,
+                "font": "Times New Roman",
+                "color": "Black",
+                "type": "text",
+                "bold": false,
+                "upper": false
+            }
+        },
+        "50": {
+            "Thành phố": {
+                "x": 220,
+                "y": 573,
+                "size": 13,
+                "enable": true,
+                "font": "Arial",
+                "color": "Black",
+                "type": "text",
+                "bold": false,
+                "upper": false
+            }
+        },
+        "82": {
+            "Họ tên": {
+                "x": 265,
+                "y": 330,
+                "size": 13,
+                "enable": true,
+                "font": "Arial",
+                "color": "Black",
+                "type": "text",
+                "bold": true,
+                "upper": false
+            }
+        }
+    }
+}
