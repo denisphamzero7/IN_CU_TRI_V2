@@ -1,20 +1,37 @@
 # views/view_right.py
 import tkinter as tk
-from config.settings import COLORS
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 
-class RightPanelView:
+class RightPanelView(ttk.Frame):
     def __init__(self, parent, router):
-        # Sử dụng highlightthickness=0 để bỏ viền trắng mặc định của canvas khi focus
-        self.canvas = tk.Canvas(parent, bg="#95a5a6", cursor="fleur", highlightthickness=0)
-        self.canvas.pack(fill="both", expand=True, padx=10, pady=10)
+        # 1. Kế thừa ttk.Frame để đồng bộ layout
+        super().__init__(parent)
+        self.pack(fill=BOTH, expand=YES)
         
-        # Bindings cho Drag & Drop
+        # 2. Tạo Canvas
+        # Lưu ý: Canvas không có "bootstyle". 
+        # Ta set bg="#57606f" (Xám đậm) để làm nền "Workplace" (giống Photoshop).
+        # Màu này giúp tờ giấy trắng (Template) nổi bật lên dù ở giao diện Sáng hay Tối.
+        self.canvas = tk.Canvas(
+            self, 
+            bg="#57606f",      # Màu nền khu vực làm việc (Neutral Dark Grey)
+            cursor="fleur",    # Con trỏ dạng di chuyển
+            highlightthickness=0 # Bỏ viền trắng khi focus
+        )
+        self.canvas.pack(fill=BOTH, expand=YES, padx=5, pady=5)
+        
+        # --- 3. BINDINGS (Sự kiện chuột) ---
+        
+        # Drag & Drop (Kéo thả)
         self.canvas.tag_bind("draggable", "<ButtonPress-1>", router.on_drag_start)
         self.canvas.tag_bind("draggable", "<B1-Motion>", router.on_drag_motion)
         self.canvas.tag_bind("draggable", "<ButtonRelease-1>", router.on_drag_end)
         
-        # Binding cho Zoom
+        # Zoom (Phóng to/Nhỏ)
         self.canvas.bind("<Shift-MouseWheel>", router.on_shift_zoom)
+        # Hỗ trợ thêm Control-MouseWheel cho quen tay người dùng Windows
+        self.canvas.bind("<Control-MouseWheel>", router.on_shift_zoom) 
 
-        # --- THÊM DÒNG NÀY: Bắt sự kiện thay đổi kích thước cửa sổ ---
+        # Resize Window (Tự động chỉnh lại khung hình khi kéo to cửa sổ)
         self.canvas.bind("<Configure>", router.on_canvas_resize)

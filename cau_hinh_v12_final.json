@@ -31,12 +31,12 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 265,
+            "x": 253,
             "y": 330,
             "size": 13,
             "enable": true,
             "font": "Arial",
-            "color": "Black",
+            "color": "#2c3e50",
             "type": "text",
             "bold": false,
             "upper": false
@@ -75,8 +75,8 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 242,
-            "y": 436,
+            "x": 263,
+            "y": 434,
             "size": 19,
             "enable": true,
             "font": "Times New Roman",
@@ -137,13 +137,15 @@
             "type": "text"
         },
         "Xã/phường/đặc khu": {
-            "x": 50,
-            "y": 50,
-            "size": 30,
+            "x": 216,
+            "y": 549,
+            "size": 21,
             "enable": true,
             "font": "Arial",
             "color": "Black",
-            "type": "text"
+            "type": "text",
+            "bold": false,
+            "upper": false
         }
     },
     "custom": {

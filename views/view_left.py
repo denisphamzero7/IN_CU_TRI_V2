@@ -1,161 +1,206 @@
 # views/view_left.py
 import tkinter as tk
-from tkinter import ttk
-from helpers.ui_helpers import RoundedButton
-from config.settings import COLORS
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from ttkbootstrap.scrolled import ScrolledFrame
+from tkinter import filedialog 
 
-class LeftPanelView:
-    def __init__(self, parent, router):
+class LeftPanelView(ttk.Frame):
+    def __init__(self, master, router):
+        super().__init__(master, padding=10)
+        self.pack(fill=BOTH, expand=YES)
+        
         self.router = router
-        self.field_vars = {}
-        self.field_labels = {}
-        
-        # --- 1. Nút chức năng ---
-        lbl_input = tk.Label(parent, text="1. DỮ LIỆU ĐẦU VÀO", font=("Segoe UI", 12, "bold"), bg=COLORS["light"])
-        lbl_input.pack(anchor="w", pady=(0, 5))
-        
-        btn_frame = tk.Frame(parent, bg=COLORS["light"])
-        btn_frame.pack(fill="x", pady=5)
-        RoundedButton(btn_frame, text="📂 Chọn Ảnh Phôi", command=router.select_template, bg=COLORS["primary"]).pack(fill="x", pady=2)
-        RoundedButton(btn_frame, text="📊 Chọn File Excel", command=router.select_excel, bg=COLORS["success"]).pack(fill="x", pady=2)
-        RoundedButton(btn_frame, text="📂 Folder Chữ Ký", command=router.select_signature_folder, bg=COLORS["purple"]).pack(fill="x", pady=2)
-        
-        # --- 2. Danh sách trường ---
-        tk.Label(parent, text="2. CẤU HÌNH TRƯỜNG", font=("Segoe UI", 12, "bold"), bg=COLORS["light"]).pack(anchor="w", pady=(20, 5))
-        
-        list_container = tk.Frame(parent, bg="white", bd=1, relief="solid")
-        list_container.pack(fill="both", expand=True, pady=5)
-        
-        self.canvas_list = tk.Canvas(list_container, bg="white", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(list_container, orient="vertical", command=self.canvas_list.yview)
-        
-        self.scrollable_frame = tk.Frame(self.canvas_list, bg="white")
-        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas_list.configure(scrollregion=self.canvas_list.bbox("all")))
-        
-        self.canvas_list.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas_list.configure(yscrollcommand=scrollbar.set)
-        
-        self.canvas_list.pack(side="left", fill="both", expand=True, padx=2, pady=2)
-        scrollbar.pack(side="right", fill="y")
-        
-        # --- 3. Style Controls ---
-        self._setup_style_controls(parent)
-        
-        # Nút Thoát
-        RoundedButton(parent, text="❌ Thoát", command=router.exit_app, bg="#7f8c8d").pack(side="bottom", fill="x", pady=10)
+        self.field_vars = {}   
+        self.field_labels = {} 
 
-    def _setup_style_controls(self, parent):
-        style_frame = tk.LabelFrame(parent, text="3. TÙY CHỈNH STYLE", font=("Segoe UI", 11, "bold"), bg=COLORS["grey"], padx=5, pady=5)
-        style_frame.pack(fill="x", pady=10, side="bottom")
+        # --- 0. CẤU HÌNH GIAO DIỆN (THEME) ---
+        self._setup_theme_toggle()
+        
+        ttk.Separator(self, orient=HORIZONTAL).pack(fill=X, pady=10)
+
+        # --- 1. DỮ LIỆU ĐẦU VÀO ---
+        ttk.Label(self, text="1. DỮ LIỆU ĐẦU VÀO", font=("Segoe UI", 10, "bold"), bootstyle="primary").pack(anchor="w", pady=(0, 5))
+        
+        btn_opts = {"width": 20}
+        
+        ttk.Button(self, text="📂 Chọn Ảnh Phôi", command=router.select_template, bootstyle="primary", **btn_opts).pack(fill=X, pady=2)
+        ttk.Button(self, text="📊 Chọn File Excel", command=router.select_excel, bootstyle="success", **btn_opts).pack(fill=X, pady=2)
+        ttk.Button(self, text="📂 Folder Chữ Ký", command=router.select_signature_folder, bootstyle="info", **btn_opts).pack(fill=X, pady=2)
+        
+        # --- 2. DANH SÁCH TRƯỜNG ---
+        ttk.Label(self, text="2. CẤU HÌNH TRƯỜNG", font=("Segoe UI", 10, "bold"), bootstyle="primary").pack(anchor="w", pady=(15, 5))
+        
+        self.scroll_container = ScrolledFrame(self, autohide=True, height=200)
+        self.scroll_container.pack(fill=BOTH, expand=YES, pady=5)
+        
+        # --- 3. TÙY CHỈNH STYLE ---
+        self._setup_style_controls()
+        
+        ttk.Separator(self, orient=HORIZONTAL).pack(fill=X, pady=10)
+        ttk.Button(self, text="❌ Thoát", command=router.exit_app, bootstyle="danger-outline").pack(fill=X, pady=5)
+
+    def _setup_theme_toggle(self):
+        fr = ttk.Frame(self)
+        fr.pack(fill=X)
+        ttk.Label(fr, text="Giao diện:").pack(side=LEFT)
+        
+        # --- [CẬP NHẬT] TỪ ĐIỂN ÁNH XẠ TÊN THEME ---
+        self.theme_map = {
+            " Tối - Siêu anh hùng": "superhero",
+            " Tối - Đêm đen": "darkly",
+            " Tối - Công nghệ": "cyborg",
+            " Tối - Ấm áp": "solar",
+            "Sáng - Cơ bản": "cosmo",
+            " Sáng - Tinh tế": "flatly",
+            " Sáng - Cổ điển": "journal",
+            " Sáng - Trang nhã": "litera",
+            " Sáng - Bạc hà": "minty"
+        }
+        
+        # Chỉ lấy danh sách tên Tiếng Việt để hiển thị
+        display_names = list(self.theme_map.keys())
+
+        self.cb_theme = ttk.Combobox(fr, values=display_names, state="readonly", width=18)
+        self.cb_theme.pack(side=RIGHT)
+        
+        # Logic chọn giá trị mặc định dựa trên theme hiện tại của hệ thống
+        current_sys_theme = ttk.Style().theme.name
+        
+        # Tìm tên tiếng Việt tương ứng với theme đang dùng
+        found_vn = False
+        for vn_name, en_name in self.theme_map.items():
+            if en_name == current_sys_theme:
+                self.cb_theme.set(vn_name)
+                found_vn = True
+                break
+        
+        if not found_vn:
+            self.cb_theme.current(0) # Mặc định chọn cái đầu tiên nếu không khớp
+            
+        self.cb_theme.bind("<<ComboboxSelected>>", self.change_theme)
+
+    def change_theme(self, event):
+        # 1. Lấy tên tiếng Việt
+        vn_name = self.cb_theme.get()
+        # 2. Tra từ điển lấy tên tiếng Anh
+        en_name = self.theme_map.get(vn_name, "superhero")
+        # 3. Đổi theme
+        style = ttk.Style()
+        style.theme_use(en_name)
+
+    def _setup_style_controls(self):
+        group = ttk.Labelframe(self, text="3. TÙY CHỈNH STYLE", padding=10, bootstyle="info")
+        group.pack(fill=X, side=BOTTOM, pady=10)
         
         self.var_edit_mode = tk.StringVar(value="global")
-        tk.Radiobutton(style_frame, text="Chỉnh cho TẤT CẢ", variable=self.var_edit_mode, value="global", bg=COLORS["grey"], command=self.router.on_style_change).pack(anchor="w")
-        tk.Radiobutton(style_frame, text="Chỉnh RIÊNG người này", variable=self.var_edit_mode, value="individual", bg=COLORS["grey"], fg="red", font=("Segoe UI", 9, "bold"), command=self.router.on_style_change).pack(anchor="w")
         
-        tk.Frame(style_frame, height=1, bg="white").pack(fill="x", pady=5)
+        r1 = ttk.Radiobutton(group, text="Chỉnh TẤT CẢ", variable=self.var_edit_mode, value="global", command=self.router.on_style_change)
+        r1.pack(anchor="w")
         
-        tk.Label(style_frame, text="Đang chọn:", bg=COLORS["grey"]).pack(anchor="w")
-        self.lbl_current_field = tk.Label(style_frame, text="(Chưa chọn)", fg="blue", bg=COLORS["grey"], font=("Segoe UI", 10, "bold"))
-        self.lbl_current_field.pack(anchor="w", pady=(0, 5))
+        r2 = ttk.Radiobutton(group, text="Chỉnh RIÊNG người này", variable=self.var_edit_mode, value="individual", command=self.router.on_style_change, bootstyle="danger")
+        r2.pack(anchor="w")
         
-        # -- Controls cho Text --
-        self.fr_text_props = tk.Frame(style_frame, bg=COLORS["grey"])
+        ttk.Separator(group).pack(fill=X, pady=5)
         
-        # Font & Size
-        r1 = tk.Frame(self.fr_text_props, bg=COLORS["grey"])
-        r1.pack(fill="x")
-        self.combo_font = ttk.Combobox(r1, values=["Arial", "Times New Roman"], width=13, state="readonly")
-        self.combo_font.pack(side="left")
+        fr_info = ttk.Frame(group)
+        fr_info.pack(fill=X)
+        ttk.Label(fr_info, text="Đang chọn:").pack(side=LEFT)
+        self.lbl_current_field = ttk.Label(fr_info, text="(Chưa chọn)", font=("Segoe UI", 9, "bold"), bootstyle="inverse-primary")
+        self.lbl_current_field.pack(side=RIGHT)
+        
+        self.fr_text_props = ttk.Frame(group)
+        self.fr_text_props.pack(fill=X, pady=5)
+        
+        r_font = ttk.Frame(self.fr_text_props)
+        r_font.pack(fill=X)
+        self.combo_font = ttk.Combobox(r_font, values=["Arial", "Times New Roman", "Calibri", "Segoe UI", "Tahoma"], width=13, state="readonly")
+        self.combo_font.pack(side=LEFT, fill=X, expand=YES)
         self.combo_font.bind("<<ComboboxSelected>>", self.router.on_prop_change)
         
-        self.spin_size = tk.Spinbox(r1, from_=5, to=300, width=5, command=self.router.on_prop_change)
-        self.spin_size.pack(side="left", padx=5)
+        self.spin_size = ttk.Spinbox(r_font, from_=5, to=300, width=5, command=self.router.on_prop_change)
+        self.spin_size.pack(side=RIGHT, padx=(5,0))
         self.spin_size.bind("<Return>", self.router.on_prop_change)
         
-        # Bold, Upper, Color
-        r2 = tk.Frame(self.fr_text_props, bg=COLORS["grey"])
-        r2.pack(fill="x", pady=5)
+        r_attr = ttk.Frame(self.fr_text_props)
+        r_attr.pack(fill=X, pady=5)
+        
         self.chk_bold_var = tk.BooleanVar()
         self.chk_upper_var = tk.BooleanVar()
-        tk.Checkbutton(r2, text="B", variable=self.chk_bold_var, bg=COLORS["grey"], font="Arial 9 bold", command=self.router.on_prop_change).pack(side="left")
-        tk.Checkbutton(r2, text="AA", variable=self.chk_upper_var, bg=COLORS["grey"], command=self.router.on_prop_change).pack(side="left")
         
-        self.combo_color = ttk.Combobox(r2, values=["Black", "Red", "Blue"], width=8, state="readonly")
-        self.combo_color.pack(side="left", padx=5)
+        ttk.Checkbutton(r_attr, text="B", variable=self.chk_bold_var, bootstyle="toolbutton", width=3, command=self.router.on_prop_change).pack(side=LEFT)
+        ttk.Checkbutton(r_attr, text="AA", variable=self.chk_upper_var, bootstyle="toolbutton", width=3, command=self.router.on_prop_change).pack(side=LEFT, padx=5)
+        
+        self.combo_color = ttk.Combobox(r_attr, values=["Black", "Red", "Blue", "#2c3e50", "#e74c3c", "#16a085", "#8e44ad"], width=8, state="readonly")
+        self.combo_color.pack(side=RIGHT, fill=X, expand=YES)
         self.combo_color.bind("<<ComboboxSelected>>", self.router.on_prop_change)
         
-        self.fr_text_props.pack(fill="x")
+        self.fr_img_props = ttk.Frame(group)
         
-        # -- Controls cho Ảnh (Chữ ký) --
-        self.fr_img_props = tk.Frame(style_frame, bg=COLORS["grey"])
-        self.btn_manual_sig = RoundedButton(self.fr_img_props, text="📂 File chữ ký", command=self.router.pick_manual_signature, bg=COLORS["warning"], height=25)
-        self.btn_manual_sig.pack(fill="x", pady=5)
+        ttk.Button(self.fr_img_props, text="📂 File chữ ký riêng", command=self.router.pick_manual_signature, bootstyle="warning-outline", width=100).pack(fill=X, pady=5)
         
-        r_img = tk.Frame(self.fr_img_props, bg=COLORS["grey"])
-        r_img.pack(fill="x")
-        tk.Label(r_img, text="Rộng:", bg=COLORS["grey"]).pack(side="left")
-        self.spin_img_w = tk.Spinbox(r_img, from_=1, to=1000, width=5, command=self.router.on_prop_change)
-        self.spin_img_w.pack(side="left")
-        tk.Label(r_img, text="Cao:", bg=COLORS["grey"]).pack(side="left", padx=(5,0))
-        self.spin_img_h = tk.Spinbox(r_img, from_=1, to=1000, width=5, command=self.router.on_prop_change)
-        self.spin_img_h.pack(side="left")
+        r_dim = ttk.Frame(self.fr_img_props)
+        r_dim.pack(fill=X)
+        ttk.Label(r_dim, text="W:").pack(side=LEFT)
+        self.spin_img_w = ttk.Spinbox(r_dim, from_=1, to=1000, width=5, command=self.router.on_prop_change)
+        self.spin_img_w.pack(side=LEFT, padx=2)
+        
+        ttk.Label(r_dim, text="H:").pack(side=LEFT, padx=(5,0))
+        self.spin_img_h = ttk.Spinbox(r_dim, from_=1, to=1000, width=5, command=self.router.on_prop_change)
+        self.spin_img_h.pack(side=LEFT, padx=2)
+        
         self.spin_img_w.bind("<Return>", self.router.on_prop_change)
         self.spin_img_h.bind("<Return>", self.router.on_prop_change)
-        
-        # Reset button
-        RoundedButton(style_frame, text="↺ Reset Default", command=self.router.reset_current_custom, bg=COLORS["danger"], height=25).pack(fill="x", pady=10)
+
+        ttk.Button(group, text="↺ Mặt định", command=self.router.reset_current_custom, bootstyle="link").pack(fill=X, pady=(5,0))
 
     def refresh_field_list(self, cols, global_config):
-        for w in self.scrollable_frame.winfo_children(): w.destroy()
+        for widget in self.scroll_container.winfo_children():
+            widget.destroy()
+            
         self.field_vars = {}
         self.field_labels = {}
         
-        # Luôn đảm bảo có signature_img
         display_cols = list(cols)
         if "signature_img" not in display_cols: display_cols.append("signature_img")
         
         for col in display_cols:
-            row_fr = tk.Frame(self.scrollable_frame, bg="white")
-            row_fr.pack(fill="x", pady=2)
+            row_fr = ttk.Frame(self.scroll_container)
+            row_fr.pack(fill=X, pady=1)
             
             is_enabled = global_config.get(col, {}).get("enable", False)
             var = tk.BooleanVar(value=is_enabled)
             self.field_vars[col] = var
             
-            chk = tk.Checkbutton(row_fr, variable=var, bg="white", command=lambda c=col: self.router.on_field_toggle(c))
-            chk.pack(side="left")
+            chk = ttk.Checkbutton(row_fr, variable=var, bootstyle="round-toggle", command=lambda c=col: self.router.on_field_toggle(c))
+            chk.pack(side=LEFT)
             
             display_text = "📷 ẢNH CHỮ KÝ" if col == "signature_img" else col
-            lbl = tk.Label(row_fr, text=display_text, bg="white", anchor="w", cursor="hand2", font=("Segoe UI", 10))
-            lbl.pack(side="left", fill="x", expand=True)
+            lbl = ttk.Label(row_fr, text=display_text, padding=(5, 2))
+            lbl.pack(side=LEFT, fill=X, expand=YES)
+            
             lbl.bind("<Button-1>", lambda e, c=col: self.router.select_field(c))
             self.field_labels[col] = lbl
 
     def update_prop_inputs(self, cfg, field_name):
         self.lbl_current_field.config(text=field_name)
         
-        # Highlight label
         for f, lbl in self.field_labels.items():
             if f == field_name:
-                lbl.config(bg="#dff9fb", fg="blue", font=("Segoe UI", 10, "bold"))
+                lbl.configure(bootstyle="inverse-info") 
             else:
-                lbl.config(bg="white", fg="black", font=("Segoe UI", 10))
+                lbl.configure(bootstyle="default")
         
         if field_name == "signature_img":
             self.fr_text_props.pack_forget()
-            self.fr_img_props.pack(fill="x")
-            
-            self.spin_img_w.delete(0, tk.END)
-            self.spin_img_w.insert(0, cfg.get("w", 150))
-            self.spin_img_h.delete(0, tk.END)
-            self.spin_img_h.insert(0, cfg.get("h", 80))
+            self.fr_img_props.pack(fill=X)
+            self.spin_img_w.set(cfg.get("w", 150))
+            self.spin_img_h.set(cfg.get("h", 80))
         else:
             self.fr_img_props.pack_forget()
-            self.fr_text_props.pack(fill="x")
-            
+            self.fr_text_props.pack(fill=X)
             self.combo_font.set(cfg.get("font", "Arial"))
-            self.spin_size.delete(0, tk.END)
-            self.spin_size.insert(0, cfg.get("size", 30))
+            self.spin_size.set(cfg.get("size", 30))
             self.chk_bold_var.set(cfg.get("bold", False))
             self.chk_upper_var.set(cfg.get("upper", False))
             self.combo_color.set(cfg.get("color", "Black"))

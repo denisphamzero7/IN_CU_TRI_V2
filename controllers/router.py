@@ -88,17 +88,32 @@ class AppRouter:
         self.is_bulk_updating = False
     # --- [MỚI] Sự kiện xử lý bộ lọc ---
     def on_filter_change(self, event):
-        """Khi người dùng chọn khu vực khác"""
+        """Khi người dùng thay đổi bộ lọc (Khu vực)"""
+        # 1. Lấy giá trị khu vực từ Combobox (VD: "10" hoặc "Tất cả")
         selected_area = self.view.p_mid.cbb_filter.get()
         
-        # 1. Gọi Model lọc dữ liệu
+        # 2. Cập nhật Model: Cắt dữ liệu chỉ giữ lại khu vực đó
+        # (Nếu chọn 'Tất cả' thì Model sẽ lấy lại toàn bộ danh sách)
         self.model.filter_data(selected_area)
         
-        # 2. Xóa lựa chọn cũ (để tránh in nhầm người không còn hiển thị)
+        # 3. [QUAN TRỌNG] Xóa sạch các lựa chọn cũ
+        # Để đảm bảo không bị lẫn người của khu vực trước đó vào
         self.deselect_all()
 
-        # 3. Refresh lại bảng (Tự động về trang 1 của danh sách mới)
+        # 4. Refresh lại bảng hiển thị (Về trang 1)
         self.refresh_mid_table()
+
+        # 5. [SỬA ĐỔI] Luôn luôn gọi Select All sau khi lọc
+        # Vì model.df lúc này đã chuẩn (chỉ chứa người cần in), 
+        # nên hàm này sẽ tự động chọn đúng những người đó.
+        self.select_all()
+
+        # Cập nhật câu thông báo cho rõ ràng
+        count = len(self.model.selected_indices)
+        if selected_area and selected_area not in ["Tất cả", "All", ""]:
+            self.view.p_mid.lbl_count.config(text=f"Đã tự động chọn {count} người thuộc Khu vực {selected_area}")
+        else:
+            self.update_count_label()
 
     # --- UI Events (Đã tối ưu) ---
     def on_user_select_change(self, event):
@@ -140,29 +155,43 @@ class AppRouter:
             except ValueError: pass
 
     def select_all(self):
-        """Chọn tất cả (Tối ưu: Không kích hoạt sự kiện select change)"""
-        self.is_bulk_updating = True # <-- Bật cờ chặn sự kiện
-        
-        children = self.view.p_mid.tree.get_children()
-        self.view.p_mid.tree.selection_set(children)
-        
-        ids = {int(x) for x in children}
-        self.model.selected_indices.update(ids)
-        
-        self.update_count_label()
-        self.is_bulk_updating = False # <-- Tắt cờ
+        """Chọn TẤT CẢ các trang (Dựa trên danh sách ĐÃ LỌC)"""
+        # Kiểm tra nếu chưa có dữ liệu thì thoát
+        if self.model.df_filtered is None or self.model.df_filtered.empty:
+            return
 
+        self.is_bulk_updating = True # Chặn sự kiện click ảo
+        
+        # --- [SỬA LỖI TẠI ĐÂY] ---
+        # CŨ: all_ids = set(self.model.df.index)  <-- Sai vì nó lấy cả người bị ẩn
+        
+        # MỚI: Chỉ lấy index của danh sách ĐÃ LỌC (df_filtered)
+        all_ids = set(self.model.df_filtered.index)
+        # -------------------------
+
+        self.model.selected_indices.update(all_ids)
+        
+        # Cập nhật View: Bôi đen những dòng đang hiển thị
+        current_page_items = self.view.p_mid.tree.get_children()
+        self.view.p_mid.tree.selection_set(current_page_items)
+        
+        # Cập nhật nhãn đếm
+        self.update_count_label()
+        
+        self.is_bulk_updating = False # Mở lại sự kiện
     def deselect_all(self):
-        """Bỏ chọn tất cả (Tối ưu)"""
+        """Bỏ chọn TẤT CẢ (Xóa sạch bộ nhớ chọn)"""
         self.is_bulk_updating = True
         
-        children = self.view.p_mid.tree.get_children()
+        # 1. Cập nhật View: Bỏ bôi đen trên giao diện hiện tại
         self.view.p_mid.tree.selection_set([])
         
-        ids = {int(x) for x in children}
-        self.model.selected_indices -= ids
+        # 2. Cập nhật Model: Xóa sạch danh sách đã chọn
+        self.model.selected_indices.clear()
         
+        # 3. Cập nhật nhãn đếm
         self.update_count_label()
+        
         self.is_bulk_updating = False
 
     def update_count_label(self):
