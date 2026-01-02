@@ -5,7 +5,7 @@ from layouts.main_layout import create_3_columns
 from views.view_left import LeftPanelView
 from views.view_mid import MidPanelView
 from views.view_right import RightPanelView
-
+from views.custom_dialog import CustomDialog
 # 1. Kế thừa ttk.Frame để ăn theo Theme (Dark/Light)
 class MainView(ttk.Frame):
     def __init__(self, master, router):
@@ -21,3 +21,4 @@ class MainView(ttk.Frame):
         self.p_left = LeftPanelView(left_fr, router)
         self.p_mid = MidPanelView(mid_fr, router)
         self.p_right = RightPanelView(right_fr, router)
+        

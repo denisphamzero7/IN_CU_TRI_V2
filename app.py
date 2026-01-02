@@ -1,26 +1,26 @@
 # app.py
-import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from config.settings import DEFAULT_THEME
+# Thêm dòng import này
+from helpers.ui_helpers import apply_window_icon 
+from config.settings import APP_TITLE
 from views.main_view import MainView
 from controllers.router import AppRouter
 
 class App(ttk.Window):
     def __init__(self):
-        super().__init__(themename=DEFAULT_THEME)
-        self.title("HỆ THỐNG IN THẺ CỬ TRI ")
+        super().__init__(themename="superhero")
+        
+        self.title(APP_TITLE)
         self.geometry("1600x900")
-        
-        # 1. Khởi tạo Router (Bộ não)
+
+        # --- GỌI HÀM SET ICON Ở ĐÂY ---
+        apply_window_icon(self) 
+        # -----------------------------
+
         self.router = AppRouter()
-        
-        # 2. Khởi tạo View (Giao diện), truyền Router vào
         self.main_view = MainView(self, self.router)
-        # 3. QUAN TRỌNG: Phải đặt View lên cửa sổ
-        # Nếu thiếu dòng này, giao diện sẽ trống trơn
         self.main_view.pack(fill=BOTH, expand=YES)
-        # 3. Kết nối ngược View vào Router
         self.router.set_view(self.main_view)
 
     def run(self):

@@ -43,3 +43,6 @@ STYLES = {
     "light": "light",
     "dark": "dark"
 }
+
+APP_ICON_NAME = "image.ico" 
+APP_TITLE = "HỆ THỐNG IN THẺ CỬ TRI"

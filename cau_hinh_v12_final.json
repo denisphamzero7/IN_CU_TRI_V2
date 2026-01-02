@@ -31,8 +31,8 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 253,
-            "y": 330,
+            "x": 249,
+            "y": 331,
             "size": 13,
             "enable": true,
             "font": "Arial",
@@ -75,8 +75,8 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 263,
-            "y": 434,
+            "x": 250,
+            "y": 435,
             "size": 19,
             "enable": true,
             "font": "Times New Roman",
