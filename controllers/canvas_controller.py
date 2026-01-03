@@ -1,4 +1,3 @@
-# controllers/canvas_controller.py
 from PIL import Image, ImageTk, ImageFont, ImageDraw
 import tkinter as tk
 from helpers.font_manager import FontManager
@@ -8,241 +7,347 @@ class CanvasController:
         self.router = router
         self.model = router.model
         
-        # --- QUẢN LÝ TRẠNG THÁI HIỂN THỊ (VIEW STATE) ---
-        self.tk_image = None    # Biến giữ ảnh để Tkinter không bị Garbage Collection xóa mất
-        self.sig_refs = {}      # Lưu tham chiếu các ảnh chữ ký nhỏ (tránh lỗi mất ảnh)
+        self.tk_image = None    
+        self.sig_refs = {}      
+        self.scale_factor = 1.0     
+        self.zoom_multiplier = 0.8  
         
-        # --- CÁC BIẾN TỌA ĐỘ VÀ TỶ LỆ ---
-        self.scale_factor = 1.0     # Tỷ lệ thu phóng hiện tại của ảnh so với ảnh gốc (VD: 0.5 là nhỏ đi một nửa)
-        self.zoom_multiplier = 1.0  # Hệ số zoom do người dùng lăn chuột
-        self.img_origin_x = 0       # Tọa độ X góc trên cùng bên trái của ảnh nền trên Canvas
-        self.img_origin_y = 0       # Tọa độ Y góc trên cùng bên trái của ảnh nền trên Canvas
-        
-        # --- TRẠNG THÁI KÉO THẢ (DRAG STATE) ---
-        self.drag_data = {"x": 0, "y": 0, "item": None}
+        self.img_origin_x = 0       
+        self.img_origin_y = 0       
+        self.pan_offset_x = 0
+        self.pan_offset_y = 0
+
+        self.orig_w = 0
+        self.orig_h = 0
+
+        self.view = None 
+        self.drag_data = {"x": 0, "y": 0, "item": None, "mode": None}
+        self.text_img_refs = [] 
 
     def on_resize(self, event):
-        """
-        Sự kiện: Khi người dùng thay đổi kích thước cửa sổ phần mềm.
-        Hành động: Vẽ lại toàn bộ để ảnh tự động co giãn vừa khung.
-        """
         self.render()
 
     def render(self):
-        """
-        HÀM VẼ CHÍNH (QUAN TRỌNG NHẤT)
-        Nhiệm vụ: Xóa canvas, tính toán tỷ lệ ảnh, vẽ ảnh nền và vẽ các trường dữ liệu lên trên.
-        """
+        if not self.router.view: return
         canvas = self.router.view.p_right.canvas
-        canvas.delete("all") # Xóa sạch màn hình trước khi vẽ mới
+        canvas.delete("all") 
+        self.text_img_refs = [] 
         
-        # Nếu chưa chọn ảnh phôi thì hiện thông báo
-        if not self.model.template_path:
-            w = canvas.winfo_width()
-            h = canvas.winfo_height()
-            canvas.create_text(w/2, h/2, text="Vui lòng chọn ảnh phôi", fill="white", font=("Segoe UI", 14))
-            return
-
-        # 1. Load ảnh gốc từ đường dẫn
-        try:
-            pil_img = Image.open(self.model.template_path)
-        except Exception:
-            return
-
-        # Lấy kích thước khung hiển thị (Canvas)
+        # 1. Tính toán kích thước Canvas
         cw = canvas.winfo_width()
         ch = canvas.winfo_height()
-        
-        # Fix lỗi: Khi mới mở app, kích thước canvas có thể bị trả về 1x1, gán cứng để không lỗi chia cho 0
         if cw < 50: cw = 800
         if ch < 50: ch = 600
-        
-        iw, ih = pil_img.size
-        
-        # --- THUẬT TOÁN "FIT IMAGE": Tự động vừa khít màn hình ---
-        # Tìm tỷ lệ nhỏ nhất giữa chiều rộng và chiều cao để ảnh nằm trọn trong khung
-        # 0.96 là nhân hệ số để chừa lại 1 chút viền trống cho đẹp
-        base_scale = min(cw/iw, ch/ih) * 0.96
-        
-        # Scale thực tế = Scale cơ bản (Fit) * Scale người dùng lăn chuột (Zoom)
-        self.scale_factor = base_scale * self.zoom_multiplier
-        
-        # Kích thước mới của ảnh sau khi scale
-        nw, nh = int(iw * self.scale_factor), int(ih * self.scale_factor)
-        
-        # Resize ảnh dùng thuật toán LANCZOS (chất lượng cao nhất, tránh răng cưa)
-        self.tk_image = ImageTk.PhotoImage(pil_img.resize((nw, nh), Image.Resampling.LANCZOS))
-        
-        # --- TÍNH TỌA ĐỘ TRUNG TÂM ---
-        # Mục đích: Luôn đặt ảnh nằm chính giữa vùng đen của Canvas
-        cx, cy = cw//2, ch//2
-        self.img_origin_x = cx - nw//2  # Lưu lại gốc X để dùng tính toán vị trí text sau này
-        self.img_origin_y = cy - nh//2  # Lưu lại gốc Y
-        
-        # Vẽ ảnh nền
-        canvas.create_image(cx, cy, image=self.tk_image, anchor="center")
-        
-        # 2. Vẽ các trường thông tin (Tên, ngày sinh, ảnh thẻ...) đè lên ảnh nền
-        if self.model.df is not None and not self.model.df.empty:
-            self._render_overlay(canvas)
+        cx, cy = cw // 2, ch // 2 
 
-    def _render_overlay(self, canvas):
-        """
-        Hàm phụ trợ: Vẽ text và ảnh con (chữ ký/ảnh thẻ) lên vị trí đã cấu hình.
-        """
-        idx = self.router.current_idx # Người thứ mấy trong danh sách
-        row = self.model.df.iloc[idx] # Dữ liệu của người đó
-        config = self.model.get_effective_config(idx) # Lấy cấu hình (ưu tiên cấu hình riêng nếu có)
+        # 2. Lấy cấu hình khổ giấy
+        try:
+            p_mid = self.router.view.p_mid
+            paper_size = p_mid.var_paper_size.get()
+            is_landscape = False 
+        except:
+            paper_size = "A4"
+            is_landscape = False
         
-        self.sig_refs = {} # Reset danh sách tham chiếu ảnh
+        SIZE_MAP = {"A4": (595, 842), "A5": (420, 595), "A6": (298, 420)}
+        w_base, h_base = SIZE_MAP.get(paper_size, (595, 842))
+
+        if is_landscape: paper_w, paper_h = h_base, w_base
+        else: paper_w, paper_h = w_base, h_base
+
+        disp_paper_w = int(paper_w * self.zoom_multiplier)
+        disp_paper_h = int(paper_h * self.zoom_multiplier)
+
+        paper_x1 = cx + self.pan_offset_x - disp_paper_w // 2
+        paper_y1 = cy + self.pan_offset_y - disp_paper_h // 2
+        paper_x2 = paper_x1 + disp_paper_w
+        paper_y2 = paper_y1 + disp_paper_h
+
+        # 3. Vẽ nền giấy
+        canvas.create_rectangle(paper_x1 + 5, paper_y1 + 5, paper_x2 + 5, paper_y2 + 5, fill="#2f3640", outline="", tags="bg_shadow")
+        canvas.create_rectangle(paper_x1, paper_y1, paper_x2, paper_y2, fill="white", outline="#bdc3c7", width=2, tags="draggable_paper")
+
+        self.img_origin_x = paper_x1
+        self.img_origin_y = paper_y1
+        self.scale_factor = self.zoom_multiplier
+        self.orig_w = paper_w 
+        self.orig_h = paper_h
+
+        # 4. Vẽ ảnh phôi (Template)
+        if self.model.template_path:
+            try:
+                pil_img = Image.open(self.model.template_path)
+                self.orig_w, self.orig_h = pil_img.size 
+                
+                # Xoay ảnh theo cấu hình
+                angle = self.router.template_rotation
+                if angle == 90: pil_img = pil_img.transpose(Image.ROTATE_270)
+                elif angle == 180: pil_img = pil_img.transpose(Image.ROTATE_180)
+                elif angle == 270: pil_img = pil_img.transpose(Image.ROTATE_90)
+
+                iw, ih = pil_img.size
+                fit_ratio = min(paper_w / iw, paper_h / ih)
+                self.scale_factor = fit_ratio * self.zoom_multiplier
+                
+                final_w = int(iw * self.scale_factor)
+                final_h = int(ih * self.scale_factor)
+
+                if final_w > 0 and final_h > 0:
+                    img_resized = pil_img.resize((final_w, final_h), Image.Resampling.LANCZOS)
+                    self.tk_image = ImageTk.PhotoImage(img_resized)
+                    
+                    self.img_origin_x = paper_x1 + (disp_paper_w - final_w) // 2
+                    self.img_origin_y = paper_y1 + (disp_paper_h - final_h) // 2
+                    
+                    canvas.create_image(self.img_origin_x, self.img_origin_y, image=self.tk_image, anchor="nw", tags="draggable_paper")
+
+            except Exception as e:
+                print(f"Render Error: {e}")
+        else:
+            canvas.create_text(cx, cy, text="Chưa chọn ảnh phôi", fill="#bdc3c7", font=("Arial", 14), justify="center")
+
+        # 5. Vẽ dữ liệu Overlay
+        if self.model.df is not None and not self.model.df.empty:
+            self._render_overlay(canvas, paper_x1, paper_y1, paper_x2, paper_y2)
+
+    # --- HÀM MỚI: TẠO ẢNH PLACEHOLDER ĐẸP HƠN ---
+    def _create_placeholder_image(self, w, h, text="Vị trí ảnh"):
+        # Tạo ảnh nền trong suốt hoặc màu nhạt
+        # RGBA: (R, G, B, Alpha). Alpha=50 là mờ mờ
+        img = Image.new('RGBA', (w, h), (200, 230, 255, 100)) 
+        draw = ImageDraw.Draw(img)
+        
+        # Vẽ viền đẹp (Màu xanh dương đậm hơn)
+        draw.rectangle([0, 0, w-1, h-1], outline="#2980b9", width=2)
+        
+        # Vẽ chữ ở giữa
+        try:
+            # Cố gắng load font đẹp, nếu không thì dùng mặc định
+            font_size = int(min(w, h) / 4) # Chữ to bằng 1/4 chiều cao ảnh
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except:
+            font = ImageFont.load_default()
+
+        # Tính toán để chữ nằm giữa
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        draw.text(((w - text_w) / 2, (h - text_h) / 2), text, fill="#2980b9", font=font)
+        
+        return img
+
+    def _render_overlay(self, canvas, px1, py1, px2, py2):
+        idx = self.router.current_idx
+        if idx >= len(self.model.df): return
+
+        row = self.model.df.iloc[idx]
+        config = self.model.get_effective_config(idx)
+        self.sig_refs = {}
+        
+        angle = self.router.template_rotation # Góc xoay hiện tại (0, 90, 180, 270)
 
         for col, cfg in config.items():
-            if not cfg.get("enable", False): continue # Nếu trường này bị tắt thì bỏ qua
+            if not cfg.get("enable", False): continue
             
-            # --- CÔNG THỨC CHUYỂN ĐỔI TỌA ĐỘ (QUAN TRỌNG) ---
-            # Tọa độ màn hình = Gốc ảnh + (Tọa độ thực tế trên giấy * Tỷ lệ scale)
-            sx = self.img_origin_x + cfg["x"] * self.scale_factor
-            sy = self.img_origin_y + cfg["y"] * self.scale_factor
+            raw_x, raw_y = cfg["x"], cfg["y"]
+            rot_x, rot_y = self._get_rotated_coords(raw_x, raw_y)
             
-            # Tạo tag ID để nhận diện vật thể này thuộc cột nào (VD: "col:hoten")
+            sx = self.img_origin_x + rot_x * self.scale_factor
+            sy = self.img_origin_y + rot_y * self.scale_factor
+            
             tag_id = f"col:{col}"
             
-            # --- TRƯỜNG HỢP LÀ ẢNH (Chữ ký, Ảnh thẻ) ---
+            # --- XỬ LÝ ẢNH (CHỮ KÝ / PLACEHOLDER) ---
             if col == "signature_img":
-                w = int(cfg.get("w", 150) * self.scale_factor) # Scale cả chiều rộng
-                h = int(cfg.get("h", 80) * self.scale_factor)  # Scale cả chiều cao
+                w = int(cfg.get("w", 150) * self.scale_factor)
+                h = int(cfg.get("h", 80) * self.scale_factor)
                 
-                sig = self.model.get_signature_image(idx)
-                if sig:
-                    # Nếu có ảnh: Resize và vẽ ảnh
-                    sig_resized = sig.resize((w, h), Image.Resampling.LANCZOS)
-                    self.sig_refs[col] = ImageTk.PhotoImage(sig_resized)
-                    
-                    # Vẽ ảnh
-                    canvas.create_image(sx, sy, image=self.sig_refs[col], anchor="center", tags=("draggable", tag_id))
-                    # Vẽ thêm khung nét đứt màu xanh bao quanh để dễ nhìn
-                    canvas.create_rectangle(sx - w/2, sy - h/2, sx + w/2, sy + h/2, outline="blue", dash=(2, 4), tags=("draggable", tag_id))
+                # Lấy ảnh thật
+                sig_img = self.model.get_signature_image(idx)
+                
+                # Nếu không có ảnh thật, tạo ảnh giả (Placeholder)
+                if not sig_img:
+                    sig_img = self._create_placeholder_image(w, h, text="Chữ ký")
                 else:
-                    # Nếu KHÔNG có ảnh: Vẽ khung đỏ báo hiệu "Chỗ để ảnh"
-                    canvas.create_rectangle(sx - w/2, sy - h/2, sx + w/2, sy + h/2, outline="red", width=2, dash=(5, 2), tags=("draggable", tag_id))
-                    canvas.create_text(sx, sy, text="CHỖ ĐỂ ẢNH", fill="red", font=("Segoe UI", 8, "bold"), tags=("draggable", tag_id))
-            
-            # --- TRƯỜNG HỢP LÀ TEXT (Họ tên, ngày sinh...) ---
+                    sig_img = sig_img.resize((w, h), Image.Resampling.LANCZOS)
+
+                # --- [FIX QUAN TRỌNG] XOAY ẢNH THEO PHÔI ---
+                if angle == 90: 
+                    sig_img = sig_img.transpose(Image.ROTATE_270) # PIL xoay ngược chiều kim đồng hồ
+                elif angle == 180: 
+                    sig_img = sig_img.transpose(Image.ROTATE_180)
+                elif angle == 270: 
+                    sig_img = sig_img.transpose(Image.ROTATE_90)
+
+                # Chuyển sang PhotoImage để hiển thị
+                self.sig_refs[col] = ImageTk.PhotoImage(sig_img)
+                
+                # Vẽ ảnh lên canvas (Dù là ảnh thật hay placeholder đều vẽ như nhau)
+                canvas.create_image(sx, sy, image=self.sig_refs[col], anchor="center", tags=("draggable", tag_id))
+                
+                # Vẽ thêm viền mờ xung quanh để dễ nhìn vùng chọn khi kéo
+                # Lấy kích thước ảnh sau khi xoay để vẽ viền cho khớp
+                disp_w = sig_img.width
+                disp_h = sig_img.height
+                canvas.create_rectangle(sx-disp_w/2, sy-disp_h/2, sx+disp_w/2, sy+disp_h/2, outline="#3498db", dash=(2, 4), tags=("draggable", tag_id))
+
+            # --- XỬ LÝ TEXT (Giữ nguyên) ---
             else:
                 val = str(row.get(col, "")).replace("nan", "")
-                if "00:00:00" in val: val = val.split(" ")[0] # Cắt giờ nếu là ngày tháng
-                if cfg.get("upper", False): val = val.upper() # Viết hoa nếu chọn
+                if "00:00:00" in val: val = val.split(" ")[0]
+                if cfg.get("upper", False): val = val.upper()
                 
-                f_sz = int(cfg.get("size", 30) * self.scale_factor) # Scale cỡ chữ
-                if f_sz < 1: f_sz = 1
+                display_val = val if val.strip() != "" else f"[{col}]"
+                is_placeholder = (val.strip() == "")
 
-                # Tạo font Tkinter
-                tk_font = (cfg.get("font", "Arial"), -f_sz, "bold" if cfg.get("bold", False) else "normal")
+                f_size = cfg.get("size", 30)
+                font_path = FontManager.get_path(cfg.get("font", "Arial"), cfg.get("bold", False))
+                try: pil_font = ImageFont.truetype(font_path, f_size)
+                except: pil_font = ImageFont.load_default()
+
+                dummy_img = Image.new('RGBA', (1, 1))
+                dummy_draw = ImageDraw.Draw(dummy_img)
+                bbox = dummy_draw.textbbox((0, 0), display_val, font=pil_font)
+                text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
                 
-                # Kiểm tra xem trường này có đang bị "Chỉnh riêng" không
-                is_custom = (idx in self.model.custom_configs and col in self.model.custom_configs[idx])
+                txt_img = Image.new('RGBA', (text_w + 10, text_h + 10), (255, 255, 255, 0))
+                d = ImageDraw.Draw(txt_img)
                 
-                # Logic màu sắc: Nếu đang ở chế độ chỉnh từng người VÀ trường này đã bị sửa riêng -> hiện màu đỏ để cảnh báo
-                text_color = cfg.get("color", "black")
-                # if is_custom and self.router.edit_mode.get() == "individual":
-                #     text_color = "red"
+                fill_color = cfg.get("color", "black") if not is_placeholder else "#bdc3c7"
+                d.text((5, 5), display_val, font=pil_font, fill=fill_color)
+                
+                if angle == 90: txt_img = txt_img.rotate(270, expand=True)
+                elif angle == 180: txt_img = txt_img.rotate(180, expand=True)
+                elif angle == 270: txt_img = txt_img.rotate(90, expand=True)
+                
+                final_w = int(txt_img.width * self.scale_factor)
+                final_h = int(txt_img.height * self.scale_factor)
+                
+                if final_w > 0 and final_h > 0:
+                    txt_img = txt_img.resize((final_w, final_h), Image.Resampling.LANCZOS)
+                
+                tk_txt_img = ImageTk.PhotoImage(txt_img)
+                self.text_img_refs.append(tk_txt_img)
+                
+                canvas.create_image(sx, sy, image=tk_txt_img, anchor="center", tags=("draggable", tag_id))
+                canvas.create_rectangle(sx-final_w/2, sy-final_h/2, sx+final_w/2, sy+final_h/2, outline="#bdc3c7", dash=(1, 4), tags=("draggable", tag_id), state="hidden")
 
-                canvas.create_text(sx, sy, text=val, font=tk_font, fill=text_color, anchor="center", tags=("draggable", tag_id))
-
-    def handle_zoom(self, event):
-        """Xử lý lăn chuột để zoom ra/vào"""
-        if not self.tk_image: return
-        
-        if event.delta > 0: self.zoom_multiplier *= 1.1 # Lăn lên: Phóng to
-        else: self.zoom_multiplier /= 1.1               # Lăn xuống: Thu nhỏ
-        
-        # Giới hạn zoom (không quá nhỏ, không quá to)
-        if self.zoom_multiplier < 0.1: self.zoom_multiplier = 0.1
-        if self.zoom_multiplier > 5.0: self.zoom_multiplier = 5.0
-        self.render() # Vẽ lại với tỷ lệ mới
-
+    # --- DRAG & DROP LOGIC (GIỮ NGUYÊN TỪ PHẦN TRƯỚC) ---
     def drag_start(self, event):
-        """Bắt đầu bấm chuột vào vật thể để kéo"""
         canvas = self.router.view.p_right.canvas
-        # Tìm vật thể gần nhất tại vị trí chuột click
+        self.drag_data = {"x": event.x, "y": event.y, "item": None, "mode": None}
         items = canvas.find_closest(event.x, event.y)
         if items:
-            tags = canvas.gettags(items[0])
-            if "draggable" in tags: # Chỉ cho kéo những vật có tag "draggable"
-                self.drag_data = {"x": event.x, "y": event.y, "item": items[0]}
-                
-                # Tìm xem vật thể đó ứng với cột dữ liệu nào (dựa vào tag "col:...")
+            item_id = items[0]
+            tags = canvas.gettags(item_id)
+            if "draggable" in tags:
+                self.drag_data["item"] = item_id
+                self.drag_data["mode"] = "item"
                 for t in tags:
                     if t.startswith("col:"):
                         col_name = t.split(":")[1]
-                        self.router.select_field(col_name) # Báo cho menu bên trái biết đang chọn trường nào
+                        if self.router.selected_field != col_name:
+                            self.router.select_field(col_name)
+                            new_items = canvas.find_withtag(t)
+                            if new_items: self.drag_data["item"] = new_items[0]
                         break
+                return
+            items_under = canvas.find_overlapping(event.x, event.y, event.x, event.y)
+            for i in items_under:
+                t = canvas.gettags(i)
+                if "draggable_paper" in t or "bg_shadow" in t:
+                    self.drag_data["mode"] = "pan"
+                    return
 
     def drag_motion(self, event):
-        """Di chuyển chuột (Đang giữ nút click)"""
-        if self.drag_data["item"]:
-            # Tính khoảng cách chuột đã di chuyển so với vị trí cũ
-            dx = event.x - self.drag_data["x"]
-            dy = event.y - self.drag_data["y"]
-            canvas = self.router.view.p_right.canvas
-            
-            # --- FIX LOGIC DI CHUYỂN ---
-            # Thay vì chỉ di chuyển `item` (ví dụ chỉ cái khung hình chữ nhật), 
-            # ta tìm `tag_id` để di chuyển TOÀN BỘ nhóm liên quan (cả khung lẫn ảnh bên trong).
+        mode = self.drag_data.get("mode")
+        if not mode: return
+        dx = event.x - self.drag_data["x"]
+        dy = event.y - self.drag_data["y"]
+        canvas = self.router.view.p_right.canvas
+        if mode == "pan":
+            self.pan_offset_x += dx
+            self.pan_offset_y += dy
+            self.render() 
+        elif mode == "item":
             if self.router.selected_field:
                 tag_id = f"col:{self.router.selected_field}"
-                canvas.move(tag_id, dx, dy) # Di chuyển cả nhóm
-            else:
-                canvas.move(self.drag_data["item"], dx, dy) # Fallback
-                
-            # Cập nhật lại vị trí chuột hiện tại để tính toán cho bước tiếp theo
-            self.drag_data.update({"x": event.x, "y": event.y})
+                canvas.move(tag_id, dx, dy)
+            elif self.drag_data["item"]:
+                canvas.move(self.drag_data["item"], dx, dy)
+        self.drag_data.update({"x": event.x, "y": event.y})
 
     def drag_end(self, event):
-        """
-        Thả chuột ra (Kết thúc kéo) -> Quan trọng nhất để lưu tọa độ
-        """
-        if self.drag_data["item"]:
-            canvas = self.router.view.p_right.canvas
-            coords = canvas.coords(self.drag_data["item"])
-            
-            # Lấy tọa độ tâm của vật thể sau khi thả
-            # Nếu là Text/Image (2 tọa độ x,y) hoặc Rectangle (4 tọa độ x1,y1,x2,y2)
-            if len(coords) == 2: cx, cy = coords
-            elif len(coords) == 4: cx, cy = (coords[0]+coords[2])/2, (coords[1]+coords[3])/2
-            else: cx, cy = 0, 0
-            
-            # Chỉ lưu nếu đang chọn một trường cụ thể
-            if self.router.selected_field and self.scale_factor > 0:
-                
-                # --- TÍNH TOÁN NGƯỢC (Màn hình -> Thực tế) ---
-                # Real_X = (Màn hình - Gốc ảnh) / Tỷ lệ scale
-                real_x = int((cx - self.img_origin_x) / self.scale_factor)
-                real_y = int((cy - self.img_origin_y) / self.scale_factor)
-                
-                col_name = self.router.selected_field
+        mode = self.drag_data.get("mode")
+        if mode == "pan" or not self.drag_data["item"]:
+            self.drag_data["item"] = None
+            return
+        item_id = self.drag_data["item"]
+        canvas = self.router.view.p_right.canvas
+        try:
+            tags = canvas.gettags(item_id)
+        except: return
+        col_name = None
+        for t in tags:
+            if t.startswith("col:"):
+                col_name = t.split(":")[1]
+                break
+        if col_name:
+            try:
+                cur_coords = canvas.coords(item_id)
+                # Vì giờ tất cả đều là Image (có 1 điểm neo ở giữa)
+                # Code cũ hình chữ nhật có 4 điểm, nhưng giờ ta dùng Image hết nên logic đơn giản hơn
+                if len(cur_coords) == 2:
+                    screen_x, screen_y = cur_coords[0], cur_coords[1]
+                elif len(cur_coords) == 4: # Phòng hờ vẫn còn hình chữ nhật
+                    screen_x = (cur_coords[0] + cur_coords[2]) / 2
+                    screen_y = (cur_coords[1] + cur_coords[3]) / 2
+                else: return
 
-                # 1. Lưu vào Router (Router sẽ quyết định lưu vào Global hay Individual config)
-                self.router.update_field_config("x", real_x)
-                self.router.update_field_config("y", real_y)
+                rot_x = (screen_x - self.img_origin_x) / self.scale_factor
+                rot_y = (screen_y - self.img_origin_y) / self.scale_factor
+                raw_x, raw_y = self._get_unrotated_coords(rot_x, rot_y)
                 
-                # 2. --- BUG FIX: CHỐNG NHẢY VỊ TRÍ (SNAP-BACK) ---
-                # Vấn đề: Nếu ta đang chỉnh "Tất cả" (Global), nhưng trang hiện tại đã lỡ có cấu hình riêng (Individual),
-                # thì hàm render() sẽ ưu tiên lấy cấu hình riêng cũ -> Vật thể nhảy lại chỗ cũ.
-                # Giải pháp: Ép buộc cập nhật luôn cấu hình riêng của trang hiện tại (nếu có) bằng tọa độ mới.
+                self.router.update_field_config("x", int(raw_x))
+                self.router.update_field_config("y", int(raw_y))
+
                 try:
                     current_idx = self.router.current_idx
-                    # Kiểm tra: Nếu trang này ĐANG có config riêng
                     if current_idx in self.model.custom_configs:
                         if col_name in self.model.custom_configs[current_idx]:
-                            # Ghi đè tọa độ mới vào config riêng ngay lập tức
-                            self.model.custom_configs[current_idx][col_name]['x'] = real_x
-                            self.model.custom_configs[current_idx][col_name]['y'] = real_y
-                            print(f"Đã cập nhật nóng vị trí (Hot-fix) cho index {current_idx}")
-                except Exception as e:
-                    print(f"Lỗi cập nhật local config: {e}")
+                            self.model.custom_configs[current_idx][col_name]['x'] = int(raw_x)
+                            self.model.custom_configs[current_idx][col_name]['y'] = int(raw_y)
+                except: pass
                 
-                # 3. Vẽ lại toàn bộ để đảm bảo mọi thứ đồng bộ hiển thị
-                self.render()
-                
+                if self.router.selected_field == col_name:
+                    self.router.load_field_props_to_ui()
+            except Exception as e:
+                print(f"Lỗi drag_end: {e}")
+
+        self.render()
         self.drag_data["item"] = None
+
+    def _get_rotated_coords(self, x, y):
+        angle = self.router.template_rotation
+        w, h = self.orig_w, self.orig_h
+        if angle == 0: return x, y
+        elif angle == 90: return h - y, x
+        elif angle == 180: return w - x, h - y
+        elif angle == 270: return y, w - x
+        return x, y
+
+    def _get_unrotated_coords(self, rot_x, rot_y):
+        angle = self.router.template_rotation
+        w, h = self.orig_w, self.orig_h
+        if angle == 0: return rot_x, rot_y
+        elif angle == 90: return rot_y, h - rot_x
+        elif angle == 180: return w - rot_x, h - rot_y
+        elif angle == 270: return w - rot_y, rot_x
+        return rot_x, rot_y
+
+    def handle_zoom(self, event):
+        if event.delta > 0: self.zoom_multiplier *= 1.1
+        else: self.zoom_multiplier /= 1.1
+        if self.zoom_multiplier < 0.2: self.zoom_multiplier = 0.2
+        if self.zoom_multiplier > 3.0: self.zoom_multiplier = 3.0
+        self.render()

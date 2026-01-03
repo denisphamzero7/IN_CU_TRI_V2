@@ -1,10 +1,10 @@
 {
     "global": {
         "signature_img": {
-            "x": 466,
-            "y": 613,
+            "x": 470,
+            "y": 620,
             "w": 150,
-            "h": 54,
+            "h": 59,
             "enable": true,
             "type": "image"
         },
@@ -31,7 +31,7 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 249,
+            "x": 242,
             "y": 331,
             "size": 13,
             "enable": true,
@@ -53,8 +53,8 @@
             "upper": false
         },
         "Giới tính": {
-            "x": 308,
-            "y": 359,
+            "x": 318,
+            "y": 354,
             "size": 12,
             "enable": true,
             "font": "Times New Roman",
@@ -75,8 +75,8 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 250,
-            "y": 435,
+            "x": 251,
+            "y": 430,
             "size": 19,
             "enable": true,
             "font": "Times New Roman",
@@ -108,8 +108,8 @@
             "upper": false
         },
         "Thành phố": {
-            "x": 221,
-            "y": 571,
+            "x": 222,
+            "y": 576,
             "size": 13,
             "enable": true,
             "font": "Arial",
@@ -119,13 +119,15 @@
             "upper": false
         },
         "Người ký": {
-            "x": 465,
-            "y": 659,
-            "size": 30,
+            "x": 472,
+            "y": 662,
+            "size": 24,
             "enable": true,
             "font": "Arial",
             "color": "Black",
-            "type": "text"
+            "type": "text",
+            "bold": false,
+            "upper": false
         },
         "Hình ảnh chữ ký": {
             "x": 50,
@@ -137,8 +139,8 @@
             "type": "text"
         },
         "Xã/phường/đặc khu": {
-            "x": 216,
-            "y": 549,
+            "x": 332,
+            "y": 503,
             "size": 21,
             "enable": true,
             "font": "Arial",
@@ -149,28 +151,6 @@
         }
     },
     "custom": {
-        "0": {
-            "signature_img": {
-                "x": 466,
-                "y": 613,
-                "w": 150,
-                "h": 54,
-                "enable": true,
-                "type": "image",
-                "path": "C:/Users/Admin/Documents/TINTUC/alink1.jpg"
-            },
-            "Xã/phường/đặc khu": {
-                "x": 312,
-                "y": 505,
-                "size": 17,
-                "enable": true,
-                "font": "Times New Roman",
-                "color": "Black",
-                "type": "text",
-                "bold": false,
-                "upper": false
-            }
-        },
         "50": {
             "Thành phố": {
                 "x": 220,
@@ -195,6 +175,148 @@
                 "type": "text",
                 "bold": true,
                 "upper": false
+            }
+        },
+        "2": {
+            "Giới tính": {
+                "x": 318,
+                "y": 354,
+                "size": 16,
+                "enable": true,
+                "font": "Times New Roman",
+                "color": "Black",
+                "type": "text",
+                "bold": false,
+                "upper": false
+            },
+            "signature_img": {
+                "x": 473,
+                "y": 616,
+                "w": 150,
+                "h": 54,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/cchan.png"
+            }
+        },
+        "72": {
+            "signature_img": {
+                "x": 458,
+                "y": 627,
+                "w": 150,
+                "h": 54,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/hktn1.jpg"
+            }
+        },
+        "64": {
+            "signature_img": {
+                "x": 458,
+                "y": 623,
+                "w": 150,
+                "h": 54,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/alink1.jpg"
+            }
+        },
+        "39": {
+            "signature_img": {
+                "x": 484,
+                "y": 626,
+                "w": 150,
+                "h": 54,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/hktn1.jpg"
+            }
+        },
+        "63": {
+            "signature_img": {
+                "x": 484,
+                "y": 626,
+                "w": 150,
+                "h": 54,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/cchan.png"
+            }
+        },
+        "6": {
+            "signature_img": {
+                "x": 460,
+                "y": 623,
+                "w": 150,
+                "h": 57,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/hktn1.jpg"
+            }
+        },
+        "1": {
+            "signature_img": {
+                "x": 473,
+                "y": 620,
+                "w": 150,
+                "h": 55,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/alink1.jpg"
+            }
+        },
+        "25": {
+            "signature_img": {
+                "x": 470,
+                "y": 721,
+                "w": 150,
+                "h": 55,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/hktn2.jpg"
+            }
+        },
+        "0": {
+            "signature_img": {
+                "x": 470,
+                "y": 620,
+                "w": 150,
+                "h": 59,
+                "enable": true,
+                "type": "image",
+                "path": "C:/Users/Admin/Documents/TINTUC/cchan.png"
+            },
+            "Số cccd": {
+                "x": 254,
+                "y": 430,
+                "size": 19,
+                "enable": true,
+                "font": "Times New Roman",
+                "color": "Black",
+                "type": "text",
+                "bold": false,
+                "upper": false
+            },
+            "Xã/phường/đặc khu": {
+                "x": 333,
+                "y": 500,
+                "size": 21,
+                "enable": true,
+                "font": "Arial",
+                "color": "Black",
+                "type": "text",
+                "bold": false,
+                "upper": false
+            }
+        },
+        "23": {
+            "signature_img": {
+                "x": 470,
+                "y": 620,
+                "w": 150,
+                "h": 55,
+                "enable": true,
+                "type": "image"
             }
         }
     }

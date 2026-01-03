@@ -1,8 +1,6 @@
-# views/view_mid.py
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-# 1. Import hàm helper chuẩn của bạn
 from helpers.ui_helpers import create_button 
 
 class MidPanelView(ttk.Frame):
@@ -13,7 +11,7 @@ class MidPanelView(ttk.Frame):
         self.parent = parent
         self.router = router
         
-        # --- 1. TOOLBAR ---
+        # --- 1. TOOLBAR (SỬ DỤNG GRID LAYOUT) ---
         self._setup_toolbar()
 
         # --- 2. TREEVIEW CONTAINER ---
@@ -24,14 +22,13 @@ class MidPanelView(ttk.Frame):
         self.tree_container.columnconfigure(0, weight=1)
 
         self.cols_def = [
-            ("stt", "STT", 50), 
-            ("name", "Họ và Tên", 200), 
-            ("gender", "Giới", 70), 
-            ("cccd", "CCCD/CMND", 120), 
+            ("stt", "STT", 40), 
+            ("name", "Họ và Tên", 180), 
+            ("gender", "Giới", 60), 
+            ("cccd", "CCCD/CMND", 110), 
             ("area", "Khu vực bỏ phiếu", 150)
         ]
         
-        # Treeview vẫn giữ nguyên vì create_button chỉ dùng cho nút
         self.tree = ttk.Treeview(
             self.tree_container, 
             columns=[c[0] for c in self.cols_def], 
@@ -74,38 +71,78 @@ class MidPanelView(ttk.Frame):
         self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
     def _setup_toolbar(self):
+        # Tạo Container chính cho toolbar
         toolbar = ttk.Frame(self)
         toolbar.pack(fill=X, pady=(0, 10))
         
-        # -- NHÓM TRÁI --
-        # 2. SỬ DỤNG HÀM create_button
-        # Code gọn hơn, dễ đọc hơn
-        create_button(toolbar, "☑ Tất cả", self.router.select_all, style="primary-outline").pack(side=LEFT, padx=(0, 5))
-        create_button(toolbar, "☐ Bỏ chọn", self.router.deselect_all, style="secondary-outline").pack(side=LEFT)
-        
-        ttk.Separator(toolbar, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+        # --- CẤU HÌNH LƯỚI (GRID CONFIGURATION) ---
+        # Cột 4 (Bộ lọc) sẽ có weight=1 để tự động co giãn chiếm chỗ trống
+        # Các cột khác sẽ giữ nguyên kích thước
+        toolbar.columnconfigure(4, weight=1) 
 
-        # Bộ lọc
-        ttk.Label(toolbar, text="Khu vực:").pack(side=LEFT)
-        self.cbb_filter = ttk.Combobox(toolbar, state="readonly", width=15)
-        self.cbb_filter.pack(side=LEFT, padx=5)
+        # --- CỘT 0: NHÓM CHỌN ---
+        fr_select = ttk.Frame(toolbar)
+        fr_select.grid(row=0, column=0, sticky="w", padx=(0, 5))
+        
+        # Bỏ width cứng, dùng padding nội bộ (ipadx) để nút tự đẹp
+        create_button(fr_select, "☑ Tất cả", self.router.select_all, style="primary-outline").pack(side=LEFT, padx=(0, 2))
+        create_button(fr_select, "☐ Bỏ", self.router.deselect_all, style="secondary-outline").pack(side=LEFT)
+
+        # --- CỘT 1: VÁCH NGĂN ---
+        ttk.Separator(toolbar, orient=VERTICAL).grid(row=0, column=1, sticky="ns", padx=5)
+
+        # --- CỘT 2: CẤU HÌNH GIẤY ---
+        fr_config = ttk.Frame(toolbar)
+        fr_config.grid(row=0, column=2, sticky="w", padx=5)
+
+        ttk.Label(fr_config, text="Khổ:").pack(side=LEFT)
+        self.var_paper_size = tk.StringVar(value="A4")
+        self.cbb_paper_size = ttk.Combobox(
+            fr_config, 
+            textvariable=self.var_paper_size,
+            values=["A4", "A5", "A6"], 
+            width=3, # Nhỏ gọn
+            state="readonly",
+            bootstyle="warning"
+        )
+        self.cbb_paper_size.pack(side=LEFT, padx=(2, 5))
+        self.cbb_paper_size.bind("<<ComboboxSelected>>", self.router.on_paper_config_change)
+
+        # Nút Xoay Ảnh (Đặt ngay đây cho gọn)
+        create_button(
+            fr_config, 
+            "↻ Xoay", 
+            self.router.rotate_template_right, 
+            style="info-outline"
+        ).pack(side=LEFT, padx=0)
+
+        # --- CỘT 3: VÁCH NGĂN ---
+        ttk.Separator(toolbar, orient=VERTICAL).grid(row=0, column=3, sticky="ns", padx=5)
+
+        # --- CỘT 4: BỘ LỌC (CO GIÃN LINH HOẠT) ---
+        # sticky="ew" giúp combobox kéo dài ra hết mức có thể
+        self.cbb_filter = ttk.Combobox(toolbar, state="readonly") 
+        self.cbb_filter.grid(row=0, column=4, sticky="ew", padx=5)
+        self.cbb_filter.set("Lọc theo khu vực...") 
         self.cbb_filter.bind("<<ComboboxSelected>>", self.router.on_filter_change)
 
-        ttk.Separator(toolbar, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+        # --- CỘT 5: VÁCH NGĂN ---
+        ttk.Separator(toolbar, orient=VERTICAL).grid(row=0, column=5, sticky="ns", padx=5)
 
-        # Phân trang
-        create_button(toolbar, "❮", self.router.prev_page, style="secondary-outline", width=3).pack(side=LEFT)
-        
-        self.lbl_page_info = ttk.Label(toolbar, text="0 / 0", width=10, anchor="center", font=("Segoe UI", 9, "bold"))
-        self.lbl_page_info.pack(side=LEFT, padx=5)
-        
-        create_button(toolbar, "❯", self.router.next_page, style="secondary-outline", width=3).pack(side=LEFT)
+        # --- CỘT 6: PHÂN TRANG ---
+        fr_page = ttk.Frame(toolbar)
+        fr_page.grid(row=0, column=6, sticky="e", padx=5)
 
-        # -- NHÓM PHẢI (Nút IN) --
-        # Nút IN dùng style="danger"
-        create_button(toolbar, "🖨️ IN NGAY", self.router.start_print, style="danger", width=15).pack(side=RIGHT)
+        create_button(fr_page, "❮", self.router.prev_page, style="secondary-outline", width=2).pack(side=LEFT)
+        self.lbl_page_info = ttk.Label(fr_page, text="0/0", width=8, anchor="center", font=("Segoe UI", 9, "bold"))
+        self.lbl_page_info.pack(side=LEFT)
+        create_button(fr_page, "❯", self.router.next_page, style="secondary-outline", width=2).pack(side=LEFT)
 
-    # ... (Các hàm update_pagination_label, update_data, update_header_arrow giữ nguyên) ...
+        # --- CỘT 7: NÚT IN (LUÔN HIỆN Ở CÙNG BÊN PHẢI) ---
+        # Nút In quan trọng nên để riêng, không bị các nút khác chen lấn
+        self.btn_print = create_button(toolbar, "🖨️ IN NGAY", self.router.start_print, style="danger")
+        self.btn_print.grid(row=0, column=7, sticky="e", padx=(5, 0))
+
     def update_pagination_label(self, current, total):
         self.lbl_page_info.config(text=f"{current} / {total}")
 
