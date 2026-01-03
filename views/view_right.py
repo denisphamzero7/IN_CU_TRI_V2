@@ -15,7 +15,7 @@ class RightPanelView(ttk.Frame):
         # Màu này giúp tờ giấy trắng (Template) nổi bật lên dù ở giao diện Sáng hay Tối.
         self.canvas = tk.Canvas(
             self, 
-            bg="#57606f",      # Màu nền khu vực làm việc (Neutral Dark Grey)
+            # bg="#57606f",      # Màu nền khu vực làm việc (Neutral Dark Grey)
             cursor="fleur",    # Con trỏ dạng di chuyển
             highlightthickness=0 # Bỏ viền trắng khi focus
         )

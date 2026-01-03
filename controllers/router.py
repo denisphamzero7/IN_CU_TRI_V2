@@ -4,7 +4,8 @@ from controllers.data_controller import DataController
 from controllers.canvas_controller import CanvasController
 from controllers.print_controller import PrintController
 from ttkbootstrap.dialogs import Messagebox
-
+# Thay vì dùng Messagebox của thư viện, ta dùng MsgHelper của chính mình
+from helpers.msg_helper import MsgHelper
 class AppRouter:
     def __init__(self):
         self.model = VoterModel()
@@ -37,7 +38,7 @@ class AppRouter:
     def start_print(self): self.ctrl_print.print_batch()
     
     def exit_app(self):
-        if Messagebox.show_question("Bạn muốn thoát chương trình?", "Thoát", buttons=['No:secondary', 'Yes:primary']) == 'Yes':
+     if MsgHelper.ask_yes_no("Bạn muốn thoát chương trình?", title="Xác nhận thoát", parent=self.view):
             self.view.master.destroy()
 
     # --- Pagination Actions ---
