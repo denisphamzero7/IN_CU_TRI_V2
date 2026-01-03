@@ -139,11 +139,11 @@
             "type": "text"
         },
         "Xã/phường/đặc khu": {
-            "x": 332,
-            "y": 503,
-            "size": 21,
+            "x": 324,
+            "y": 504,
+            "size": 19,
             "enable": true,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "type": "text",
             "bold": false,
@@ -298,15 +298,10 @@
                 "upper": false
             },
             "Xã/phường/đặc khu": {
-                "x": 333,
-                "y": 500,
-                "size": 21,
+                "x": 327,
+                "y": 506,
                 "enable": true,
-                "font": "Arial",
-                "color": "Black",
-                "type": "text",
-                "bold": false,
-                "upper": false
+                "type": "text"
             }
         },
         "23": {
