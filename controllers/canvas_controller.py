@@ -1,6 +1,8 @@
 from PIL import Image, ImageTk, ImageFont, ImageDraw
 import tkinter as tk
 from helpers.font_manager import FontManager
+# --- IMPORT HELPERS MỚI ---
+from helpers.image_utils import rotate_pil_image, get_column_from_tags, create_text_image
 
 class CanvasController:
     def __init__(self, router):
@@ -23,6 +25,20 @@ class CanvasController:
         self.view = None 
         self.drag_data = {"x": 0, "y": 0, "item": None, "mode": None}
         self.text_img_refs = [] 
+
+    # --- HÀM HELPER MỚI ĐƯỢC THÊM VÀO CLASS ---
+    def screen_to_data_coords(self, screen_x, screen_y):
+        """Chuyển tọa độ click chuột trên màn hình về tọa độ lưu trong DB (đã trừ offset, zoom, xoay)"""
+        # 1. Trừ Pan và Offset gốc
+        rel_x = screen_x - self.img_origin_x
+        rel_y = screen_y - self.img_origin_y
+        
+        # 2. Chia tỉ lệ Zoom
+        rot_x = rel_x / self.scale_factor
+        rot_y = rel_y / self.scale_factor
+        
+        # 3. Đảo ngược góc xoay
+        return self._get_unrotated_coords(rot_x, rot_y)
 
     def on_resize(self, event):
         self.render()
@@ -79,11 +95,8 @@ class CanvasController:
                 pil_img = Image.open(self.model.template_path)
                 self.orig_w, self.orig_h = pil_img.size 
                 
-                # Xoay ảnh theo cấu hình
-                angle = self.router.template_rotation
-                if angle == 90: pil_img = pil_img.transpose(Image.ROTATE_270)
-                elif angle == 180: pil_img = pil_img.transpose(Image.ROTATE_180)
-                elif angle == 270: pil_img = pil_img.transpose(Image.ROTATE_90)
+                # --- UPDATE 1: DÙNG HELPER XOAY ẢNH ---
+                pil_img = rotate_pil_image(pil_img, self.router.template_rotation)
 
                 iw, ih = pil_img.size
                 fit_ratio = min(paper_w / iw, paper_h / ih)
@@ -110,30 +123,20 @@ class CanvasController:
         if self.model.df is not None and not self.model.df.empty:
             self._render_overlay(canvas, paper_x1, paper_y1, paper_x2, paper_y2)
 
-    # --- HÀM MỚI: TẠO ẢNH PLACEHOLDER ĐẸP HƠN ---
     def _create_placeholder_image(self, w, h, text="Vị trí ảnh"):
-        # Tạo ảnh nền trong suốt hoặc màu nhạt
-        # RGBA: (R, G, B, Alpha). Alpha=50 là mờ mờ
+        # (Hàm này bạn viết tốt rồi, giữ nguyên hoặc cũng có thể chuyển ra helper nếu thích)
         img = Image.new('RGBA', (w, h), (200, 230, 255, 100)) 
         draw = ImageDraw.Draw(img)
-        
-        # Vẽ viền đẹp (Màu xanh dương đậm hơn)
         draw.rectangle([0, 0, w-1, h-1], outline="#2980b9", width=2)
-        
-        # Vẽ chữ ở giữa
         try:
-            # Cố gắng load font đẹp, nếu không thì dùng mặc định
-            font_size = int(min(w, h) / 4) # Chữ to bằng 1/4 chiều cao ảnh
+            font_size = int(min(w, h) / 4)
             font = ImageFont.truetype("arial.ttf", font_size)
         except:
             font = ImageFont.load_default()
-
-        # Tính toán để chữ nằm giữa
         bbox = draw.textbbox((0, 0), text, font=font)
         text_w = bbox[2] - bbox[0]
         text_h = bbox[3] - bbox[1]
         draw.text(((w - text_w) / 2, (h - text_h) / 2), text, fill="#2980b9", font=font)
-        
         return img
 
     def _render_overlay(self, canvas, px1, py1, px2, py2):
@@ -144,7 +147,7 @@ class CanvasController:
         config = self.model.get_effective_config(idx)
         self.sig_refs = {}
         
-        angle = self.router.template_rotation # Góc xoay hiện tại (0, 90, 180, 270)
+        angle = self.router.template_rotation
 
         for col, cfg in config.items():
             if not cfg.get("enable", False): continue
@@ -162,36 +165,23 @@ class CanvasController:
                 w = int(cfg.get("w", 150) * self.scale_factor)
                 h = int(cfg.get("h", 80) * self.scale_factor)
                 
-                # Lấy ảnh thật
                 sig_img = self.model.get_signature_image(idx)
-                
-                # Nếu không có ảnh thật, tạo ảnh giả (Placeholder)
                 if not sig_img:
                     sig_img = self._create_placeholder_image(w, h, text="Chữ ký")
                 else:
                     sig_img = sig_img.resize((w, h), Image.Resampling.LANCZOS)
 
-                # --- [FIX QUAN TRỌNG] XOAY ẢNH THEO PHÔI ---
-                if angle == 90: 
-                    sig_img = sig_img.transpose(Image.ROTATE_270) # PIL xoay ngược chiều kim đồng hồ
-                elif angle == 180: 
-                    sig_img = sig_img.transpose(Image.ROTATE_180)
-                elif angle == 270: 
-                    sig_img = sig_img.transpose(Image.ROTATE_90)
+                # --- UPDATE 2: DÙNG HELPER XOAY ẢNH ---
+                sig_img = rotate_pil_image(sig_img, angle)
 
-                # Chuyển sang PhotoImage để hiển thị
                 self.sig_refs[col] = ImageTk.PhotoImage(sig_img)
-                
-                # Vẽ ảnh lên canvas (Dù là ảnh thật hay placeholder đều vẽ như nhau)
                 canvas.create_image(sx, sy, image=self.sig_refs[col], anchor="center", tags=("draggable", tag_id))
                 
-                # Vẽ thêm viền mờ xung quanh để dễ nhìn vùng chọn khi kéo
-                # Lấy kích thước ảnh sau khi xoay để vẽ viền cho khớp
                 disp_w = sig_img.width
                 disp_h = sig_img.height
                 canvas.create_rectangle(sx-disp_w/2, sy-disp_h/2, sx+disp_w/2, sy+disp_h/2, outline="#3498db", dash=(2, 4), tags=("draggable", tag_id))
 
-            # --- XỬ LÝ TEXT (Giữ nguyên) ---
+            # --- XỬ LÝ TEXT ---
             else:
                 val = str(row.get(col, "")).replace("nan", "")
                 if "00:00:00" in val: val = val.split(" ")[0]
@@ -205,21 +195,16 @@ class CanvasController:
                 try: pil_font = ImageFont.truetype(font_path, f_size)
                 except: pil_font = ImageFont.load_default()
 
-                dummy_img = Image.new('RGBA', (1, 1))
-                dummy_draw = ImageDraw.Draw(dummy_img)
-                bbox = dummy_draw.textbbox((0, 0), display_val, font=pil_font)
-                text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+                fill_color = cfg.get("color", "black")
+
+                # --- UPDATE 3: DÙNG HELPER TẠO VÀ XOAY TEXT ---
+                # 3a. Tạo ảnh text
+                txt_img = create_text_image(display_val, pil_font, fill_color, is_placeholder)
                 
-                txt_img = Image.new('RGBA', (text_w + 10, text_h + 10), (255, 255, 255, 0))
-                d = ImageDraw.Draw(txt_img)
+                # 3b. Xoay ảnh text
+                txt_img = rotate_pil_image(txt_img, angle)
                 
-                fill_color = cfg.get("color", "black") if not is_placeholder else "#bdc3c7"
-                d.text((5, 5), display_val, font=pil_font, fill=fill_color)
-                
-                if angle == 90: txt_img = txt_img.rotate(270, expand=True)
-                elif angle == 180: txt_img = txt_img.rotate(180, expand=True)
-                elif angle == 270: txt_img = txt_img.rotate(90, expand=True)
-                
+                # 3c. Resize hiển thị
                 final_w = int(txt_img.width * self.scale_factor)
                 final_h = int(txt_img.height * self.scale_factor)
                 
@@ -232,7 +217,6 @@ class CanvasController:
                 canvas.create_image(sx, sy, image=tk_txt_img, anchor="center", tags=("draggable", tag_id))
                 canvas.create_rectangle(sx-final_w/2, sy-final_h/2, sx+final_w/2, sy+final_h/2, outline="#bdc3c7", dash=(1, 4), tags=("draggable", tag_id), state="hidden")
 
-    # --- DRAG & DROP LOGIC (GIỮ NGUYÊN TỪ PHẦN TRƯỚC) ---
     def drag_start(self, event):
         canvas = self.router.view.p_right.canvas
         self.drag_data = {"x": event.x, "y": event.y, "item": None, "mode": None}
@@ -243,15 +227,18 @@ class CanvasController:
             if "draggable" in tags:
                 self.drag_data["item"] = item_id
                 self.drag_data["mode"] = "item"
-                for t in tags:
-                    if t.startswith("col:"):
-                        col_name = t.split(":")[1]
-                        if self.router.selected_field != col_name:
-                            self.router.select_field(col_name)
-                            new_items = canvas.find_withtag(t)
-                            if new_items: self.drag_data["item"] = new_items[0]
-                        break
+                
+                # --- UPDATE 4: DÙNG HELPER PARSE TAG ---
+                col_name = get_column_from_tags(tags)
+                
+                if col_name and self.router.selected_field != col_name:
+                    self.router.select_field(col_name)
+                    # Chọn tất cả các item có tag col:name (ví dụ cả ảnh và viền)
+                    new_items = canvas.find_withtag(f"col:{col_name}")
+                    if new_items: self.drag_data["item"] = new_items[0]
+                
                 return
+            
             items_under = canvas.find_overlapping(event.x, event.y, event.x, event.y)
             for i in items_under:
                 t = canvas.gettags(i)
@@ -287,26 +274,22 @@ class CanvasController:
         try:
             tags = canvas.gettags(item_id)
         except: return
-        col_name = None
-        for t in tags:
-            if t.startswith("col:"):
-                col_name = t.split(":")[1]
-                break
+        
+        # --- UPDATE 5: DÙNG HELPER PARSE TAG ---
+        col_name = get_column_from_tags(tags)
+        
         if col_name:
             try:
                 cur_coords = canvas.coords(item_id)
-                # Vì giờ tất cả đều là Image (có 1 điểm neo ở giữa)
-                # Code cũ hình chữ nhật có 4 điểm, nhưng giờ ta dùng Image hết nên logic đơn giản hơn
                 if len(cur_coords) == 2:
                     screen_x, screen_y = cur_coords[0], cur_coords[1]
-                elif len(cur_coords) == 4: # Phòng hờ vẫn còn hình chữ nhật
+                elif len(cur_coords) == 4:
                     screen_x = (cur_coords[0] + cur_coords[2]) / 2
                     screen_y = (cur_coords[1] + cur_coords[3]) / 2
                 else: return
 
-                rot_x = (screen_x - self.img_origin_x) / self.scale_factor
-                rot_y = (screen_y - self.img_origin_y) / self.scale_factor
-                raw_x, raw_y = self._get_unrotated_coords(rot_x, rot_y)
+                # --- UPDATE 6: DÙNG HÀM TÍNH TOÁN TỌA ĐỘ MỚI ---
+                raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
                 
                 self.router.update_field_config("x", int(raw_x))
                 self.router.update_field_config("y", int(raw_y))

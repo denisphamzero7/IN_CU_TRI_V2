@@ -46,3 +46,11 @@ STYLES = {
 
 APP_ICON_NAME = "image.ico" 
 APP_TITLE = "HỆ THỐNG IN THẺ CỬ TRI"
+APP_HEADER="ỦY BAN BẦU CỬ THÀNH PHỐ ĐÀ NẴNG"
+# --- [MỚI] THÔNG TIN LIÊN HỆ ---
+# APP_ADDRESS = "Địa chỉ: Tầng 10, Trung tâm hành chính thành phố Đà Nẵng, 24 Trần Phú, Hải Châu, Đà Nẵng"
+APP_CONTACT_INFO = "Điện thoại: (0236) 3827853   |   Thư điện tử: ubbctp@danang.gov.vn"
+# APP_TITLE = "HỆ THỐNG IN THẺ CỬ TRI ỦY BAN\n BẦU CỬ TP ĐÀ NẴNG" # \n để chủ động xuống dòng nơi hợp lý
+APP_ADDRESS = "Tầng 10, Trung tâm hành chính thành phố Đà Nẵng, 24 Trần Phú, Hải Châu" # Viết tắt TTHC cho gọn
+APP_PHONE = "(0236) 3827853"
+APP_EMAIL = "ubbctp@danang.gov.vn"

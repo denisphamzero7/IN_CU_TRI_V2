@@ -1,12 +1,13 @@
-# controllers/router.py
+# ... (Giữ nguyên các import cũ)
 from models.data_model import VoterModel
 from controllers.data_controller import DataController
 from controllers.canvas_controller import CanvasController
 from controllers.print_controller import PrintController
 from ttkbootstrap.dialogs import Messagebox
-# Thay vì dùng Messagebox của thư viện, ta dùng MsgHelper của chính mình
 from helpers.msg_helper import MsgHelper
+
 class AppRouter:
+    # ... (__init__ giữ nguyên)
     def __init__(self):
         self.model = VoterModel()
         self.view = None
@@ -18,20 +19,18 @@ class AppRouter:
         self.current_idx = 0
         self.selected_field = None
         self.edit_mode = None 
-        
+        # --- [TỐI ƯU] Biến lưu timer ---
+        self.search_timer = None
         self.sort_state = {"col": None, "reverse": False}
         self.is_bulk_updating = False 
         self.is_loading_ui = False
-
-        # --- [QUAN TRỌNG] Biến lưu góc xoay ảnh phôi (0, 90, 180, 270) ---
         self.template_rotation = 0 
-        # ---------------------------------------------
 
     def set_view(self, view):
         self.view = view
         self.edit_mode = view.p_left.var_edit_mode
 
-    # --- Actions ---
+    # ... (Các hàm Action cũ giữ nguyên)
     def select_template(self): self.ctrl_data.select_template()
     def select_excel(self): self.ctrl_data.select_excel()
     def select_signature_folder(self): self.ctrl_data.select_signature_folder()
@@ -51,7 +50,6 @@ class AppRouter:
             self.refresh_mid_table()
 
     def refresh_mid_table(self):
-        """Load dữ liệu và khôi phục trạng thái chọn"""
         if self.model.df is None: return
         self.is_bulk_updating = True 
 
@@ -79,7 +77,7 @@ class AppRouter:
         self.update_count_label()
         self.is_bulk_updating = False
 
-    # --- Filter & Sort ---
+    # --- Filter & Search & Sort ---
     def on_filter_change(self, event):
         selected_area = self.view.p_mid.cbb_filter.get()
         self.model.filter_data(selected_area)
@@ -93,17 +91,54 @@ class AppRouter:
         else:
             self.update_count_label()
 
-    def on_header_click(self, col_id):
-        new_reverse = False
-        if self.sort_state["col"] == col_id:
-            new_reverse = not self.sort_state["reverse"]
-        self.sort_state = {"col": col_id, "reverse": new_reverse}
-        self.model.sort_data(col_id, new_reverse)
-        self.view.p_mid.update_header_arrow(col_id, new_reverse)
-        self.deselect_all() 
-        self.refresh_mid_table()
+    def on_search_typing(self, event):
+        """ [TỐI ƯU] Xử lý khi gõ phím """
+        if self.search_timer:
+            try: self.view.after_cancel(self.search_timer)
+            except: pass
+            self.search_timer = None
 
-    # --- Selection Events ---
+        # [SỬA ĐỔI] Lấy text thông qua hàm get_keyword() của SearchView
+        current_text = self.view.p_mid.search_view.get_keyword()
+
+        if not current_text:
+            self.on_search_action()
+            return
+
+        self.search_timer = self.view.after(500, self.on_search_action)
+
+    def on_search_action(self, event=None):
+        """ Thực hiện tìm kiếm """
+        if self.search_timer:
+            try: self.view.after_cancel(self.search_timer)
+            except: pass
+            self.search_timer = None
+
+        if self.view:
+            self.view.master.config(cursor="watch")
+            self.view.update_idletasks()
+
+        try:
+            # [SỬA ĐỔI] Lấy text thông qua hàm get_keyword() của SearchView
+            # Hàm này đã tự động xử lý loại bỏ Placeholder rồi
+            keyword = self.view.p_mid.search_view.get_keyword()
+            
+            self.model.search_data(keyword)
+            
+            self.deselect_all()
+            self.refresh_mid_table()
+            
+            count = len(self.model.df_filtered)
+            if keyword:
+                self.view.p_mid.lbl_count.config(text=f"Tìm thấy {count} kết quả cho '{keyword}'")
+            else:
+                self.update_count_label()
+                
+        finally:
+            if self.view:
+                self.view.master.config(cursor="")
+
+    # ... (Các hàm còn lại giữ nguyên y như file cũ của bạn)
     def on_user_select_change(self, event):
         if self.model.df is None: return
         if self.is_bulk_updating: return
@@ -117,7 +152,6 @@ class AppRouter:
         self.model.selected_indices.update(selected_ints)
         self.update_count_label()
 
-        # Render Canvas khi focus thay đổi
         focus_item = self.view.p_mid.tree.focus()
         target_id = focus_item if focus_item else (selected_ids[0] if selected_ids else None)
 
@@ -152,7 +186,6 @@ class AppRouter:
         count = len(self.model.selected_indices)
         self.view.p_mid.lbl_count.config(text=f"Đã chọn: {count} người")
 
-    # --- Style & Config Events ---
     def on_field_toggle(self, col):
         is_on = self.view.p_left.field_vars[col].get()
         self.model.update_config_value(self.current_idx, "global", col, "enable", is_on)
@@ -228,20 +261,14 @@ class AppRouter:
             self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
             self.ctrl_canvas.render()
 
-    # --- Canvas Actions ---
     def on_shift_zoom(self, event): self.ctrl_canvas.handle_zoom(event)
     def on_drag_start(self, event): self.ctrl_canvas.drag_start(event)
     def on_drag_motion(self, event): self.ctrl_canvas.drag_motion(event)
     def on_drag_end(self, event): self.ctrl_canvas.drag_end(event)
     def on_canvas_resize(self, event): self.ctrl_canvas.on_resize(event)
     def on_paper_config_change(self, event=None):
-        """Xử lý khi thay đổi khổ giấy"""
-        # In ra để debug (tùy chọn)
-        # print("Đã đổi khổ giấy!") 
         self.ctrl_canvas.render()
 
-
     def rotate_template_right(self):
-        """Xoay ảnh phôi 90 độ (CW) -> Vẽ lại Canvas"""
         self.template_rotation = (self.template_rotation + 90) % 360
         self.ctrl_canvas.render()

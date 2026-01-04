@@ -4,26 +4,26 @@ from ttkbootstrap.constants import *
 
 def create_3_columns(master):
     """
-    Tạo bố cục 3 cột sử dụng place (giữ nguyên tỷ lệ % như code cũ)
-    master: là MainView (ttk.Frame)
+    Tạo bố cục 3 cột có thể thay đổi kích thước (Resizeable)
+    Sử dụng ttk.Panedwindow (chữ w thường)
     """
 
-    # --- 1. Cột Trái (Left Sidebar) ---
-    # Dùng style "secondary" để có màu nền xám nhẹ (phân biệt với nền chính)
-    # padding=10: tạo khoảng cách nội dung bên trong frame
-    left = ttk.Frame(master, bootstyle="secondary", padding=10)
-    left.place(relx=0, rely=0, relwidth=0.22, relheight=1.0)
+    # --- SỬA LẠI DÒNG NÀY (PanedWindow -> Panedwindow) ---
+    main_pane = ttk.Panedwindow(master, orient=HORIZONTAL, bootstyle="default")
+    main_pane.pack(fill=BOTH, expand=YES)
+
+    # --- 2. Cột Trái (Left Sidebar) ---
+    left = ttk.Frame(main_pane, bootstyle="secondary", padding=10)
     
-    # --- 2. Cột Giữa (Main Content) ---
-    # Dùng style mặc định (không set bootstyle) hoặc "light" để làm nền chính
-    # Thêm border theo kiểu ttk: dùng relief="solid" (tùy chọn)
-    mid = ttk.Frame(master, padding=10, relief="solid", borderwidth=1)
-    mid.place(relx=0.22, rely=0, relwidth=0.43, relheight=1.0)
+    # --- 3. Cột Giữa (Main Content) ---
+    mid = ttk.Frame(main_pane, padding=10, relief="solid", borderwidth=1)
     
-    # --- 3. Cột Phải (Right Panel) ---
-    # Bạn muốn màu tối? Dùng bootstyle="dark"
-    # Lưu ý: Nếu dùng theme 'superhero' (vốn đã tối), thì 'dark' sẽ càng tối hơn hoặc đen hẳn.
-    right = ttk.Frame(master, bootstyle="dark", padding=10)
-    right.place(relx=0.65, rely=0, relwidth=0.35, relheight=1.0)
-    
+    # --- 4. Cột Phải (Right Panel) ---
+    right = ttk.Frame(main_pane, bootstyle="dark", padding=10)
+
+    # --- 5. Add vào Panedwindow ---
+    main_pane.add(left, weight=1)  
+    main_pane.add(mid, weight=3)   
+    main_pane.add(right, weight=6) 
+
     return left, mid, right

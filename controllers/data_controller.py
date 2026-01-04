@@ -1,4 +1,3 @@
-# controllers/data_controller.py
 from tkinter import filedialog, messagebox
 
 class DataController:
@@ -25,14 +24,20 @@ class DataController:
             try:
                 self.model.load_excel(path)
                 
-                # Cập nhật Left View (Checkbox list)
+                # --- [SỬA LỖI TẠI ĐÂY] ---
+                # Lấy tổng số dòng
+                total_count = len(self.model.df) if self.model.df is not None else 0
+                
+                # Truy cập đúng đường dẫn: router -> view -> p_mid
+                if self.router.view and hasattr(self.router.view, 'p_mid'):
+                    self.router.view.p_mid.set_total_count(total_count)
+                # -------------------------
+
+                # Cập nhật Left View
                 self.router.view.p_left.refresh_field_list(self.model.df.columns, self.model.global_config)
                 
-                # --- [SỬA ĐOẠN NÀY] ---
-                # Thay vì gọi update_data thủ công, ta gọi hàm refresh của Router 
-                # để nó tự cắt trang 1 và hiển thị
+                # Refresh bảng dữ liệu
                 self.router.refresh_mid_table()
-                # ----------------------
                 
                 self.router.ctrl_canvas.render()
                 self.router.select_all()

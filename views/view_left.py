@@ -5,21 +5,31 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
 from tkinter import filedialog 
 
+# --- [MỚI] IMPORT HEADER ---
+from views.view_header import HeaderView 
+# ---------------------------
+
 class LeftPanelView(ttk.Frame):
     def __init__(self, master, router):
         super().__init__(master, padding=10)
         self.pack(fill=BOTH, expand=YES)
         
         self.router = router
-        self.field_vars = {}   
+        self.field_vars = {}    
         self.field_labels = {} 
 
-        # --- 0. CẤU HÌNH GIAO DIỆN (THEME) ---
+        # --- [MỚI] 0. HEADER THÔNG TIN (ĐẶT TRÊN CÙNG) ---
+        # Khởi tạo header và gắn vào đầu panel
+        self.header = HeaderView(self)
+        self.header.pack(fill=X, pady=(0, 15)) 
+        # --------------------------------------------------
+
+        # --- 1. CẤU HÌNH GIAO DIỆN (THEME) ---
         self._setup_theme_toggle()
         
         ttk.Separator(self, orient=HORIZONTAL).pack(fill=X, pady=10)
 
-        # --- 1. DỮ LIỆU ĐẦU VÀO ---
+        # --- 2. DỮ LIỆU ĐẦU VÀO ---
         ttk.Label(self, text="1. DỮ LIỆU ĐẦU VÀO", font=("Segoe UI", 10, "bold"), bootstyle="primary").pack(anchor="w", pady=(0, 5))
         
         btn_opts = {"width": 20}
@@ -28,13 +38,13 @@ class LeftPanelView(ttk.Frame):
         ttk.Button(self, text="📊 Chọn File Excel", command=router.select_excel, bootstyle="success", **btn_opts).pack(fill=X, pady=2)
         ttk.Button(self, text="📂 Folder Chữ Ký", command=router.select_signature_folder, bootstyle="info", **btn_opts).pack(fill=X, pady=2)
         
-        # --- 2. DANH SÁCH TRƯỜNG ---
+        # --- 3. DANH SÁCH TRƯỜNG ---
         ttk.Label(self, text="2. CẤU HÌNH TRƯỜNG", font=("Segoe UI", 10, "bold"), bootstyle="primary").pack(anchor="w", pady=(15, 5))
         
         self.scroll_container = ScrolledFrame(self, autohide=True, height=200)
         self.scroll_container.pack(fill=BOTH, expand=YES, pady=5)
         
-        # --- 3. TÙY CHỈNH STYLE ---
+        # --- 4. TÙY CHỈNH STYLE ---
         self._setup_style_controls()
         
         ttk.Separator(self, orient=HORIZONTAL).pack(fill=X, pady=10)
@@ -45,7 +55,7 @@ class LeftPanelView(ttk.Frame):
         fr.pack(fill=X)
         ttk.Label(fr, text="Giao diện:").pack(side=LEFT)
         
-        # --- [CẬP NHẬT] TỪ ĐIỂN ÁNH XẠ TÊN THEME ---
+        # --- TỪ ĐIỂN ÁNH XẠ TÊN THEME ---
         self.theme_map = {
             " Tối - Siêu anh hùng": "superhero",
             " Tối - Đêm đen": "darkly",
@@ -58,16 +68,13 @@ class LeftPanelView(ttk.Frame):
             " Sáng - Bạc hà": "minty"
         }
         
-        # Chỉ lấy danh sách tên Tiếng Việt để hiển thị
         display_names = list(self.theme_map.keys())
 
         self.cb_theme = ttk.Combobox(fr, values=display_names, state="readonly", width=18)
         self.cb_theme.pack(side=RIGHT)
         
-        # Logic chọn giá trị mặc định dựa trên theme hiện tại của hệ thống
         current_sys_theme = ttk.Style().theme.name
         
-        # Tìm tên tiếng Việt tương ứng với theme đang dùng
         found_vn = False
         for vn_name, en_name in self.theme_map.items():
             if en_name == current_sys_theme:
@@ -76,16 +83,13 @@ class LeftPanelView(ttk.Frame):
                 break
         
         if not found_vn:
-            self.cb_theme.current(0) # Mặc định chọn cái đầu tiên nếu không khớp
+            self.cb_theme.current(0) 
             
         self.cb_theme.bind("<<ComboboxSelected>>", self.change_theme)
 
     def change_theme(self, event):
-        # 1. Lấy tên tiếng Việt
         vn_name = self.cb_theme.get()
-        # 2. Tra từ điển lấy tên tiếng Anh
         en_name = self.theme_map.get(vn_name, "superhero")
-        # 3. Đổi theme
         style = ttk.Style()
         style.theme_use(en_name)
 
