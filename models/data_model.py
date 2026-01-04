@@ -17,7 +17,10 @@ class VoterModel:
         # --- [MỚI] Biến phục vụ bộ lọc & Tìm kiếm ---
         self.df_filtered = None  # DataFrame lưu kết quả sau khi xử lý
         self.unique_areas = []   
-        self.current_area_filter = "Tất cả"
+        
+        # Mặc định là "Chưa chọn khu vực" (tương đương hiển thị tất cả)
+        self.current_area_filter = "Chưa chọn khu vực"
+        
         self.current_search_keyword = "" 
         # --------------------------------------------
 
@@ -51,11 +54,10 @@ class VoterModel:
         self.df = pd.read_excel(path).fillna("")
         self.df.columns = self.df.columns.str.strip()
         
-        # Reset bộ lọc khi nạp file mới
-        self.current_area_filter = "Tất cả"
+        # Reset bộ lọc về trạng thái ban đầu
+        self.current_area_filter = "Chưa chọn khu vực"
         self.current_search_keyword = ""
         
-        # Tìm cột "Khu vực" để lấy danh sách
         col_area = None
         for col in self.df.columns:
             if "Khu vực" in col or "Thôn" in col or "Xã" in col:
@@ -65,13 +67,19 @@ class VoterModel:
         if col_area:
             raw = self.df[col_area].unique()
             clean_areas = [str(x) for x in raw if str(x) != "nan" and str(x) != ""]
-            self.unique_areas = ["Tất cả"] + sorted(clean_areas)
-        else:
-            self.unique_areas = ["Tất cả"]
             
-        # Áp dụng bộ lọc khởi tạo (để tạo df_filtered ban đầu)
-        self.apply_filters()
+            # --- [LOGIC TÙY CHỈNH] ---
+            # Hiện tại: Chỉ lấy danh sách khu vực (Ẩn "Tất cả")
+            self.unique_areas = sorted(clean_areas)
 
+            # SAU NÀY: Nếu muốn hiện lại nút "Tất cả", bạn chỉ cần mở comment dòng dưới đây:
+            # self.unique_areas = ["Tất cả"] + sorted(clean_areas)
+            # -------------------------
+        else:
+            self.unique_areas = []
+            
+        self.apply_filters()
+        
         # Init config mặc định
         for col in self.df.columns:
             if col not in self.global_config:
@@ -85,7 +93,6 @@ class VoterModel:
     def apply_filters(self):
         """
         [QUAN TRỌNG] Hàm lọc trung tâm:
-        Kết hợp logic: (Khu vực == X) VÀ (Tên hoặc CCCD chứa từ khóa)
         """
         if self.df is None or self.df.empty: 
             self.df_filtered = pd.DataFrame()
@@ -95,7 +102,9 @@ class VoterModel:
         temp_df = self.df.copy()
 
         # B2: Lọc theo Khu Vực
-        if self.current_area_filter and self.current_area_filter != "Tất cả":
+        # Logic: Nếu KHÔNG PHẢI là "Tất cả", "Chưa chọn khu vực" hoặc Rỗng thì mới lọc
+        # Điều này đảm bảo cả "Tất cả" (sau này dùng) và "Chưa chọn khu vực" (hiện tại) đều hiện full danh sách
+        if self.current_area_filter and self.current_area_filter not in ["Tất cả", "Chưa chọn khu vực", ""]:
             col_area = None
             for col in self.df.columns:
                 if "Khu vực" in col or "Thôn" in col or "Xã" in col:
@@ -107,7 +116,6 @@ class VoterModel:
         # B3: Lọc theo Từ Khóa (Search)
         kw = self.current_search_keyword.lower().strip()
         if kw:
-            # Tìm tên cột Tên và CCCD
             col_name = next((c for c in self.df.columns if "họ tên" in c.lower() or "name" in c.lower()), None)
             col_cccd = next((c for c in self.df.columns if "cccd" in c.lower() or "cmnd" in c.lower()), None)
             
@@ -118,7 +126,6 @@ class VoterModel:
                 conditions.append(temp_df[col_cccd].astype(str).str.lower().str.contains(kw))
             
             if conditions:
-                # Gộp điều kiện bằng OR (|)
                 final_condition = conditions[0]
                 for cond in conditions[1:]:
                     final_condition = final_condition | cond
@@ -145,9 +152,9 @@ class VoterModel:
         self.current_search_keyword = keyword
         self.apply_filters()
 
+    # ... (Các hàm sort_data, get_effective_config, update_config_value, reset_custom_config, get_signature_image giữ nguyên) ...
     def sort_data(self, col_key, reverse=False):
         if self.df_filtered is None or self.df_filtered.empty: return
-
         target_col = None
         if col_key == "stt":
             for col in self.df.columns:
@@ -156,13 +163,11 @@ class VoterModel:
                     break
             if not target_col: target_col = self.df.columns[0]
             self.df_filtered = self.df_filtered.sort_values(by=target_col, ascending=not reverse)
-
         elif col_key == "name":
             for col in self.df.columns:
                 if "họ tên" in col.lower() or "name" in col.lower():
                     target_col = col
                     break
-            
             if target_col:
                 try:
                     self.df_filtered['_sort_key'] = self.df_filtered[target_col].astype(str).apply(lambda x: x.strip().split(' ')[-1])
@@ -170,7 +175,6 @@ class VoterModel:
                     self.df_filtered.drop(columns=['_sort_key'], inplace=True)
                 except:
                     self.df_filtered = self.df_filtered.sort_values(by=target_col, ascending=not reverse)
-
         self.current_page = 1
 
     def get_effective_config(self, idx):
@@ -186,12 +190,10 @@ class VoterModel:
             if col not in self.global_config:
                 self.global_config[col] = {}
             self.global_config[col][key] = value
-            
             if key in ["size", "font", "bold", "upper", "color"]:
                 if idx in self.custom_configs and col in self.custom_configs[idx]:
                     if key in self.custom_configs[idx][col]:
                         del self.custom_configs[idx][col][key] 
-
             self.save_config()
         else:
             if idx not in self.custom_configs: self.custom_configs[idx] = {}
@@ -211,7 +213,6 @@ class VoterModel:
         if idx in self.custom_configs and "signature_img" in self.custom_configs[idx]:
             p = self.custom_configs[idx]["signature_img"].get("path")
             if p and os.path.exists(p): return Image.open(p).convert("RGBA")
-
         if self.signature_folder and self.df is not None:
             row = self.df.iloc[idx]
             col_cccd = None
@@ -230,7 +231,6 @@ class VoterModel:
     def get_current_page_data(self):
         if self.df_filtered is None or self.df_filtered.empty:
             return pd.DataFrame()
-            
         start = (self.current_page - 1) * self.page_size
         end = start + self.page_size
         return self.df_filtered.iloc[start:end]

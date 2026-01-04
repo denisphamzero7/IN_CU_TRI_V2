@@ -24,14 +24,11 @@ class DataController:
             try:
                 self.model.load_excel(path)
                 
-                # --- [SỬA LỖI TẠI ĐÂY] ---
                 # Lấy tổng số dòng
                 total_count = len(self.model.df) if self.model.df is not None else 0
                 
-                # Truy cập đúng đường dẫn: router -> view -> p_mid
                 if self.router.view and hasattr(self.router.view, 'p_mid'):
                     self.router.view.p_mid.set_total_count(total_count)
-                # -------------------------
 
                 # Cập nhật Left View
                 self.router.view.p_left.refresh_field_list(self.model.df.columns, self.model.global_config)
@@ -40,6 +37,11 @@ class DataController:
                 self.router.refresh_mid_table()
                 
                 self.router.ctrl_canvas.render()
-                self.router.select_all()
+                
+                # --- THAY ĐỔI Ở ĐÂY ---
+                # Code cũ: self.router.select_all()  <-- Nguyên nhân tự chọn tất cả
+                # Code mới: Gọi hàm bỏ chọn tất cả
+                self.router.deselect_all() 
+                
             except Exception as e:
                 messagebox.showerror("Lỗi", str(e))

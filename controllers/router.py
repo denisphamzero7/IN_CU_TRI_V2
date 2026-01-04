@@ -1,4 +1,4 @@
-# ... (Giữ nguyên các import cũ)
+# ... (Giữ nguyên các import)
 from models.data_model import VoterModel
 from controllers.data_controller import DataController
 from controllers.canvas_controller import CanvasController
@@ -7,7 +7,6 @@ from ttkbootstrap.dialogs import Messagebox
 from helpers.msg_helper import MsgHelper
 
 class AppRouter:
-    # ... (__init__ giữ nguyên)
     def __init__(self):
         self.model = VoterModel()
         self.view = None
@@ -19,7 +18,6 @@ class AppRouter:
         self.current_idx = 0
         self.selected_field = None
         self.edit_mode = None 
-        # --- [TỐI ƯU] Biến lưu timer ---
         self.search_timer = None
         self.sort_state = {"col": None, "reverse": False}
         self.is_bulk_updating = False 
@@ -30,17 +28,61 @@ class AppRouter:
         self.view = view
         self.edit_mode = view.p_left.var_edit_mode
 
-    # ... (Các hàm Action cũ giữ nguyên)
+    # ... (Giữ nguyên các hàm select_template, select_excel, select_signature_folder, exit_app)
     def select_template(self): self.ctrl_data.select_template()
     def select_excel(self): self.ctrl_data.select_excel()
     def select_signature_folder(self): self.ctrl_data.select_signature_folder()
-    def start_print(self): self.ctrl_print.print_batch()
     
     def exit_app(self):
-     if MsgHelper.ask_yes_no("Bạn muốn thoát chương trình?", title="Xác nhận thoát", parent=self.view):
+        if MsgHelper.ask_yes_no("Bạn muốn thoát chương trình?", title="Xác nhận thoát", parent=self.view):
             self.view.master.destroy()
 
-    # --- Pagination Actions ---
+    # --- [TỐI ƯU] START PRINT ---
+    def start_print(self):
+        if self.model.df is None or self.model.df.empty:
+            return MsgHelper.show_warning("Chưa có dữ liệu để in!")
+
+        # 1. Lấy giá trị từ Toolbar (Bên phải)
+        try:
+            val_from = self.view.p_right.var_print_from.get()
+            val_to = self.view.p_right.var_print_to.get()
+        except:
+            val_from, val_to = "1", ""
+
+        # 2. Logic ưu tiên
+        custom_indices = None
+
+        # Nếu ô "Đến" có dữ liệu -> Chế độ in theo Range
+        if val_to.strip() != "":
+            try:
+                start_row = int(val_from)
+                end_row = int(val_to)
+                
+                max_row = len(self.model.df)
+                if start_row < 1: start_row = 1
+                if end_row > max_row: end_row = max_row
+                
+                if start_row > end_row:
+                     return MsgHelper.show_error(f"Hàng bắt đầu ({start_row}) không được lớn hơn hàng kết thúc ({end_row})!")
+
+                # Tạo danh sách index (lưu ý index dataframe bắt đầu từ 0)
+                # Người dùng nhập 1 -> index 0
+                custom_indices = list(range(start_row - 1, end_row))
+                
+                # [Optional] Tự động chọn các dòng này trên bảng để người dùng thấy
+                self.deselect_all()
+                # Chỉ select những dòng nằm trong trang hiện tại (để tránh lỗi giao diện)
+                # Nhưng logic in thì vẫn in đủ.
+                
+            except ValueError:
+                return MsgHelper.show_error("Vui lòng nhập số hàng hợp lệ!")
+
+        # 3. Gọi Controller
+        # Nếu custom_indices là None -> Controller tự lấy selected_indices
+        self.ctrl_print.print_batch(custom_indices)
+
+
+    # ... (GIỮ NGUYÊN TOÀN BỘ CÁC HÀM CÒN LẠI DƯỚI ĐÂY) ...
     def next_page(self):
         if self.model.set_page(self.model.current_page + 1):
             self.refresh_mid_table()
@@ -60,45 +102,38 @@ class AppRouter:
         
         # Cập nhật list Combobox lọc
         current_values = self.view.p_mid.cbb_filter['values']
-        if not current_values or (len(current_values) == 0 and len(self.model.unique_areas) > 0):
-            self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
-            if self.model.unique_areas:
-                self.view.p_mid.cbb_filter.current(0) 
-        
-        # 2. Khôi phục chọn (Selection)
-        items_to_select = []
-        for item_id in self.view.p_mid.tree.get_children():
-            if int(item_id) in self.model.selected_indices:
-                items_to_select.append(item_id)
-        if items_to_select:
-            self.view.p_mid.tree.selection_set(items_to_select)
-        
-        # 3. Update Label
-        self.update_count_label()
-        self.is_bulk_updating = False
+        # Chỉ cập nhật list nếu chưa có hoặc danh sách thay đổi
+        if list(current_values) != self.model.unique_areas:
+             self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
 
-    # --- Filter & Search & Sort ---
+        # --- [SỬA TẠI ĐÂY] ---
+        # Logic hiển thị lại tên Khu vực đang chọn
+        if self.model.current_area_filter in ["Tất cả", "Chưa chọn khu vực", ""]:
+            self.view.p_mid.cbb_filter.set("Chưa chọn khu vực")
+        else:
+            self.view.p_mid.cbb_filter.set(self.model.current_area_filter)
+        # ---------------------
+
     def on_filter_change(self, event):
         selected_area = self.view.p_mid.cbb_filter.get()
         self.model.filter_data(selected_area)
         self.deselect_all()
         self.refresh_mid_table()
-        self.select_all() # Tự động chọn hết sau khi lọc
+        self.select_all() 
 
         count = len(self.model.selected_indices)
-        if selected_area and selected_area not in ["Tất cả", "All", ""]:
+      # Sửa lại câu thông báo đếm số lượng cho khớp
+        if selected_area and selected_area not in ["Tất cả", "Chưa chọn khu vực", ""]:
             self.view.p_mid.lbl_count.config(text=f"Đã tự động chọn {count} người thuộc Khu vực {selected_area}")
         else:
             self.update_count_label()
 
     def on_search_typing(self, event):
-        """ [TỐI ƯU] Xử lý khi gõ phím """
         if self.search_timer:
             try: self.view.after_cancel(self.search_timer)
             except: pass
             self.search_timer = None
 
-        # [SỬA ĐỔI] Lấy text thông qua hàm get_keyword() của SearchView
         current_text = self.view.p_mid.search_view.get_keyword()
 
         if not current_text:
@@ -108,7 +143,6 @@ class AppRouter:
         self.search_timer = self.view.after(500, self.on_search_action)
 
     def on_search_action(self, event=None):
-        """ Thực hiện tìm kiếm """
         if self.search_timer:
             try: self.view.after_cancel(self.search_timer)
             except: pass
@@ -119,12 +153,8 @@ class AppRouter:
             self.view.update_idletasks()
 
         try:
-            # [SỬA ĐỔI] Lấy text thông qua hàm get_keyword() của SearchView
-            # Hàm này đã tự động xử lý loại bỏ Placeholder rồi
             keyword = self.view.p_mid.search_view.get_keyword()
-            
             self.model.search_data(keyword)
-            
             self.deselect_all()
             self.refresh_mid_table()
             
@@ -133,12 +163,10 @@ class AppRouter:
                 self.view.p_mid.lbl_count.config(text=f"Tìm thấy {count} kết quả cho '{keyword}'")
             else:
                 self.update_count_label()
-                
         finally:
             if self.view:
                 self.view.master.config(cursor="")
 
-    # ... (Các hàm còn lại giữ nguyên y như file cũ của bạn)
     def on_user_select_change(self, event):
         if self.model.df is None: return
         if self.is_bulk_updating: return
@@ -183,8 +211,9 @@ class AppRouter:
         self.is_bulk_updating = False
 
     def update_count_label(self):
-        count = len(self.model.selected_indices)
-        self.view.p_mid.lbl_count.config(text=f"Đã chọn: {count} người")
+       selected_items = self.view.p_mid.tree.selection()
+       count = len(selected_items)
+       print(f"Debug: Đã chọn {count} người")
 
     def on_field_toggle(self, col):
         is_on = self.view.p_left.field_vars[col].get()
@@ -272,3 +301,59 @@ class AppRouter:
     def rotate_template_right(self):
         self.template_rotation = (self.template_rotation + 90) % 360
         self.ctrl_canvas.render()
+
+    def on_tree_left_click(self, event):
+        """Xử lý click chuột: Toggle chọn/bỏ chọn và click đơn lẻ"""
+        # Lấy widget Treeview từ View
+        if not self.view or not hasattr(self.view, 'p_mid'): return
+        tree = self.view.p_mid.tree
+        
+        # 1. Xác định hàng đang được click
+        item_id = tree.identify_row(event.y)
+        if not item_id: 
+            return # Click vào vùng trắng thì bỏ qua
+
+        # 2. Kiểm tra phím Ctrl/Shift. Nếu user giữ phím này thì để mặc định xử lý
+        state = event.state
+        is_ctrl = (state & 0x0004) != 0
+        is_shift = (state & 0x0001) != 0
+        if is_ctrl or is_shift: return 
+
+        # 3. Logic xử lý Toggle
+        current_selection = tree.selection()
+
+        if item_id in current_selection:
+            # Nếu đã chọn -> Bỏ chọn (Toggle OFF)
+            tree.selection_remove(item_id)
+            tree.focus(item_id)
+        else:
+            # Nếu chưa chọn -> Chọn duy nhất hàng này (Xóa các chọn lựa cũ từ bộ lọc)
+            tree.selection_set(item_id)
+            tree.focus(item_id)
+
+        # 4. Cập nhật lại Model và số lượng đếm
+        # Gọi thủ công vì selection_set/remove không kích hoạt event <<TreeviewSelect>>
+        self.on_user_select_change(None)
+
+        # [QUAN TRỌNG] Chặn sự kiện mặc định của Treeview
+        return "break"
+    # ------------------------------------------------------
+    def on_header_click(self, col):
+        """Xử lý khi click vào tiêu đề cột để sắp xếp"""
+        # Nếu đang sort cột này -> Đảo chiều. Nếu cột khác -> Mặc định False (Tăng dần)
+        if self.sort_state["col"] == col:
+            self.sort_state["reverse"] = not self.sort_state["reverse"]
+        else:
+            self.sort_state["col"] = col
+            self.sort_state["reverse"] = False
+            
+        # Gọi Model sắp xếp
+        self.model.sort_data(col, self.sort_state["reverse"])
+        
+        # Cập nhật mũi tên trên Header (View)
+        if self.view and hasattr(self.view, 'p_mid'):
+            self.view.p_mid.update_header_arrow(col, self.sort_state["reverse"])
+        
+        # Refresh lại bảng dữ liệu
+        self.refresh_mid_table()
+    # ----------------------------------
