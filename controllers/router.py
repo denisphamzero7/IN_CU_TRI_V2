@@ -27,13 +27,11 @@ class AppRouter:
         self.is_loading_ui = False
         
         # --- CẤU HÌNH XOAY VÀ GIẤY ---
-        self.template_rotation = 0       # Góc xoay nội dung (0, 90, 180, 270)
-        self.is_paper_landscape = False  # False = Dọc, True = Ngang
+        self.template_rotation = 0       
+        self.is_paper_landscape = False  
 
     def set_view(self, view):
-        """Gán View vào Router sau khi giao diện khởi tạo xong"""
         self.view = view
-        # Lấy biến edit_mode từ panel trái để biết đang sửa "Tất cả" hay "Riêng lẻ"
         if hasattr(view.p_left, 'var_edit_mode'):
             self.edit_mode = view.p_left.var_edit_mode
 
@@ -55,14 +53,12 @@ class AppRouter:
         if self.model.df is None or self.model.df.empty:
             return MsgHelper.show_warning("Chưa có dữ liệu để in!")
 
-        # 1. Lấy giá trị từ Toolbar (Bên phải)
         try:
             val_from = self.view.p_right.var_print_from.get()
             val_to = self.view.p_right.var_print_to.get()
         except:
             val_from, val_to = "1", ""
 
-        # 2. Logic ưu tiên: Nếu có nhập "Đến" -> In theo Range
         custom_indices = None
         if val_to.strip() != "":
             try:
@@ -76,49 +72,36 @@ class AppRouter:
                 if start_row > end_row:
                      return MsgHelper.show_error(f"Hàng bắt đầu ({start_row}) không được lớn hơn hàng kết thúc ({end_row})!")
 
-                # Tạo danh sách index (Python index bắt đầu từ 0)
                 custom_indices = list(range(start_row - 1, end_row))
-                
-                # Bỏ chọn cũ để tránh nhầm lẫn
                 self.deselect_all()
                 
             except ValueError:
                 return MsgHelper.show_error("Vui lòng nhập số hàng hợp lệ!")
 
-        # 3. Gửi lệnh in sang PrintController
         self.ctrl_print.print_batch(custom_indices)
 
     # =======================================================
     #              NHÓM CHỨC NĂNG CANVAS & VIEW
     # =======================================================
     def toggle_paper_orientation(self):
-        """Chuyển đổi khổ giấy Dọc <-> Ngang"""
         self.is_paper_landscape = not self.is_paper_landscape
         
-        # Tự động xoay nội dung 90 độ nếu chuyển sang Ngang cho thuận mắt
         if self.is_paper_landscape:
             self.template_rotation = 90
         else:
             self.template_rotation = 0
 
-        # Cập nhật giao diện nút bấm (Icon)
         try:
             if self.view and hasattr(self.view, 'p_right'):
                 btn = self.view.p_right.btn_rotate_paper 
-                
-                # ▮ = Dọc, ▬ = Ngang
                 icon = "▬" if self.is_paper_landscape else "▮"
                 btn.configure(text=icon)
-                
-                # Giữ nguyên style info-outline cho đồng bộ
         except Exception as e:
             print(f"Lỗi cập nhật nút giấy: {e}")
 
-        # Vẽ lại
         self.ctrl_canvas.render()
 
     def rotate_template_right(self):
-        """Xoay thủ công nội dung phôi"""
         self.template_rotation = (self.template_rotation + 90) % 360
         self.ctrl_canvas.render()
 
@@ -138,12 +121,10 @@ class AppRouter:
         if self.model.df is None: return
         self.is_bulk_updating = True 
 
-        # 1. Lấy dữ liệu trang hiện tại
         df_page = self.model.get_current_page_data()
         self.view.p_mid.update_data(df_page, self.model.custom_configs)
         self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
         
-        # 2. Cập nhật Combobox Lọc khu vực
         if list(self.view.p_mid.cbb_filter['values']) != self.model.unique_areas:
              self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
 
@@ -164,7 +145,6 @@ class AppRouter:
             self.refresh_mid_table()
 
     def on_header_click(self, col):
-        """Sắp xếp khi click tiêu đề cột"""
         if self.sort_state["col"] == col:
             self.sort_state["reverse"] = not self.sort_state["reverse"]
         else:
@@ -184,14 +164,8 @@ class AppRouter:
         self.model.filter_data(selected_area)
         self.deselect_all() 
         self.refresh_mid_table()
+        # [QUAN TRỌNG] Không làm gì với lbl_total_val ở đây cả.
         
-        count = len(self.model.df_filtered)
-        defaults = ["Tất cả", "Chưa chọn khu vực", "Lọc theo khu vực", ""]
-        if selected_area and selected_area not in defaults:
-            self.view.p_mid.lbl_total_val.config(text=f"{count}")
-        else:
-            self.update_count_label()
-
     def on_search_typing(self, event):
         if self.search_timer:
             try: self.view.after_cancel(self.search_timer)
@@ -206,7 +180,6 @@ class AppRouter:
         if self.search_timer:
             self.search_timer = None
         
-        # Hiển thị icon chờ
         if self.view: self.view.master.config(cursor="watch")
         
         try:
@@ -214,12 +187,7 @@ class AppRouter:
             self.model.search_data(keyword)
             self.deselect_all()
             self.refresh_mid_table()
-            
-            count = len(self.model.df_filtered)
-            if keyword:
-                self.view.p_mid.lbl_count.config(text=f"Tìm thấy {count} kết quả")
-            else:
-                self.update_count_label()
+            # [QUAN TRỌNG] Không làm gì với lbl_total_val ở đây cả.
         finally:
             if self.view: self.view.master.config(cursor="")
 
@@ -227,23 +195,18 @@ class AppRouter:
     #              NHÓM CHỨC NĂNG SELECTION (CHỌN)
     # =======================================================
     def on_tree_left_click(self, event):
-        """Click chuột trái vào bảng: Chọn dòng và Preview ngay"""
         if not self.view: return
         tree = self.view.p_mid.tree
         item_id = tree.identify_row(event.y)
         if not item_id: return 
 
-        # Highlight dòng đó
         tree.selection_set(item_id)
         tree.focus(item_id)
 
         try:
             new_idx = int(item_id)
             self.current_idx = new_idx
-            # Vẽ lại Canvas để thấy thông tin người này
             self.ctrl_canvas.render()
-            
-            # Load thông số ra panel trái
             if self.selected_field: 
                 self.load_field_props_to_ui()
         except ValueError: pass
@@ -251,7 +214,6 @@ class AppRouter:
         return "break"
 
     def on_user_select_change(self, event):
-        """Xử lý khi người dùng quét chọn nhiều dòng"""
         if self.model.df is None or self.is_bulk_updating: return
 
         visible_ids = self.view.p_mid.tree.get_children()
@@ -290,8 +252,7 @@ class AppRouter:
         self.is_bulk_updating = False
 
     def update_count_label(self):
-        count = len(self.model.selected_indices)
-        # print(f"Đang chọn: {count}")
+        pass # Không làm gì cả để tránh chạm vào text tổng
 
     # =======================================================
     #              NHÓM CHỨC NĂNG EDIT CONFIG (STYLE)
@@ -315,17 +276,15 @@ class AppRouter:
             self.is_loading_ui = False
 
     def on_style_change(self):
-        """Khi đổi checkbox 'Chỉnh sửa riêng lẻ'"""
         self.ctrl_canvas.render()
         if self.selected_field: self.load_field_props_to_ui()
 
     def on_prop_change(self, event=None):
-        """Xử lý sự kiện thay đổi Font, Size, Bold... từ Panel Trái"""
         if not self.selected_field or self.is_loading_ui: return
         
         view_l = self.view.p_left
         try:
-            mode = self.edit_mode.get() # 'global' hoặc 'individual'
+            mode = self.edit_mode.get() 
         except: mode = "global"
         
         col = self.selected_field

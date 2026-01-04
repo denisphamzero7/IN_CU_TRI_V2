@@ -70,21 +70,17 @@ class MidPanelView(ttk.Frame):
         toolbar = ttk.Frame(self)
         toolbar.pack(fill=X, pady=(0, 10))
         
-        # --- CẤU HÌNH GRID ---
-        # Col 0: Group Trái (Chứa cả Lọc và Tìm kiếm) - Giãn ra (weight=1)
-        # Col 1: Phân trang
-        # Col 2: Tổng số
         toolbar.columnconfigure(1, weight=1)
         toolbar.columnconfigure(0, weight=0)
         toolbar.columnconfigure(2, weight=0)
 
-        # === 1. GROUP TRÁI (COL 0): Chứa [Lọc] + [Tìm kiếm] sát nhau ===
+        # === 1. GROUP TRÁI ===
         container_left = ttk.Frame(toolbar)
         container_left.grid(row=0, column=0, sticky="ew", padx=(0, 10))
-        # 1b. Tìm kiếm (Nằm kế bên bộ lọc và giãn ra)
+        
         self.search_view = SearchView(container_left, self.router)
         self.search_view.pack(side=LEFT, fill=X, expand=YES)
-        # 1a. Bộ Lọc (Nằm đầu tiên bên trái)
+        
         self.cbb_filter = ttk.Combobox(
             container_left, 
             state="readonly", 
@@ -92,13 +88,11 @@ class MidPanelView(ttk.Frame):
             justify="left", 
             width=20
         ) 
-        self.cbb_filter.pack(side=LEFT, padx=(0, 5)) # padx=5 tạo khoảng cách với ô tìm kiếm
+        self.cbb_filter.pack(side=LEFT, padx=(0, 5))
         self.cbb_filter.set("Lọc theo khu vực") 
         self.cbb_filter.bind("<<ComboboxSelected>>", self.router.on_filter_change)
 
-        
-
-        # === 2. GROUP GIỮA (COL 1): Phân trang ===
+        # === 2. GROUP GIỮA ===
         fr_page = ttk.Frame(toolbar)
         fr_page.grid(row=0, column=1, sticky="e", padx=(0, 10))
         
@@ -107,7 +101,7 @@ class MidPanelView(ttk.Frame):
         self.lbl_page_info.pack(side=LEFT, padx=2)
         create_button(fr_page, "❯", self.router.next_page, style="secondary-outline", width=3).pack(side=LEFT)
 
-        # === 3. GROUP PHẢI (COL 2): Tổng số ===
+        # === 3. GROUP PHẢI (Set cứng Tổng số) ===
         container_total = ttk.Frame(toolbar)
         container_total.grid(row=0, column=2, sticky="e")
         
@@ -119,38 +113,43 @@ class MidPanelView(ttk.Frame):
         self.lbl_page_info.config(text=f"{current} / {total}")
 
     def update_data(self, df, custom_configs):
+        # Xóa cũ
         for i in self.tree.get_children(): 
             self.tree.delete(i)
             
+        # 1. Nếu chưa có file Excel -> Reset về 0
         if df is None:
             self.lbl_placeholder.config(text="📂 Vui lòng chọn File Excel dữ liệu", bootstyle="secondary", font=("Segoe UI", 14, "italic"))
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
-            self.lbl_total_val.config(text="0")
+            self.lbl_total_val.config(text="0") 
             return
+            
+        # 2. Nếu có file nhưng lọc không ra ai -> Giữ nguyên tổng số, chỉ hiện thông báo
         elif df.empty:
-            self.lbl_placeholder.config(text="🔍 Không tìm thấy người nào...", bootstyle="warning", font=("Segoe UI", 13))
+            self.lbl_placeholder.config(text="🔍 Không tìm thấy kết quả nào...", bootstyle="warning", font=("Segoe UI", 13))
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
-            self.lbl_total_val.config(text="0")
             return
+            
+        # 3. Có dữ liệu -> Hiển thị
         else:
             self.lbl_placeholder.place_forget()
             
-        def find_col(keywords):
-            for col in df.columns:
-                for kw in keywords:
-                    if kw.lower() in col.lower(): return col
-            return None
+            def find_col(keywords):
+                for col in df.columns:
+                    for kw in keywords:
+                        if kw.lower() in col.lower(): return col
+                return None
 
-        col_name = find_col(["Họ tên", "Họ và tên", "Name"])
-        col_gender = find_col(["Giới tính", "Gender"])
-        col_cccd = find_col(["CCCD", "CMND"])
-        col_area = find_col(["Khu vực", "Thôn"])
-        if not col_name and len(df.columns) > 1: col_name = df.columns[1]
+            col_name = find_col(["Họ tên", "Họ và tên", "Name"])
+            col_gender = find_col(["Giới tính", "Gender"])
+            col_cccd = find_col(["CCCD", "CMND"])
+            col_area = find_col(["Khu vực", "Thôn"])
+            if not col_name and len(df.columns) > 1: col_name = df.columns[1]
 
-        for i, row in df.iterrows():
-            tag = ('custom',) if i in custom_configs else ()
-            vals = (i + 1, row.get(col_name, ""), row.get(col_gender, ""), row.get(col_cccd, ""), row.get(col_area, ""))
-            self.tree.insert("", "end", iid=str(i), values=vals, tags=tag)
+            for i, row in df.iterrows():
+                tag = ('custom',) if i in custom_configs else ()
+                vals = (i + 1, row.get(col_name, ""), row.get(col_gender, ""), row.get(col_cccd, ""), row.get(col_area, ""))
+                self.tree.insert("", "end", iid=str(i), values=vals, tags=tag)
 
     def update_header_arrow(self, sort_col, reverse):
         arrow = " ▼" if reverse else " ▲"
@@ -159,4 +158,5 @@ class MidPanelView(ttk.Frame):
             else: self.tree.heading(c_id, text=c_name)
 
     def set_total_count(self, count):
+        """Hàm này chỉ gọi 1 lần khi load file để set cứng tổng số"""
         self.lbl_total_val.config(text=f"{count}")
