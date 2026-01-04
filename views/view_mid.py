@@ -36,14 +36,11 @@ class MidPanelView(ttk.Frame):
             bootstyle="primary"
         )
         
-        # --- GẮN SỰ KIỆN CLICK HEADER (GIỮ NGUYÊN TỪ CODE CŨ) ---
         for c_id, c_name, c_width in self.cols_def:
             if c_id in ["stt", "name"]:
-                # Click vào tiêu đề để gọi hàm sắp xếp bên Router
                 self.tree.heading(c_id, text=c_name, command=lambda c=c_id: router.on_header_click(c))
             else:
                 self.tree.heading(c_id, text=c_name)
-            
             anchor_val = "center" if c_id in ["stt", "gender"] else "w"
             self.tree.column(c_id, width=c_width, anchor=anchor_val)
             
@@ -61,50 +58,58 @@ class MidPanelView(ttk.Frame):
         # --- 3. Placeholder ---
         self.lbl_placeholder = ttk.Label(
             self.tree, 
-            text="", 
-            font=("Segoe UI", 12, "italic"),
+            text="📂 Vui lòng chọn File Excel dữ liệu", 
+            font=("Segoe UI", 14, "italic"),
+            bootstyle="secondary",
             justify="center",
             anchor="center"
         )
+        self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
     def _setup_toolbar(self):
-        # --- TOOLBAR CŨ (KHÔNG CÓ NÚT SẮP XẾP) ---
         toolbar = ttk.Frame(self)
         toolbar.pack(fill=X, pady=(0, 10))
         
-        # Grid 4 Cột: Filter | Search | Page | Total
+        # --- CẤU HÌNH GRID ---
+        # Col 0: Group Trái (Chứa cả Lọc và Tìm kiếm) - Giãn ra (weight=1)
+        # Col 1: Phân trang
+        # Col 2: Tổng số
+        toolbar.columnconfigure(1, weight=1)
         toolbar.columnconfigure(0, weight=0)
-        toolbar.columnconfigure(1, weight=1) # Search giãn ra
         toolbar.columnconfigure(2, weight=0)
-        toolbar.columnconfigure(3, weight=0)
 
-        # 1. COL 0: BỘ LỌC
-        container_filter = ttk.Frame(toolbar)
-        container_filter.grid(row=0, column=0, sticky="w", padx=(0, 10))
-        
-        ttk.Label(container_filter, font=("Segoe UI", 9)).pack(side=LEFT, padx=(0, 5))
-        
-        self.cbb_filter = ttk.Combobox(container_filter, state="readonly", justify="left", width=15) 
-        self.cbb_filter.pack(side=LEFT)
-        self.cbb_filter.set("Chưa chọn khu vực") 
+        # === 1. GROUP TRÁI (COL 0): Chứa [Lọc] + [Tìm kiếm] sát nhau ===
+        container_left = ttk.Frame(toolbar)
+        container_left.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        # 1b. Tìm kiếm (Nằm kế bên bộ lọc và giãn ra)
+        self.search_view = SearchView(container_left, self.router)
+        self.search_view.pack(side=LEFT, fill=X, expand=YES)
+        # 1a. Bộ Lọc (Nằm đầu tiên bên trái)
+        self.cbb_filter = ttk.Combobox(
+            container_left, 
+            state="readonly", 
+            bootstyle="info", 
+            justify="left", 
+            width=20
+        ) 
+        self.cbb_filter.pack(side=LEFT, padx=(0, 5)) # padx=5 tạo khoảng cách với ô tìm kiếm
+        self.cbb_filter.set("Lọc theo khu vực") 
         self.cbb_filter.bind("<<ComboboxSelected>>", self.router.on_filter_change)
 
-        # 2. COL 1: SEARCH
-        self.search_view = SearchView(toolbar, self.router)
-        self.search_view.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        
 
-        # 3. COL 2: PHÂN TRANG
+        # === 2. GROUP GIỮA (COL 1): Phân trang ===
         fr_page = ttk.Frame(toolbar)
-        fr_page.grid(row=0, column=2, sticky="e", padx=(0, 10))
+        fr_page.grid(row=0, column=1, sticky="e", padx=(0, 10))
         
         create_button(fr_page, "❮", self.router.prev_page, style="secondary-outline", width=3).pack(side=LEFT)
         self.lbl_page_info = ttk.Label(fr_page, text="0/0", width=8, anchor="center", font=("Segoe UI", 9, "bold"))
         self.lbl_page_info.pack(side=LEFT, padx=2)
         create_button(fr_page, "❯", self.router.next_page, style="secondary-outline", width=3).pack(side=LEFT)
 
-        # 4. COL 3: TỔNG SỐ
+        # === 3. GROUP PHẢI (COL 2): Tổng số ===
         container_total = ttk.Frame(toolbar)
-        container_total.grid(row=0, column=3, sticky="e")
+        container_total.grid(row=0, column=2, sticky="e")
         
         ttk.Label(container_total, text="Tổng số:", font=("Segoe UI", 9)).pack(side=LEFT)
         self.lbl_total_val = ttk.Label(container_total, text="0", font=("Segoe UI", 9, "bold"), bootstyle="primary")
@@ -118,21 +123,12 @@ class MidPanelView(ttk.Frame):
             self.tree.delete(i)
             
         if df is None:
-            self.lbl_placeholder.config(
-                text="📂 Vui lòng chọn File Excel dữ liệu",
-                bootstyle="secondary",
-                font=("Segoe UI", 14, "italic")
-            )
+            self.lbl_placeholder.config(text="📂 Vui lòng chọn File Excel dữ liệu", bootstyle="secondary", font=("Segoe UI", 14, "italic"))
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
             self.lbl_total_val.config(text="0")
             return
-            
         elif df.empty:
-            self.lbl_placeholder.config(
-                text="🔍 Không tìm thấy người nào trong danh sách.\nVui lòng kiểm tra lại từ khóa hoặc bộ lọc!",
-                bootstyle="warning",
-                font=("Segoe UI", 13)
-            )
+            self.lbl_placeholder.config(text="🔍 Không tìm thấy người nào...", bootstyle="warning", font=("Segoe UI", 13))
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
             self.lbl_total_val.config(text="0")
             return
@@ -159,10 +155,8 @@ class MidPanelView(ttk.Frame):
     def update_header_arrow(self, sort_col, reverse):
         arrow = " ▼" if reverse else " ▲"
         for c_id, c_name, _ in self.cols_def:
-            if c_id == sort_col:
-                self.tree.heading(c_id, text=f"{c_name}{arrow}")
-            else:
-                self.tree.heading(c_id, text=c_name)
+            if c_id == sort_col: self.tree.heading(c_id, text=f"{c_name}{arrow}")
+            else: self.tree.heading(c_id, text=c_name)
 
     def set_total_count(self, count):
         self.lbl_total_val.config(text=f"{count}")

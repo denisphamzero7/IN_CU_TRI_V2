@@ -3,7 +3,7 @@ import threading
 import time
 import gc
 import tkinter as tk
-from tkinter import Toplevel, Label, ttk
+from tkinter import Toplevel, Label, ttk, messagebox
 from datetime import datetime, timedelta
 from PIL import Image, ImageDraw, ImageFont, ImageWin
 import win32gui
@@ -28,85 +28,51 @@ class PrintController:
         except:
             return self.router.view.master
 
-    # --- [TỐI ƯU] Thêm tham số custom_indices ---
     def print_batch(self, custom_indices=None):
+        """
+        Hàm xử lý in:
+        1. Nhận danh sách hàng từ Router (bắt buộc).
+        2. Lấy máy in, khổ giấy từ Toolbar.
+        3. Hỏi Yes/No.
+        4. In luôn.
+        """
         parent_ui = self._get_parent_window()
 
-        # 1. Xác định danh sách cần in
-        if custom_indices is not None:
-            # In theo phạm vi (Range)
-            selection = sorted(list(custom_indices))
-        else:
-            # In theo lựa chọn (Selection - Bôi đen)
-            if not self.model.selected_indices:
-                return MsgHelper.show_warning("Chưa chọn người để in!\n(Hãy bôi đen hoặc nhập số hàng)", parent=parent_ui)
-            selection = sorted(list(self.model.selected_indices))
-
+        # --- 1. SỬA LỖI: CHẶN IN DÒNG ĐANG CHỌN ---
+        # Nếu danh sách in rỗng -> Báo lỗi. KHÔNG tự lấy dòng đang bôi đen nữa.
+        if custom_indices is None or len(custom_indices) == 0:
+             return MsgHelper.show_warning("Vui lòng nhập khoảng  cần in!", parent=parent_ui)
+        
+        selection = sorted(list(custom_indices))
         count = len(selection)
-        if count == 0:
-             return MsgHelper.show_warning("Danh sách in trống!", parent=parent_ui)
+
+        # --- 2. LẤY THÔNG TIN TỪ TOOLBAR ---
+        try:
+            # Lấy tên máy in đang chọn trên thanh công cụ
+            printer_name = self.router.view.p_right.cbb_printer.get()
+            if not printer_name:
+                return MsgHelper.show_error("Vui lòng chọn máy in trên thanh công cụ!", parent=parent_ui)
+            
+            # Lấy khổ giấy
+            paper_size = self.router.view.p_right.var_paper_size.get()
+        except AttributeError:
+             return MsgHelper.show_error("Không tìm thấy cấu hình trên giao diện!", parent=parent_ui)
 
         # Validate file phôi
         if not self.model.template_path or not os.path.exists(self.model.template_path):
             return MsgHelper.show_error("File ảnh phôi chưa được chọn!", parent=parent_ui)
 
-        # 2. Hiển thị Dialog chọn phương thức in
-        self.show_print_options_dialog(selection, count)
+        # --- 3. HỎI XÁC NHẬN (ĐƠN GIẢN) ---
+        msg_confirm = (
+            f"Bạn có muốn in {count} thẻ?\n\n"
+            f"• Máy in: {printer_name}\n"
+            f"• Khổ giấy: {paper_size}\n"
+            f"• Các hàng: {selection[0]+1} đến {selection[-1]+1}"
+        )
 
-    def show_print_options_dialog(self, selection, count):
-        parent = self._get_parent_window()
-        dialog = Toplevel(parent)
-        dialog.title("Cấu hình in ấn")
-        dialog.geometry("400x320")
-        apply_window_icon(dialog)
-        dialog.transient(parent)
-        dialog.grab_set()
-        
-        try:
-            x = parent.winfo_x() + (parent.winfo_width() // 2) - 200
-            y = parent.winfo_y() + (parent.winfo_height() // 2) - 160
-            dialog.geometry(f"+{x}+{y}")
-        except: pass
-
-        # -- UI Components --
-        lbl = Label(dialog, text=f"Chuẩn bị in {count} thẻ.", font=("Segoe UI", 12, "bold"))
-        lbl.pack(pady=15)
-
-        lbl_printer = Label(dialog, text="Chọn máy in (nếu in trực tiếp):")
-        lbl_printer.pack(pady=(5, 0))
-        
-        printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
-        default_printer = win32print.GetDefaultPrinter()
-        
-        cbo_printers = ttk.Combobox(dialog, values=printers, state="readonly", width=40)
-        cbo_printers.pack(pady=5)
-        
-        # Logic chọn máy in mặc định thông minh hơn
-        current_idx = 0
-        if default_printer in printers:
-            current_idx = printers.index(default_printer)
-        if printers:
-            cbo_printers.current(current_idx)
-
-        # Lấy khổ giấy
-        try:
-            view_right = self.router.view.p_right # Lấy từ panel Phải
-            paper_size = view_right.var_paper_size.get() 
-        except:
-            paper_size = "A4"
-            
-        Label(dialog, text=f"Đang cấu hình in khổ: {paper_size}", font=("Segoe UI", 10, "italic"), fg="blue").pack(pady=5)
-
-        def start_process(mode):
-            printer_name = cbo_printers.get() if mode == "DIRECT" else None
-            dialog.destroy()
-            self._start_thread(selection, paper_size, mode, printer_name)
-
-        f_btns = tk.Frame(dialog, pady=20)
-        f_btns.pack(fill="x")
-
-        create_button(f_btns, "Xuất ra PDF", lambda: start_process("PDF"), style="info", width=15).pack(side="left", padx=20)
-        create_button(f_btns, "In Ngay", lambda: start_process("DIRECT"), style="success", width=15).pack(side="right", padx=20)
+        if MsgHelper.ask_yes_no(msg_confirm, title="Xác nhận in ngay", parent=parent_ui):
+            # --- 4. IN LUÔN (BỎ QUA DIALOG CẤU HÌNH) ---
+            self._start_thread(selection, paper_size, "DIRECT", printer_name)
 
     def _start_thread(self, selection, paper_size, mode, printer_name=None):
         timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
@@ -114,14 +80,18 @@ class PrintController:
         if not os.path.exists(session_folder):
             os.makedirs(session_folder)
 
+        # Kích thước pixel cho 300 DPI (xấp xỉ)
         SIZE_MAP = {
              "A4": (2480, 3508),
-            "A5": (1748, 2480), "A6": (1240, 1748)
+            "A5": (1748, 2480), 
+            "A6": (1240, 1748)
         }
         target_w, target_h = SIZE_MAP.get(paper_size, (2480, 3508))
 
         self.stop_event.clear()
         self.errors_log = []
+        
+        # Hiển thị thanh tiến trình
         self.show_progress_window(len(selection), mode)
 
         thread = threading.Thread(
@@ -131,11 +101,7 @@ class PrintController:
         thread.daemon = True
         thread.start()
 
-    # ... (Giữ nguyên các hàm show_progress_window, _get_devmode, _run_print_process, _print_image_to_dc, ...) 
-    # Phần logic xử lý ảnh và in ấn bên dưới giữ nguyên như mã cũ của bạn vì đã ổn định.
-    
     def show_progress_window(self, total, mode):
-        # ... (Code cũ giữ nguyên)
         parent = self._get_parent_window()
         self.prog_win = Toplevel(parent)
         apply_window_icon(self.prog_win)
@@ -182,6 +148,7 @@ class PrintController:
             devmode = printer_info["pDevMode"]
             win32print.ClosePrinter(hPrinter)
 
+            # Mã khổ giấy Windows API
             PAPER_CONSTANTS = { "A4": 9, "A5": 11, "A6": 70 }
             
             devmode.PaperSize = PAPER_CONSTANTS.get(paper_size, 9) 
@@ -190,12 +157,10 @@ class PrintController:
             
             return devmode
         except Exception as e:
-            print(f"Lỗi Devmode: {e}")
+            print(f"Lỗi cấu hình Devmode: {e}")
             return None
 
     def _run_print_process(self, selection, target_w, target_h, output_folder, mode, printer_name, paper_size_name):
-        # ... (Code cũ giữ nguyên logic in ấn) ...
-        # Chỉ copy lại phần quan trọng để đảm bảo code chạy
         BATCH_SIZE = 50 
         pages_buffer = []
         count = len(selection)
@@ -205,6 +170,7 @@ class PrintController:
         hDC = None
         if mode == "DIRECT":
             try:
+                # Logic: Nếu ảnh template chiều ngang > dọc -> Landscape
                 is_landscape_default = target_w > target_h 
                 devmode = self._get_devmode(printer_name, paper_size_name, is_landscape_default)
                 
@@ -230,11 +196,13 @@ class PrintController:
                     img_draw = base_template.copy()
                     self._draw_data_on_original(img_draw, int(idx))
                     
+                    # Xử lý xoay ảnh
                     if user_angle == 90: img_final = img_draw.transpose(Image.ROTATE_270)
                     elif user_angle == 180: img_final = img_draw.transpose(Image.ROTATE_180)
                     elif user_angle == 270: img_final = img_draw.transpose(Image.ROTATE_90)
                     else: img_final = img_draw
 
+                    # Xử lý hướng giấy
                     final_w, final_h = target_w, target_h
                     is_img_landscape = img_final.width > img_final.height
 
@@ -254,6 +222,7 @@ class PrintController:
                     self.errors_log.append(f"Dòng {idx+1}: {str(e)}")
                     print(f"Lỗi row {idx}: {e}")
 
+                # Cập nhật tiến độ
                 if i % 2 == 0 or i == count - 1:
                     elapsed = time.time() - start_time
                     avg = elapsed / (i + 1)
@@ -261,6 +230,7 @@ class PrintController:
                     eta_str = str(timedelta(seconds=rem_sec))
                     self.prog_win.after(0, lambda c=i+1, t=eta_str: self._update_ui(c, count, t))
 
+                # Logic ghi file PDF theo Batch
                 if mode == "PDF":
                     if len(pages_buffer) >= BATCH_SIZE or (i == count - 1):
                         if pages_buffer:
@@ -293,13 +263,19 @@ class PrintController:
             printer_w = hDC.GetDeviceCaps(win32con.HORZRES)
             printer_h = hDC.GetDeviceCaps(win32con.VERTRES)
             img_w, img_h = pil_image.size
+            
+            # Tính tỉ lệ scale vừa khít trang
             ratio_w = printer_w / img_w
             ratio_h = printer_h / img_h
             scale = min(ratio_w, ratio_h)
+            
             new_w = int(img_w * scale)
             new_h = int(img_h * scale)
+            
+            # Căn giữa
             x_offset = (printer_w - new_w) // 2
             y_offset = (printer_h - new_h) // 2
+            
             dib_dst = (x_offset, y_offset, x_offset + new_w, y_offset + new_h)
             dib = ImageWin.Dib(pil_image)
             dib.draw(hDC.GetHandleOutput(), dib_dst)
@@ -310,9 +286,11 @@ class PrintController:
         draw = ImageDraw.Draw(img)
         row = self.model.df.iloc[idx]
         config = self.model.get_effective_config(idx)
+        
         for col, cfg in config.items():
             if not cfg.get("enable", False): continue
             x, y = cfg["x"], cfg["y"]
+            
             if col == "signature_img":
                 sig = self.model.get_signature_image(idx)
                 if sig:
@@ -324,9 +302,11 @@ class PrintController:
                 if not val: continue 
                 if "00:00:00" in val: val = val.split(" ")[0]
                 if cfg.get("upper", False): val = val.upper()
+                
                 font_path = FontManager.get_path(cfg.get("font", "Arial"), cfg.get("bold", False))
                 try: font = ImageFont.truetype(font_path, cfg.get("size", 30))
                 except: font = ImageFont.load_default()
+                
                 draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="mm")
 
     def _update_ui(self, current, total, eta):

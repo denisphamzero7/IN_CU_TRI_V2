@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 import os
-import math  # <--- [QUAN TRỌNG] Phải import thư viện này để tính số trang
+import math 
 from PIL import Image
 from copy import deepcopy
 from config.settings import CONFIG_FILE
@@ -14,24 +14,18 @@ class VoterModel:
         self.global_config = {}
         self.custom_configs = {}
        
-        # --- [MỚI] Biến phục vụ bộ lọc & Tìm kiếm ---
-        self.df_filtered = None  # DataFrame lưu kết quả sau khi xử lý
+        self.df_filtered = None 
         self.unique_areas = []   
         
-        # Mặc định là "Chưa chọn khu vực" (tương đương hiển thị tất cả)
-        self.current_area_filter = "Chưa chọn khu vực"
+        # --- [SỬA] Đặt mặc định là từ khóa này ---
+        self.current_area_filter = "Lọc theo khu vực"
+        # -----------------------------------------
         
         self.current_search_keyword = "" 
-        # --------------------------------------------
-
-        # --- Pagination State ---
         self.current_page = 1
         self.page_size = 100   
         self.total_pages = 1
-        
-        # --- Lưu trạng thái chọn ---
         self.selected_indices = set()
-        
         self._load_config()
 
     def _load_config(self):
@@ -42,7 +36,6 @@ class VoterModel:
                     self.global_config = data.get("global", {})
                     self.custom_configs = {int(k): v for k, v in data.get("custom", {}).items()}
             except: pass
-        
         if "signature_img" not in self.global_config:
             self.global_config["signature_img"] = {"x": 300, "y": 300, "w": 150, "h": 80, "enable": True, "type": "image"}
 
@@ -54,9 +47,10 @@ class VoterModel:
         self.df = pd.read_excel(path).fillna("")
         self.df.columns = self.df.columns.str.strip()
         
-        # Reset bộ lọc về trạng thái ban đầu
-        self.current_area_filter = "Chưa chọn khu vực"
+        # --- [SỬA] Reset về trạng thái mặc định ---
+        self.current_area_filter = "Lọc theo khu vực"
         self.current_search_keyword = ""
+        # ------------------------------------------
         
         col_area = None
         for col in self.df.columns:
@@ -67,44 +61,32 @@ class VoterModel:
         if col_area:
             raw = self.df[col_area].unique()
             clean_areas = [str(x) for x in raw if str(x) != "nan" and str(x) != ""]
-            
-            # --- [LOGIC TÙY CHỈNH] ---
-            # Hiện tại: Chỉ lấy danh sách khu vực (Ẩn "Tất cả")
-            self.unique_areas = sorted(clean_areas)
-
-            # SAU NÀY: Nếu muốn hiện lại nút "Tất cả", bạn chỉ cần mở comment dòng dưới đây:
-            # self.unique_areas = ["Tất cả"] + sorted(clean_areas)
-            # -------------------------
+            # Thêm từ khóa mặc định vào đầu danh sách để người dùng chọn quay lại
+            self.unique_areas = ["Lọc theo khu vực"] + sorted(clean_areas)
         else:
-            self.unique_areas = []
+            self.unique_areas = ["Lọc theo khu vực"]
             
         self.apply_filters()
         
-        # Init config mặc định
         for col in self.df.columns:
             if col not in self.global_config:
                 self.global_config[col] = {"x": 50, "y": 50, "size": 30, "enable": False, "font": "Arial", "color": "Black", "type": "text"}
-        
         if "signature_img" not in self.global_config:
-             self.global_config["signature_img"] = {"x": 300, "y": 300, "w": 150, "h": 80, "enable": True, "type": "image"}
-             
+             self.global_config["signature_img"] = {"x": 300, "y": 300, "w": 150, "h": 80, "enable": True, "type": "image"} 
         self.save_config()
 
     def apply_filters(self):
-        """
-        [QUAN TRỌNG] Hàm lọc trung tâm:
-        """
         if self.df is None or self.df.empty: 
             self.df_filtered = pd.DataFrame()
             return
 
-        # B1: Lấy dữ liệu gốc
         temp_df = self.df.copy()
 
-        # B2: Lọc theo Khu Vực
-        # Logic: Nếu KHÔNG PHẢI là "Tất cả", "Chưa chọn khu vực" hoặc Rỗng thì mới lọc
-        # Điều này đảm bảo cả "Tất cả" (sau này dùng) và "Chưa chọn khu vực" (hiện tại) đều hiện full danh sách
-        if self.current_area_filter and self.current_area_filter not in ["Tất cả", "Chưa chọn khu vực", ""]:
+        # --- [SỬA] Logic lọc: Nếu là từ khóa mặc định thì hiện tất cả ---
+        # Danh sách các từ khóa được coi là "Không lọc"
+        ignore_filters = ["Tất cả", "Chưa chọn khu vực", "Lọc theo khu vực", ""]
+        
+        if self.current_area_filter and self.current_area_filter not in ignore_filters:
             col_area = None
             for col in self.df.columns:
                 if "Khu vực" in col or "Thôn" in col or "Xã" in col:
@@ -112,47 +94,36 @@ class VoterModel:
                     break
             if col_area:
                 temp_df = temp_df[temp_df[col_area].astype(str) == self.current_area_filter]
+        # ---------------------------------------------------------------
 
-        # B3: Lọc theo Từ Khóa (Search)
         kw = self.current_search_keyword.lower().strip()
         if kw:
             col_name = next((c for c in self.df.columns if "họ tên" in c.lower() or "name" in c.lower()), None)
             col_cccd = next((c for c in self.df.columns if "cccd" in c.lower() or "cmnd" in c.lower()), None)
-            
             conditions = []
-            if col_name:
-                conditions.append(temp_df[col_name].astype(str).str.lower().str.contains(kw))
-            if col_cccd:
-                conditions.append(temp_df[col_cccd].astype(str).str.lower().str.contains(kw))
-            
+            if col_name: conditions.append(temp_df[col_name].astype(str).str.lower().str.contains(kw))
+            if col_cccd: conditions.append(temp_df[col_cccd].astype(str).str.lower().str.contains(kw))
             if conditions:
                 final_condition = conditions[0]
-                for cond in conditions[1:]:
-                    final_condition = final_condition | cond
+                for cond in conditions[1:]: final_condition = final_condition | cond
                 temp_df = temp_df[final_condition]
 
-        # B4: Cập nhật kết quả
         self.df_filtered = temp_df
 
-        # B5: Tính lại phân trang
         if not self.df_filtered.empty:
             self.total_pages = math.ceil(len(self.df_filtered) / self.page_size)
         else:
             self.total_pages = 1
-        
-        self.current_page = 1 # Luôn về trang 1 khi lọc
+        self.current_page = 1 
 
     def filter_data(self, area_name):
-        """Gọi khi chọn Combobox"""
         self.current_area_filter = area_name
         self.apply_filters()
 
     def search_data(self, keyword):
-        """Gọi khi nhập tìm kiếm"""
         self.current_search_keyword = keyword
         self.apply_filters()
 
-    # ... (Các hàm sort_data, get_effective_config, update_config_value, reset_custom_config, get_signature_image giữ nguyên) ...
     def sort_data(self, col_key, reverse=False):
         if self.df_filtered is None or self.df_filtered.empty: return
         target_col = None
@@ -187,18 +158,15 @@ class VoterModel:
 
     def update_config_value(self, idx, mode, col, key, value):
         if mode == "global":
-            if col not in self.global_config:
-                self.global_config[col] = {}
+            if col not in self.global_config: self.global_config[col] = {}
             self.global_config[col][key] = value
             if key in ["size", "font", "bold", "upper", "color"]:
                 if idx in self.custom_configs and col in self.custom_configs[idx]:
-                    if key in self.custom_configs[idx][col]:
-                        del self.custom_configs[idx][col][key] 
+                    if key in self.custom_configs[idx][col]: del self.custom_configs[idx][col][key] 
             self.save_config()
         else:
             if idx not in self.custom_configs: self.custom_configs[idx] = {}
-            if col not in self.custom_configs[idx]:
-                self.custom_configs[idx][col] = deepcopy(self.global_config.get(col, {}))
+            if col not in self.custom_configs[idx]: self.custom_configs[idx][col] = deepcopy(self.global_config.get(col, {}))
             self.custom_configs[idx][col][key] = value
             self.save_config()
 
@@ -210,9 +178,22 @@ class VoterModel:
         return False
 
     def get_signature_image(self, idx):
+        # 1. ƯU TIÊN CAO NHẤT: Kiểm tra cấu hình RIÊNG (Custom Config)
         if idx in self.custom_configs and "signature_img" in self.custom_configs[idx]:
             p = self.custom_configs[idx]["signature_img"].get("path")
+            # Nếu có đường dẫn riêng hợp lệ -> Trả về ảnh riêng
             if p and os.path.exists(p): return Image.open(p).convert("RGBA")
+
+        # 2. ƯU TIÊN NHÌ: Kiểm tra cấu hình CHUNG (Global Config) - [PHẦN MỚI THÊM]
+        # Nếu đã chọn "Chỉnh tất cả" và chọn 1 ảnh, nó sẽ nằm ở đây
+        if "signature_img" in self.global_config:
+            global_p = self.global_config["signature_img"].get("path")
+            # Nếu có đường dẫn chung -> Trả về ảnh chung cho tất cả mọi người
+            # (Trừ những người đã có cấu hình riêng ở bước 1)
+            if global_p and os.path.exists(global_p): 
+                return Image.open(global_p).convert("RGBA")
+
+        # 3. ƯU TIÊN CUỐI: Tự động tìm trong Folder Chữ ký dựa theo CCCD hoặc STT
         if self.signature_folder and self.df is not None:
             row = self.df.iloc[idx]
             col_cccd = None
@@ -221,16 +202,19 @@ class VoterModel:
                     col_cccd = col
                     break
             cccd = str(row.get(col_cccd, "")).strip() if col_cccd else ""
+            
+            # Các tên file có thể có: CCCD.png, CCCD.jpg, STT.png...
             names = [cccd, str(idx+1)] if cccd else [str(idx+1)]
+            
             for n in names:
                 for ext in [".png", ".jpg", ".jpeg"]:
                     p = os.path.join(self.signature_folder, n + ext)
                     if os.path.exists(p): return Image.open(p).convert("RGBA")
+        
         return None
 
     def get_current_page_data(self):
-        if self.df_filtered is None or self.df_filtered.empty:
-            return pd.DataFrame()
+        if self.df_filtered is None or self.df_filtered.empty: return pd.DataFrame()
         start = (self.current_page - 1) * self.page_size
         end = start + self.page_size
         return self.df_filtered.iloc[start:end]

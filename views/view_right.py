@@ -1,6 +1,7 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+import win32print  
 from helpers.ui_helpers import create_button
 
 class RightPanelView(ttk.Frame):
@@ -9,10 +10,8 @@ class RightPanelView(ttk.Frame):
         self.pack(fill=BOTH, expand=YES)
         self.router = router
 
-        # --- 1. TOOLBAR MỚI (Đã sửa giao diện "Từ hàng... Đến hàng...") ---
         self._setup_top_toolbar()
 
-        # --- 2. CANVAS (Giữ nguyên) ---
         self.canvas = tk.Canvas(
             self, 
             bg="#57606f",      
@@ -21,7 +20,6 @@ class RightPanelView(ttk.Frame):
         )
         self.canvas.pack(fill=BOTH, expand=YES, padx=5, pady=5)
         
-        # --- BINDINGS (Giữ nguyên) ---
         self.canvas.tag_bind("draggable", "<ButtonPress-1>", router.on_drag_start)
         self.canvas.tag_bind("draggable", "<B1-Motion>", router.on_drag_motion)
         self.canvas.tag_bind("draggable", "<ButtonRelease-1>", router.on_drag_end)
@@ -30,48 +28,62 @@ class RightPanelView(ttk.Frame):
         self.canvas.bind("<Configure>", router.on_canvas_resize)
 
     def _setup_top_toolbar(self):
-        # Frame tổng (Toolbar)
         tb = ttk.Frame(self, padding=5, bootstyle="secondary")
         tb.pack(fill=X, side=TOP)
 
-        # --- CHIẾN THUẬT PACK: Ưu tiên 2 đầu trước, giữa sau ---
+        # --- CHIẾN THUẬT PACK MỚI: (RIGHT) Nút In -> MÁY IN -> TỪ/ĐẾN HÀNG ---
 
-        # 1. Nút IN NGAY (Pack RIGHT trước tiên để luôn neo chặt ở lề phải)
+        # 1. Nút IN NGAY (Vẫn giữ ngoài cùng bên phải)
         create_button(
             tb, "🖨️ IN NGAY", self.router.start_print, style="danger"
         ).pack(side=RIGHT, padx=(5, 0))
 
-        # 2. Cụm chọn Hàng (Pack RIGHT tiếp theo để nằm ngay cạnh nút In)
-        fr_range = ttk.Frame(tb, bootstyle="secondary")
-        fr_range.pack(side=RIGHT, padx=5)
+        # 2. [MỚI] CHỌN MÁY IN (Được đẩy sang phải tiếp theo, nằm cạnh nút IN)
+        # Lấy danh sách máy in
+        try:
+            printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
+            default_printer = win32print.GetDefaultPrinter()
+        except:
+            printers = []
+            default_printer = ""
 
-        # Rút gọn chữ để tiết kiệm diện tích: "Từ hàng" -> "Từ"
-        ttk.Label(fr_range, text="Từ hàng:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
+        # Combobox Máy in
+        self.cbb_printer = ttk.Combobox(
+            tb, values=printers, state="readonly", width=25, bootstyle="info"
+        )
+        self.cbb_printer.pack(side=RIGHT, padx=5)
+        
+        if default_printer in printers:
+            self.cbb_printer.current(printers.index(default_printer))
+        elif printers:
+            self.cbb_printer.current(0)
+        
+        # Label "Máy in:"
+        ttk.Label(tb, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT, padx=(5, 2))
+
+        # 3. [MỚI] CỤM TỪ HÀNG - ĐẾN HÀNG (Đẩy tiếp sang trái của cụm Máy in)
+        fr_range = ttk.Frame(tb, bootstyle="secondary")
+        fr_range.pack(side=RIGHT, padx=10) # Tăng padx để tách biệt rõ hơn
+
+        ttk.Label(fr_range, text="Từ:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
         
         self.var_print_from = tk.StringVar(value="1") 
         self.spin_from = ttk.Spinbox(
-            fr_range, 
-            from_=1, to=9999, 
-            textvariable=self.var_print_from, 
-            width=4, # Giảm width còn 4 (đủ cho 9999)
-            bootstyle="light"
+            fr_range, from_=1, to=9999, textvariable=self.var_print_from, 
+            width=4, bootstyle="light"
         )
         self.spin_from.pack(side=LEFT)
 
-        # "Đến hàng" -> "Đến"
-        ttk.Label(fr_range, text="Đến hàng:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
+        ttk.Label(fr_range, text="Đến:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
 
         self.var_print_to = tk.StringVar(value="") 
         self.spin_to = ttk.Spinbox(
-            fr_range, 
-            from_=1, to=9999, 
-            textvariable=self.var_print_to, 
-            width=4, 
-            bootstyle="light"
+            fr_range, from_=1, to=9999, textvariable=self.var_print_to, 
+            width=4, bootstyle="light"
         )
         self.spin_to.pack(side=LEFT)
 
-        # 3. Cụm cấu hình Giấy (Pack LEFT để nằm bên trái)
+        # 4. KHỔ GIẤY (Vẫn giữ bên trái màn hình)
         fr_paper = ttk.Frame(tb, bootstyle="secondary")
         fr_paper.pack(side=LEFT)
 
@@ -82,7 +94,7 @@ class RightPanelView(ttk.Frame):
             fr_paper, 
             textvariable=self.var_paper_size, 
             values=["A4", "A5", "A6"], 
-            width=3, # Giảm width combobox
+            width=3, 
             state="readonly", 
             bootstyle="warning"
         )

@@ -102,29 +102,37 @@ class AppRouter:
         
         # Cập nhật list Combobox lọc
         current_values = self.view.p_mid.cbb_filter['values']
-        # Chỉ cập nhật list nếu chưa có hoặc danh sách thay đổi
         if list(current_values) != self.model.unique_areas:
              self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
 
-        # --- [SỬA TẠI ĐÂY] ---
-        # Logic hiển thị lại tên Khu vực đang chọn
-        if self.model.current_area_filter in ["Tất cả", "Chưa chọn khu vực", ""]:
-            self.view.p_mid.cbb_filter.set("Chưa chọn khu vực")
+        # --- [SỬA] Hiển thị tên Khu vực đang chọn hoặc Chữ mặc định ---
+        # Danh sách các từ khóa được coi là mặc định
+        defaults = ["Tất cả", "Chưa chọn khu vực", "Lọc theo khu vực", ""]
+        if self.model.current_area_filter in defaults:
+            self.view.p_mid.cbb_filter.set("Lọc theo khu vực")
         else:
             self.view.p_mid.cbb_filter.set(self.model.current_area_filter)
-        # ---------------------
+        # --------------------------------------------------------------
 
     def on_filter_change(self, event):
         selected_area = self.view.p_mid.cbb_filter.get()
         self.model.filter_data(selected_area)
-        self.deselect_all()
+        
+        # --- [SỬA QUAN TRỌNG] ---
+        # Chỉ xóa chọn cũ, KHÔNG tự động chọn mới (select_all)
+        self.deselect_all() 
+        # ------------------------
+        
         self.refresh_mid_table()
-        self.select_all() 
-
-        count = len(self.model.selected_indices)
-      # Sửa lại câu thông báo đếm số lượng cho khớp
-        if selected_area and selected_area not in ["Tất cả", "Chưa chọn khu vực", ""]:
-            self.view.p_mid.lbl_count.config(text=f"Đã tự động chọn {count} người thuộc Khu vực {selected_area}")
+        
+        # Cập nhật thông báo
+        count = len(self.model.df_filtered)
+        defaults = ["Tất cả", "Chưa chọn khu vực", "Lọc theo khu vực", ""]
+        
+        if selected_area and selected_area not in defaults:
+            # Chỉ hiện thông báo số lượng tìm thấy, ko nói là "Đã chọn" nữa
+            # Vì giờ chỉ là xem thôi
+            self.view.p_mid.lbl_total_val.config(text=f"{count}")
         else:
             self.update_count_label()
 
@@ -282,13 +290,28 @@ class AppRouter:
 
     def pick_manual_signature(self):
         from tkinter import filedialog
-        path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg")])
+        path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg;*.jpeg")])
         if path:
-            self.edit_mode.set("individual")
-            self.model.update_config_value(self.current_idx, "individual", "signature_img", "path", path)
-            self.model.update_config_value(self.current_idx, "individual", "signature_img", "enable", True)
-            self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
+            # Lấy chế độ đang chọn (Chỉnh riêng hay Chỉnh tất cả)
+            mode = self.edit_mode.get() # 'global' hoặc 'individual'
+            
+            # Lưu đường dẫn ảnh vào config tương ứng
+            # 'signature_img' là key của trường chữ ký
+            self.model.update_config_value(self.current_idx, mode, "signature_img", "path", path)
+            self.model.update_config_value(self.current_idx, mode, "signature_img", "enable", True)
+            
+            # Nếu là chỉnh riêng thì đánh dấu dòng đó màu đỏ
+            if mode == "individual":
+                self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
+            
+            # Vẽ lại canvas
             self.ctrl_canvas.render()
+            
+            # Thông báo nhỏ (tùy chọn)
+            if mode == "global":
+                print(f"Đã áp dụng ảnh {path} cho TẤT CẢ mọi người.")
+            else:
+                print(f"Đã áp dụng ảnh riêng cho người số {self.current_idx}.")
 
     def on_shift_zoom(self, event): self.ctrl_canvas.handle_zoom(event)
     def on_drag_start(self, event): self.ctrl_canvas.drag_start(event)
@@ -303,39 +326,40 @@ class AppRouter:
         self.ctrl_canvas.render()
 
     def on_tree_left_click(self, event):
-        """Xử lý click chuột: Toggle chọn/bỏ chọn và click đơn lẻ"""
-        # Lấy widget Treeview từ View
+        """Xử lý click chuột: Chọn dòng để XEM PREVIEW ngay lập tức"""
         if not self.view or not hasattr(self.view, 'p_mid'): return
         tree = self.view.p_mid.tree
         
-        # 1. Xác định hàng đang được click
+        # 1. Xác định dòng được click
         item_id = tree.identify_row(event.y)
-        if not item_id: 
-            return # Click vào vùng trắng thì bỏ qua
+        if not item_id: return 
 
-        # 2. Kiểm tra phím Ctrl/Shift. Nếu user giữ phím này thì để mặc định xử lý
-        state = event.state
-        is_ctrl = (state & 0x0004) != 0
-        is_shift = (state & 0x0001) != 0
-        if is_ctrl or is_shift: return 
+        # 2. Chọn dòng đó trên giao diện (Bôi xanh)
+        # Lưu ý: selection_set chỉ làm nhiệm vụ hiển thị, chưa kích hoạt logic dữ liệu
+        tree.selection_set(item_id)
+        tree.focus(item_id)
 
-        # 3. Logic xử lý Toggle
-        current_selection = tree.selection()
+        # 3. [QUAN TRỌNG] Cập nhật dữ liệu và Vẽ lại Canvas NGAY LẬP TỨC
+        try:
+            new_idx = int(item_id)
+            
+            # Cập nhật index hiện tại của Router
+            self.current_idx = new_idx
+            
+            # Gọi lệnh vẽ lại Canvas (Preview)
+            self.ctrl_canvas.render()
+            
+            # Nếu đang mở tab chỉnh sửa chi tiết (cột trái), nạp lại thông số của người này
+            if self.selected_field: 
+                self.load_field_props_to_ui()
+                
+            # Cập nhật thông báo số lượng (chỉ để xem)
+            # self.update_count_label() # Có thể bỏ dòng này nếu không cần đếm khi click đơn
+            
+        except ValueError:
+            pass
 
-        if item_id in current_selection:
-            # Nếu đã chọn -> Bỏ chọn (Toggle OFF)
-            tree.selection_remove(item_id)
-            tree.focus(item_id)
-        else:
-            # Nếu chưa chọn -> Chọn duy nhất hàng này (Xóa các chọn lựa cũ từ bộ lọc)
-            tree.selection_set(item_id)
-            tree.focus(item_id)
-
-        # 4. Cập nhật lại Model và số lượng đếm
-        # Gọi thủ công vì selection_set/remove không kích hoạt event <<TreeviewSelect>>
-        self.on_user_select_change(None)
-
-        # [QUAN TRỌNG] Chặn sự kiện mặc định của Treeview
+        # 4. Chặn sự kiện mặc định của Treeview để tránh xung đột logic
         return "break"
     # ------------------------------------------------------
     def on_header_click(self, col):

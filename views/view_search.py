@@ -21,9 +21,7 @@ class SearchView(ttk.Frame):
         # 1. Ô nhập liệu
         self.ent_search = ttk.Entry(self, width=width, bootstyle="info")
         self.ent_search.pack(side=LEFT, padx=(0, 5))
-        
-        # 2. Nút tìm kiếm
-        create_button(self, "🔍", self.router.on_search_action, style="info-outline", width=3).pack(side=LEFT)
+    
 
         # 3. Binding Sự kiện
         self.ent_search.bind("<FocusIn>", self._on_focus_in)
