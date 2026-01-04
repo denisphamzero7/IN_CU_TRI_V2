@@ -94,13 +94,15 @@
             "upper": false
         },
         "Khu vực bỏ phiếu": {
-            "x": 199,
-            "y": 262,
-            "size": 30,
+            "x": 195,
+            "y": 266,
+            "size": 16,
             "enable": true,
             "font": "Arial",
             "color": "Black",
-            "type": "text"
+            "type": "text",
+            "bold": false,
+            "upper": false
         },
         "Thành phố": {
             "x": 170,

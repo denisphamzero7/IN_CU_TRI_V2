@@ -100,7 +100,7 @@ class PrintController:
             printer_info = win32print.GetPrinter(hPrinter, 2)
             devmode = printer_info["pDevMode"]
             win32print.ClosePrinter(hPrinter)
-
+            
             PAPER_CONSTANTS = { "A4": 9, "A5": 11, "A6": 70 }
             devmode.PaperSize = PAPER_CONSTANTS.get(paper_size, 9) 
             devmode.Orientation = 2 if is_landscape else 1 

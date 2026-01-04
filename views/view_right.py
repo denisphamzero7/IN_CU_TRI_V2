@@ -20,6 +20,7 @@ class RightPanelView(ttk.Frame):
         )
         self.canvas.pack(fill=BOTH, expand=YES, padx=5, pady=5)
         
+        # Binding các sự kiện Canvas
         self.canvas.tag_bind("draggable", "<ButtonPress-1>", router.on_drag_start)
         self.canvas.tag_bind("draggable", "<B1-Motion>", router.on_drag_motion)
         self.canvas.tag_bind("draggable", "<ButtonRelease-1>", router.on_drag_end)
@@ -31,15 +32,15 @@ class RightPanelView(ttk.Frame):
         tb = ttk.Frame(self, padding=5, bootstyle="secondary")
         tb.pack(fill=X, side=TOP)
 
-        # --- CHIẾN THUẬT PACK MỚI: (RIGHT) Nút In -> MÁY IN -> TỪ/ĐẾN HÀNG ---
-
-        # 1. Nút IN NGAY (Vẫn giữ ngoài cùng bên phải)
+        # ---------------------------------------------------------
+        # 1. Nút IN NGAY (Ngoài cùng bên phải)
         create_button(
             tb, "🖨️ IN NGAY", self.router.start_print, style="danger"
         ).pack(side=RIGHT, padx=(5, 0))
 
-        # 2. [MỚI] COMBOBOX CHỌN CHỂ ĐỘ IN (Đặt cạnh nút IN NGAY)
-        self.var_print_mode = tk.StringVar(value="Chỉ dữ liệu")  # Mặc định: KHÔNG in phôi
+        # ---------------------------------------------------------
+        # 2. Combobox CHỌN CHẾ ĐỘ IN (Chỉ dữ liệu / Kèm phôi)
+        self.var_print_mode = tk.StringVar(value="Chỉ dữ liệu")  
         self.cbb_print_mode = ttk.Combobox(
             tb, 
             textvariable=self.var_print_mode,
@@ -50,8 +51,8 @@ class RightPanelView(ttk.Frame):
         )
         self.cbb_print_mode.pack(side=RIGHT, padx=5)
 
-        # 3. CHỌN MÁY IN (Được đẩy sang phải tiếp theo, nằm cạnh nút IN)
-        # Lấy danh sách máy in
+        # ---------------------------------------------------------
+        # 3. CHỌN MÁY IN
         try:
             printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
             default_printer = win32print.GetDefaultPrinter()
@@ -59,7 +60,6 @@ class RightPanelView(ttk.Frame):
             printers = []
             default_printer = ""
 
-        # Combobox Máy in
         self.cbb_printer = ttk.Combobox(
             tb, values=printers, state="readonly", width=25, bootstyle="info"
         )
@@ -70,12 +70,12 @@ class RightPanelView(ttk.Frame):
         elif printers:
             self.cbb_printer.current(0)
         
-        # Label "Máy in:"
         ttk.Label(tb, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT, padx=(5, 2))
 
-        # 4. CỤM TỪ HÀNG - ĐẾN HÀNG (Đẩy tiếp sang trái của cụm Máy in)
+        # ---------------------------------------------------------
+        # 4. CỤM TỪ HÀNG - ĐẾN HÀNG
         fr_range = ttk.Frame(tb, bootstyle="secondary")
-        fr_range.pack(side=RIGHT, padx=10) # Tăng padx để tách biệt rõ hơn
+        fr_range.pack(side=RIGHT, padx=10)
 
         ttk.Label(fr_range, text="Từ:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
         
@@ -95,7 +95,8 @@ class RightPanelView(ttk.Frame):
         )
         self.spin_to.pack(side=LEFT)
 
-        # 5. KHỔ GIẤY (Vẫn giữ bên trái màn hình)
+        # ---------------------------------------------------------
+        # 5. KHỔ GIẤY & XOAY (Bên trái)
         fr_paper = ttk.Frame(tb, bootstyle="secondary")
         fr_paper.pack(side=LEFT)
 
@@ -113,6 +114,18 @@ class RightPanelView(ttk.Frame):
         self.cbb_paper_size.pack(side=LEFT)
         self.cbb_paper_size.bind("<<ComboboxSelected>>", self.router.on_paper_config_change)
 
+        # Nút Xoay Nội Dung (Template)
         create_button(
-            fr_paper, "↻", self.router.rotate_template_right, style="info-outline", width=2
+            fr_paper, "↻", self.router.rotate_template_right, 
+            style="info-outline", width=4
         ).pack(side=LEFT, padx=2)
+        
+        # Nút Xoay Giấy (Paper Orientation) - Chỉ hiện Icon ▮
+        self.btn_rotate_paper = create_button(
+            fr_paper, 
+            "▮",  # Icon mặc định (Dọc)
+            self.router.toggle_paper_orientation, 
+            style="info-outline", 
+            width=4 
+        )
+        self.btn_rotate_paper.pack(side=LEFT, padx=2)
