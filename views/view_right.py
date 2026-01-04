@@ -38,7 +38,19 @@ class RightPanelView(ttk.Frame):
             tb, "🖨️ IN NGAY", self.router.start_print, style="danger"
         ).pack(side=RIGHT, padx=(5, 0))
 
-        # 2. [MỚI] CHỌN MÁY IN (Được đẩy sang phải tiếp theo, nằm cạnh nút IN)
+        # 2. [MỚI] COMBOBOX CHỌN CHỂ ĐỘ IN (Đặt cạnh nút IN NGAY)
+        self.var_print_mode = tk.StringVar(value="Chỉ dữ liệu")  # Mặc định: KHÔNG in phôi
+        self.cbb_print_mode = ttk.Combobox(
+            tb, 
+            textvariable=self.var_print_mode,
+            values=["Chỉ dữ liệu", "Dữ liệu + Phôi"],
+            state="readonly",
+            width=15,
+            bootstyle="success"
+        )
+        self.cbb_print_mode.pack(side=RIGHT, padx=5)
+
+        # 3. CHỌN MÁY IN (Được đẩy sang phải tiếp theo, nằm cạnh nút IN)
         # Lấy danh sách máy in
         try:
             printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
@@ -61,7 +73,7 @@ class RightPanelView(ttk.Frame):
         # Label "Máy in:"
         ttk.Label(tb, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT, padx=(5, 2))
 
-        # 3. [MỚI] CỤM TỪ HÀNG - ĐẾN HÀNG (Đẩy tiếp sang trái của cụm Máy in)
+        # 4. CỤM TỪ HÀNG - ĐẾN HÀNG (Đẩy tiếp sang trái của cụm Máy in)
         fr_range = ttk.Frame(tb, bootstyle="secondary")
         fr_range.pack(side=RIGHT, padx=10) # Tăng padx để tách biệt rõ hơn
 
@@ -83,7 +95,7 @@ class RightPanelView(ttk.Frame):
         )
         self.spin_to.pack(side=LEFT)
 
-        # 4. KHỔ GIẤY (Vẫn giữ bên trái màn hình)
+        # 5. KHỔ GIẤY (Vẫn giữ bên trái màn hình)
         fr_paper = ttk.Frame(tb, bootstyle="secondary")
         fr_paper.pack(side=LEFT)
 
