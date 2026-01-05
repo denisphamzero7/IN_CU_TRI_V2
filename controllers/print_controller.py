@@ -1,316 +1,318 @@
 import os
 import threading
 import time
-import gc
-import tkinter as tk
-from tkinter import Toplevel, Label, ttk
-from datetime import datetime, timedelta
-from PIL import Image, ImageDraw, ImageFont, ImageWin
-import win32gui
 import win32print
 import win32ui
 import win32con
-
-from helpers.font_manager import FontManager
+import win32gui
+from datetime import datetime, timedelta
+from PIL import Image, ImageWin, ImageDraw, ImageFont
 from helpers.msg_helper import MsgHelper
 from helpers.ui_helpers import apply_window_icon
+from helpers.font_manager import FontManager
+import tkinter as tk
+from tkinter import Toplevel, ttk
 
 class PrintController:
+    # Mã giấy chuẩn Windows: 9=A4, 11=A5, 70=A6. 
+    # Nếu máy in dùng khổ Custom, nó có thể không khớp mã này, nhưng A4/A5 là chuẩn.
+    PAPER_IDS = {"A4": 9, "A5": 11, "A6": 70}
+
     def __init__(self, router):
         self.router = router
         self.model = router.model
         self.stop_event = threading.Event()
         self.errors_log = [] 
+        self.prog_win = None
 
     def _get_parent_window(self):
-        try:
-            return self.router.view.winfo_toplevel()
-        except:
-            return self.router.view.master
+        try: return self.router.view.winfo_toplevel()
+        except: return self.router.view.master
 
     def print_batch(self, custom_indices=None):
         parent_ui = self._get_parent_window()
-
-        # 1. Kiểm tra danh sách in
-        if custom_indices is None or len(custom_indices) == 0:
-             return MsgHelper.show_warning("Vui lòng chọn hoặc nhập khoảng cần in!", parent=parent_ui)
+        if not custom_indices: 
+            return MsgHelper.show_warning("Chưa chọn hàng!", parent=parent_ui)
         
-        selection = sorted(list(custom_indices))
-        count = len(selection)
-
-        # 2. Lấy thông tin từ Toolbar
         try:
-            printer_name = self.router.view.p_right.cbb_printer.get()
-            paper_size = self.router.view.p_right.var_paper_size.get()
+            # Lấy thông tin từ UI
+            printer = self.router.view.p_right.cbb_printer.get()
+            size = self.router.view.p_right.var_paper_size.get() # A4, A5...
+            mode = self.router.view.p_right.cbb_print_mode.get() # Chế độ in (Dữ liệu/Cả khung)
             
-            # --- [MỚI] Lấy chế độ in (Chỉ dữ liệu / Kèm phôi) ---
-            # Giá trị trả về sẽ là "Chỉ dữ liệu" hoặc "Dữ liệu + Phôi"
-            print_mode = self.router.view.p_right.cbb_print_mode.get() 
+            # Lấy thông tin hướng giấy từ biến router (đã bind với UI radio button)
+            # True = Landscape (Ngang), False = Portrait (Dọc)
+            is_landscape = getattr(self.router, 'is_paper_landscape', False)
+            orientation_text = "Ngang" if is_landscape else "Dọc"
             
-            if not printer_name:
-                return MsgHelper.show_error("Vui lòng chọn máy in!", parent=parent_ui)
-        except AttributeError:
-             return MsgHelper.show_error("Không tìm thấy cấu hình trên giao diện!", parent=parent_ui)
+        except Exception as e:
+            return MsgHelper.show_error(f"Lỗi cấu hình in: {e}", parent=parent_ui)
 
-        # Validate file phôi (Vẫn cần check để lấy kích thước)
-        if not self.model.template_path or not os.path.exists(self.model.template_path):
-            return MsgHelper.show_error("Chưa chọn file ảnh phôi (cần file để lấy kích thước)!", parent=parent_ui)
+        msg = (f"Xác nhận in {len(custom_indices)} thẻ?\n\n"
+               f"- Máy in: {printer}\n"
+               f"- Khổ: {size} ({orientation_text})\n"
+               f"- Chế độ: {mode}")
+               
+        if MsgHelper.ask_yes_no(msg, title="Xác nhận in", parent=parent_ui):
+            self._start_thread(custom_indices, size, is_landscape, printer, mode)
 
-        # 3. Xác nhận
-        msg_confirm = (
-            f"Xác nhận in {count} thẻ?\n\n"
-            f"• Máy in: {printer_name}\n"
-            f"• Chế độ: {print_mode.upper()}\n" # Hiển thị chế độ cho chắc chắn
-            f"• Khổ giấy: {paper_size}\n"
-            f"• Dòng: {selection[0]+1} đến {selection[-1]+1}"
-        )
-
-        if MsgHelper.ask_yes_no(msg_confirm, title="Xác nhận in", parent=parent_ui):
-            # Truyền thêm print_mode vào thread
-            self._start_thread(selection, paper_size, "DIRECT", printer_name, print_mode)
-
-    def _start_thread(self, selection, paper_size, mode, printer_name=None, print_mode_option="Dữ liệu + Phôi"):
-        timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        session_folder = os.path.join(os.path.abspath("KetQuaIn"), f"Lan_In_{timestamp}")
-        if not os.path.exists(session_folder):
-            os.makedirs(session_folder)
-
-        SIZE_MAP = {
-             "A4": (2480, 3508),
-            "A5": (1748, 2480), 
-            "A6": (1240, 1748)
-        }
-        target_w, target_h = SIZE_MAP.get(paper_size, (2480, 3508))
+    def _start_thread(self, selection, paper_size, is_landscape, printer_name, print_mode):
+        timestamp = datetime.now().strftime("%Hh%Mm%Ss")
+        session_folder = os.path.abspath(f"KetQuaIn/In_{timestamp}")
+        if not os.path.exists(session_folder): os.makedirs(session_folder)
 
         self.stop_event.clear()
-        self.errors_log = []
-        
-        self.show_progress_window(len(selection), mode)
+        self.show_progress_window(len(selection))
 
         thread = threading.Thread(
             target=self._run_print_process,
-            args=(selection, target_w, target_h, session_folder, mode, printer_name, paper_size, print_mode_option)
+            args=(selection, session_folder, is_landscape, printer_name, paper_size, print_mode)
         )
         thread.daemon = True
         thread.start()
 
     def _get_devmode(self, printer_name, paper_size, is_landscape):
+        """
+        Cấu hình Driver máy in (Khổ giấy, Hướng giấy)
+        """
         try:
             hPrinter = win32print.OpenPrinter(printer_name)
-            printer_info = win32print.GetPrinter(hPrinter, 2)
-            devmode = printer_info["pDevMode"]
-            win32print.ClosePrinter(hPrinter)
+            try:
+                p_info = win32print.GetPrinter(hPrinter, 2)
+                devmode = p_info["pDevMode"]
+            finally:
+                win32print.ClosePrinter(hPrinter)
             
-            PAPER_CONSTANTS = { "A4": 9, "A5": 11, "A6": 70 }
-            devmode.PaperSize = PAPER_CONSTANTS.get(paper_size, 9) 
-            devmode.Orientation = 2 if is_landscape else 1 
+            # 1. Cấu hình khổ giấy
+            if paper_size in self.PAPER_IDS:
+                devmode.PaperSize = self.PAPER_IDS[paper_size]
+            
+            # 2. Cấu hình hướng giấy (1=Portrait, 2=Landscape)
+            devmode.Orientation = 2 if is_landscape else 1
+            
+            # Báo cho Windows biết mình đã thay đổi field nào
             devmode.Fields |= (win32con.DM_PAPERSIZE | win32con.DM_ORIENTATION)
             return devmode
         except Exception as e:
-            print(f"Lỗi Devmode: {e}")
+            print(f"Lỗi Get DevMode: {e}")
             return None
 
-    def _print_image_to_dc(self, hDC, pil_image):
-        try:
-            hDC.StartPage()
-            printer_w = hDC.GetDeviceCaps(win32con.HORZRES)
-            printer_h = hDC.GetDeviceCaps(win32con.VERTRES)
-            img_w, img_h = pil_image.size
-            
-            ratio_w = printer_w / img_w
-            ratio_h = printer_h / img_h
-            scale = min(ratio_w, ratio_h)
-            
-            new_w = int(img_w * scale)
-            new_h = int(img_h * scale)
-            
-            x_offset = (printer_w - new_w) // 2
-            y_offset = (printer_h - new_h) // 2
-            
-            dib_dst = (x_offset, y_offset, x_offset + new_w, y_offset + new_h)
-            dib = ImageWin.Dib(pil_image)
-            dib.draw(hDC.GetHandleOutput(), dib_dst)
-            hDC.EndPage()
-        except Exception as e: raise e
-
-    def _run_print_process(self, selection, target_w, target_h, output_folder, mode, printer_name, paper_size_name, print_mode_option):
+    def _run_print_process(self, selection, output_folder, is_landscape, printer_name, paper_size, print_mode):
         hDC = None
-        start_time = time.time()
-        
-        if mode == "DIRECT":
-            try:
-                is_landscape_default = target_w > target_h 
-                devmode = self._get_devmode(printer_name, paper_size_name, is_landscape_default)
-                
-                if devmode:
-                    hdc_handle = win32gui.CreateDC("WINSPOOL", printer_name, devmode)
-                    hDC = win32ui.CreateDCFromHandle(hdc_handle)
-                else:
-                    hDC = win32ui.CreateDC()
-                    hDC.CreatePrinterDC(printer_name)
-                
-                hDC.StartDoc(f"Voter Cards {datetime.now().strftime('%H:%M')}")
-            except Exception as e:
-                self._finish_ui(False, output_folder, f"Lỗi khởi tạo máy in: {e}")
-                return
-
         try:
-            # --- [LOGIC QUAN TRỌNG] XỬ LÝ NỀN ---
+            # 1. Khởi tạo DC (Device Context) cho máy in
+            devmode = self._get_devmode(printer_name, paper_size, is_landscape)
+            
+            if devmode:
+                hdc_handle = win32gui.CreateDC("WINSPOOL", printer_name, devmode)
+                hDC = win32ui.CreateDCFromHandle(hdc_handle)
+            else:
+                # Fallback nếu không chỉnh được setting
+                hDC = win32ui.CreateDC()
+                hDC.CreatePrinterDC(printer_name)
+
+            hDC.StartDoc("Voter Cards Batch")
+
+            # 2. Chuẩn bị ảnh gốc (Template)
             real_template = Image.open(self.model.template_path).convert("RGB")
             
-            # Nếu chọn "Chỉ dữ liệu": Tạo ảnh nền TRẮNG (White) cùng kích thước
-            # Máy in sẽ hiểu màu trắng là không in gì cả -> giữ nguyên phôi giấy
-            if print_mode_option == "Chỉ dữ liệu":
-                base_template = Image.new("RGB", real_template.size, (255, 255, 255))
+            # Nếu chỉ in dữ liệu nền trắng
+            if "Chỉ dữ liệu" in print_mode:
+                base_img_source = Image.new("RGB", real_template.size, (255, 255, 255))
             else:
-                # Nếu "Dữ liệu + Phôi": Dùng ảnh gốc
-                base_template = real_template
+                base_img_source = real_template
 
-            user_angle = getattr(self.router, 'template_rotation', 0)
-            count = len(selection)
+            total = len(selection)
+            start_time = time.time()
+            
+            # Lấy góc xoay thủ công (nếu người dùng chỉnh trên UI preview)
+            manual_rotation = getattr(self.router, 'template_rotation', 0)
 
             for i, idx in enumerate(selection):
                 if self.stop_event.is_set(): break
                 try:
-                    img_draw = base_template.copy()
+                    # A. Vẽ dữ liệu lên ảnh (trên bộ nhớ)
+                    # Lưu ý: Luôn vẽ trên bản copy để không hỏng template gốc
+                    img_draw = base_img_source.copy()
                     self._draw_data_on_original(img_draw, int(idx))
                     
-                    if user_angle == 90: img_final = img_draw.transpose(Image.ROTATE_270)
-                    elif user_angle == 180: img_final = img_draw.transpose(Image.ROTATE_180)
-                    elif user_angle == 270: img_final = img_draw.transpose(Image.ROTATE_90)
-                    else: img_final = img_draw
-
-                    final_w, final_h = target_w, target_h
-                    is_img_landscape = img_final.width > img_final.height
-
-                    if is_img_landscape:
-                        if final_w < final_h: final_w, final_h = target_h, target_w
-                    else:
-                        if final_w > final_h: final_w, final_h = target_h, target_w
-
-                    img_ready = self._smart_resize(img_final, final_w, final_h)
+                    # B. Xử lý Xoay ảnh (Image Rotation)
+                    # Logic: Nếu máy in thiết lập NGANG (Landscape), nhưng ảnh đang DỌC,
+                    # ta cần xoay ảnh 90 độ để nó nằm ngang khớp với giấy.
                     
-                    if mode == "DIRECT":
-                        self._print_image_to_dc(hDC, img_ready)
+                    img_final = img_draw
+                    
+                    # Xoay theo thiết lập thủ công trước
+                    if manual_rotation == 90: img_final = img_final.transpose(Image.ROTATE_270)
+                    elif manual_rotation == 180: img_final = img_final.transpose(Image.ROTATE_180)
+                    elif manual_rotation == 270: img_final = img_final.transpose(Image.ROTATE_90)
+
+                    # Xoay tự động theo khổ giấy:
+                    # Nếu giấy in là Landscape (Ngang) thì ảnh cuối cùng cũng phải nằm Ngang
+                    if is_landscape:
+                        # Nếu ảnh đang đứng (Cao > Rộng) thì xoay cho nằm xuống
+                        if img_final.height > img_final.width:
+                             img_final = img_final.transpose(Image.ROTATE_90)
+                    else:
+                        # Nếu giấy in là Portrait (Dọc)
+                        # Nếu ảnh đang nằm ngang (Rộng > Cao) thì xoay cho đứng lên
+                        if img_final.width > img_final.height:
+                             img_final = img_final.transpose(Image.ROTATE_90)
+
+                    # C. Đẩy xuống Driver máy in
+                    self._direct_print_to_dc(hDC, img_final)
 
                 except Exception as e:
-                    self.errors_log.append(f"Dòng {idx+1}: {str(e)}")
-                    print(f"Lỗi row {idx}: {e}")
+                    print(f"Lỗi in dòng {idx}: {e}")
+                    self.errors_log.append(f"Row {idx}: {e}")
 
-                self._update_ui_progress(i + 1, count, start_time)
+                # Update Progress Bar
+                elapsed = time.time() - start_time
+                if i > 0:
+                    avg_time = elapsed / i
+                    remain_sec = int((total - i) * avg_time)
+                    eta = str(timedelta(seconds=remain_sec))
+                else:
+                    eta = "..."
+                
+                self._update_ui_label(f"Đang in: {i+1}/{total} (Còn: {eta})", i+1)
 
-            if hDC:
-                hDC.EndDoc()
-                hDC.DeleteDC()
-
-            if self.stop_event.is_set():
-                self._finish_ui(False, output_folder, "Đã hủy in.")
-            else:
-                self._finish_ui(True, output_folder, "Hoàn thành lệnh in!")
+            # Kết thúc lệnh in
+            hDC.EndDoc()
+            self._finish_ui(True, output_folder, "Đã hoàn thành quá trình in!")
 
         except Exception as e:
-            if hDC: 
-                try: hDC.EndDoc()
+            if hDC:
+                try: hDC.AbortDoc()
                 except: pass
-            self._finish_ui(False, output_folder, f"Lỗi hệ thống: {e}")
+            self._finish_ui(False, output_folder, f"Lỗi hệ thống in: {e}")
+        
+        finally:
+            if hDC:
+                try: hDC.DeleteDC()
+                except: pass
+
+    def _direct_print_to_dc(self, hDC, pil_image):
+        """
+        Vẽ ảnh lên Device Context của máy in.
+        Tự động tính toán tỷ lệ co giãn (Aspect Ratio) để vừa khít trang giấy.
+        """
+        hDC.StartPage()
+        
+        # 1. Lấy kích thước vật lý của trang in (theo Pixel/DPI của máy in)
+        # Ví dụ máy in 600dpi, khổ A4 => khoảng 4960 x 7016 px
+        printer_w = hDC.GetDeviceCaps(win32con.HORZRES)
+        printer_h = hDC.GetDeviceCaps(win32con.VERTRES)
+        
+        # 2. Lấy kích thước ảnh cần in
+        img_w, img_h = pil_image.size
+        
+        # 3. Tính tỷ lệ Scale (Fit to Page - Giữ nguyên tỉ lệ)
+        ratio_w = printer_w / img_w
+        ratio_h = printer_h / img_h
+        scale = min(ratio_w, ratio_h) # Chọn số nhỏ hơn để đảm bảo lọt lòng
+        
+        new_w = int(img_w * scale)
+        new_h = int(img_h * scale)
+        
+        # 4. Tính tọa độ để Căn Giữa trang giấy
+        x = (printer_w - new_w) // 2
+        y = (printer_h - new_h) // 2
+        
+        # 5. Vẽ ảnh (Dùng ImageWin để vẽ lên DC handle)
+        dib = ImageWin.Dib(pil_image)
+        # Tọa độ vẽ: (Left, Top, Right, Bottom)
+        dib.draw(hDC.GetHandleOutput(), (x, y, x + new_w, y + new_h))
+        
+        hDC.EndPage()
 
     def _draw_data_on_original(self, img, idx):
+        # Hàm này giữ nguyên logic vẽ text của bạn
         draw = ImageDraw.Draw(img)
         row = self.model.df.iloc[idx]
         config = self.model.get_effective_config(idx)
         
         for col, cfg in config.items():
             if not cfg.get("enable", False): continue
+            
             x, y = cfg["x"], cfg["y"]
             
+            # Xử lý Chữ ký (Ảnh)
             if col == "signature_img":
                 sig = self.model.get_signature_image(idx)
                 if sig:
                     w, h = cfg.get("w", 150), cfg.get("h", 80)
                     sig = sig.resize((w, h), Image.Resampling.LANCZOS)
-                    # Paste chữ ký (xử lý transparency nếu có)
-                    if sig.mode == 'RGBA':
-                        img.paste(sig, (int(x - w/2), int(y - h/2)), sig)
-                    else:
-                        img.paste(sig, (int(x - w/2), int(y - h/2)))
+                    # Căn giữa ảnh chữ ký vào điểm x,y
+                    paste_x = int(x - w/2)
+                    paste_y = int(y - h/2)
+                    if sig.mode == 'RGBA': 
+                        img.paste(sig, (paste_x, paste_y), sig)
+                    else: 
+                        img.paste(sig, (paste_x, paste_y))
+            
+            # Xử lý Text
             else:
                 val = str(row.get(col, "")).replace("nan", "")
-                if not val: continue 
+                if not val: continue
+                
                 if "00:00:00" in val: val = val.split(" ")[0]
                 if cfg.get("upper", False): val = val.upper()
                 
                 font_path = FontManager.get_path(cfg.get("font", "Arial"), cfg.get("bold", False))
-                try: font = ImageFont.truetype(font_path, cfg.get("size", 30))
-                except: font = ImageFont.load_default()
+                try: 
+                    font = ImageFont.truetype(font_path, cfg.get("size", 30))
+                except: 
+                    font = ImageFont.load_default()
                 
+                # anchor="mm": Middle-Middle (Căn giữa tâm text vào tọa độ x,y)
                 draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="mm")
 
-    def _smart_resize(self, img, target_w, target_h):
-        bg = Image.new('RGB', (target_w, target_h), (255, 255, 255))
-        img_w, img_h = img.size
-        ratio = min(target_w / img_w, target_h / img_h)
-        new_w = int(img_w * ratio)
-        new_h = int(img_h * ratio)
-        img_resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        
-        offset_x = (target_w - new_w) // 2
-        offset_y = (target_h - new_h) // 2
-        bg.paste(img_resized, (offset_x, offset_y))
-        return bg
-
-    def show_progress_window(self, total, mode):
+    def show_progress_window(self, total):
         parent = self._get_parent_window()
         self.prog_win = Toplevel(parent)
         apply_window_icon(self.prog_win)
-        self.prog_win.title("Đang xử lý...")
-        self.prog_win.geometry("400x180")
+        self.prog_win.title("Đang in ấn...")
+        self.prog_win.geometry("350x150")
+        
+        # Căn giữa màn hình cha
         try:
-            x = parent.winfo_x() + (parent.winfo_width() // 2) - 200
-            y = parent.winfo_y() + (parent.winfo_height() // 2) - 90
+            x = parent.winfo_rootx() + 50
+            y = parent.winfo_rooty() + 50
             self.prog_win.geometry(f"+{x}+{y}")
         except: pass
 
-        fr = tk.Frame(self.prog_win, padx=20, pady=20)
+        fr = ttk.Frame(self.prog_win, padding=15)
         fr.pack(fill="both", expand=True)
         
-        Label(fr, text="Đang gửi dữ liệu xuống máy in...", font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        self.lbl_status = ttk.Label(fr, text="Đang khởi tạo máy in...", font=("Segoe UI", 10))
+        self.lbl_status.pack(pady=(0, 10))
         
-        self.progress_bar = ttk.Progressbar(fr, length=350, mode="determinate", maximum=total)
-        self.progress_bar.pack(pady=10)
+        self.progress_bar = ttk.Progressbar(fr, length=300, mode="determinate", maximum=total)
+        self.progress_bar.pack(pady=5, fill="x")
         
-        self.lbl_status = Label(fr, text=f"0 / {total}")
-        self.lbl_status.pack()
+        ttk.Button(fr, text="HỦY IN", command=self.stop_event.set).pack(pady=10)
         
-        def on_cancel():
-            self.stop_event.set()
-            self.lbl_status.config(text="Đang dừng...")
-        
-        tk.Button(fr, text="Dừng lại", command=on_cancel, bg="#c0392b", fg="white").pack(pady=5)
+        # Chặn tương tác với cửa sổ chính khi đang in
+        self.prog_win.transient(parent)
+        self.prog_win.grab_set()
 
-    def _update_ui_progress(self, current, total, start_time):
-        if hasattr(self, 'prog_win') and self.prog_win.winfo_exists():
-            self.progress_bar["value"] = current
-            elapsed = time.time() - start_time
-            if current > 0:
-                avg = elapsed / current
-                rem = int((total - current) * avg)
-                eta = str(timedelta(seconds=rem))
-            else: eta = "..."
-            self.lbl_status.config(text=f"Hoàn thành: {current}/{total} - Còn lại: {eta}")
+    def _update_ui_label(self, text, val):
+        if hasattr(self, 'prog_win') and self.prog_win and self.prog_win.winfo_exists():
+            self.lbl_status.config(text=text)
+            self.progress_bar["value"] = val
 
-    def _finish_ui(self, success, output_folder, message):
-        if self.router.view:
-            self.router.view.after(0, lambda: self._finish_process_ui_thread(success, output_folder, message))
+    def _finish_ui(self, s, f, m):
+        if self.router.view: 
+            self.router.view.after(0, lambda: self._finish_process_ui_thread(s, f, m))
 
-    def _finish_process_ui_thread(self, success, output_folder, message):
-        if hasattr(self, 'prog_win') and self.prog_win.winfo_exists():
-            self.prog_win.destroy()
+    def _finish_process_ui_thread(self, s, f, m):
+        try: 
+            if self.prog_win:
+                self.prog_win.grab_release()
+                self.prog_win.destroy()
+                self.prog_win = None
+        except: pass
         
-        if self.errors_log:
-            with open(os.path.join(output_folder, "ERRORS.txt"), "w", encoding="utf-8") as f:
-                f.write("\n".join(self.errors_log))
-                
-        if success:
-            MsgHelper.show_info(message)
-        else:
-            MsgHelper.show_error(message)
+        if s: MsgHelper.show_info(m)
+        else: MsgHelper.show_error(m)

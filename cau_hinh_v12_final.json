@@ -1,8 +1,8 @@
 {
     "global": {
         "signature_img": {
-            "x": 435,
-            "y": 330,
+            "x": 660,
+            "y": 505,
             "w": 150,
             "h": 80,
             "enable": true,
@@ -30,8 +30,8 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 165,
-            "y": 155,
+            "x": 233,
+            "y": 213,
             "size": 16,
             "enable": true,
             "font": "Arial",
@@ -41,8 +41,8 @@
             "upper": false
         },
         "Ngày sinh": {
-            "x": 229,
-            "y": 176,
+            "x": 325,
+            "y": 243,
             "size": 16,
             "enable": true,
             "font": "Arial",
@@ -52,8 +52,8 @@
             "upper": false
         },
         "Giới tính": {
-            "x": 131,
-            "y": 196,
+            "x": 250,
+            "y": 276,
             "size": 16,
             "enable": true,
             "font": "Arial",
@@ -63,8 +63,8 @@
             "upper": false
         },
         "Nơi cư trú": {
-            "x": 153,
-            "y": 222,
+            "x": 230,
+            "y": 311,
             "size": 16,
             "enable": true,
             "font": "Arial",
@@ -74,17 +74,19 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 50,
-            "y": 50,
-            "size": 30,
-            "enable": false,
+            "x": 258,
+            "y": 342,
+            "size": 16,
+            "enable": true,
             "font": "Arial",
             "color": "Black",
-            "type": "text"
+            "type": "text",
+            "bold": false,
+            "upper": false
         },
         "Số thẻ cử tri": {
-            "x": 159,
-            "y": 244,
+            "x": 270,
+            "y": 383,
             "size": 16,
             "enable": true,
             "font": "Arial",
@@ -94,8 +96,8 @@
             "upper": false
         },
         "Khu vực bỏ phiếu": {
-            "x": 218,
-            "y": 266,
+            "x": 326,
+            "y": 421,
             "size": 16,
             "enable": true,
             "font": "Arial",
@@ -105,10 +107,10 @@
             "upper": false
         },
         "Thành phố": {
-            "x": 170,
-            "y": 331,
+            "x": 251,
+            "y": 490,
             "size": 16,
-            "enable": true,
+            "enable": false,
             "font": "Arial",
             "color": "Black",
             "type": "text",
@@ -116,10 +118,10 @@
             "upper": false
         },
         "Người ký": {
-            "x": 50,
-            "y": 50,
+            "x": 676,
+            "y": 568,
             "size": 30,
-            "enable": false,
+            "enable": true,
             "font": "Arial",
             "color": "Black",
             "type": "text"

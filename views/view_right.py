@@ -1,7 +1,7 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-import win32print  
+import win32print
 from helpers.ui_helpers import create_button
 
 class RightPanelView(ttk.Frame):
@@ -9,18 +9,11 @@ class RightPanelView(ttk.Frame):
         super().__init__(parent)
         self.pack(fill=BOTH, expand=YES)
         self.router = router
-
         self._setup_top_toolbar()
-
-        self.canvas = tk.Canvas(
-            self, 
-            bg="#57606f",      
-            cursor="fleur",    
-            highlightthickness=0 
-        )
+        
+        self.canvas = tk.Canvas(self, bg="#57606f", cursor="fleur", highlightthickness=0)
         self.canvas.pack(fill=BOTH, expand=YES, padx=5, pady=5)
         
-        # Binding các sự kiện Canvas
         self.canvas.tag_bind("draggable", "<ButtonPress-1>", router.on_drag_start)
         self.canvas.tag_bind("draggable", "<B1-Motion>", router.on_drag_motion)
         self.canvas.tag_bind("draggable", "<ButtonRelease-1>", router.on_drag_end)
@@ -29,111 +22,52 @@ class RightPanelView(ttk.Frame):
         self.canvas.bind("<Configure>", router.on_canvas_resize)
 
     def _setup_top_toolbar(self):
-        # --- SỬA LỖI TẠI ĐÂY ---
-        # Thay 'tb' bằng 'self.tb_frame' để MainView có thể truy cập được
         self.tb_frame = ttk.Frame(self, padding=5, bootstyle="secondary")
         self.tb_frame.pack(fill=X, side=TOP)
 
-        # ---------------------------------------------------------
-        # 1. Nút IN NGAY (Ngoài cùng bên phải)
-        # Thay 'tb' -> 'self.tb_frame'
-        create_button(
-            self.tb_frame, "🖨️ IN NGAY", self.router.start_print, style="danger"
-        ).pack(side=RIGHT, padx=(5, 0))
+        # 1. Nút IN NGAY
+        create_button(self.tb_frame, "🖨️ IN NGAY", self.router.start_print, style="danger").pack(side=RIGHT, padx=(5, 0))
 
-        # ---------------------------------------------------------
-        # 2. Combobox CHỌN CHẾ ĐỘ IN
-        # Thay 'tb' -> 'self.tb_frame'
-        self.var_print_mode = tk.StringVar(value="Chỉ dữ liệu")  
-        self.cbb_print_mode = ttk.Combobox(
-            self.tb_frame, 
-            textvariable=self.var_print_mode,
-            values=["Chỉ dữ liệu", "Dữ liệu + Phôi"],
-            state="readonly",
-            width=15,
-            bootstyle="success"
-        )
+        # 2. Máy in & Chế độ in (FIX LỖI QUAN TRỌNG TẠI ĐÂY)
+        self.var_print_mode = tk.StringVar(value="Dữ liệu + Phôi")
+        # Gán vào self.cbb_print_mode để PrintController gọi được
+        self.cbb_print_mode = ttk.Combobox(self.tb_frame, textvariable=self.var_print_mode, 
+                                           values=["Chỉ dữ liệu", "Dữ liệu + Phôi"], 
+                                           state="readonly", width=12)
         self.cbb_print_mode.pack(side=RIGHT, padx=5)
 
-        # ---------------------------------------------------------
-        # 3. CHỌN MÁY IN
-        try:
-            printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
-            default_printer = win32print.GetDefaultPrinter()
-        except:
-            printers = []
-            default_printer = ""
-
-        # Thay 'tb' -> 'self.tb_frame'
-        self.cbb_printer = ttk.Combobox(
-            self.tb_frame, values=printers, state="readonly", width=25, bootstyle="info"
-        )
+        try: printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
+        except: printers = []
+        
+        self.cbb_printer = ttk.Combobox(self.tb_frame, values=printers, state="readonly", width=20)
+        if printers: self.cbb_printer.current(0)
         self.cbb_printer.pack(side=RIGHT, padx=5)
-        
-        if default_printer in printers:
-            self.cbb_printer.current(printers.index(default_printer))
-        elif printers:
-            self.cbb_printer.current(0)
-        
-        # Thay 'tb' -> 'self.tb_frame'
-        ttk.Label(self.tb_frame, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT, padx=(5, 2))
+        ttk.Label(self.tb_frame, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT)
 
-        # ---------------------------------------------------------
-        # 4. CỤM TỪ HÀNG - ĐẾN HÀNG
-        # Thay 'tb' -> 'self.tb_frame'
+        # 3. Chọn hàng in
         fr_range = ttk.Frame(self.tb_frame, bootstyle="secondary")
         fr_range.pack(side=RIGHT, padx=10)
+        ttk.Label(fr_range, text="Từ:", bootstyle="inverse-secondary").pack(side=LEFT)
+        self.var_print_from = tk.StringVar(value="1")
+        ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_from, width=4).pack(side=LEFT)
+        ttk.Label(fr_range, text="Đến:", bootstyle="inverse-secondary").pack(side=LEFT)
+        self.var_print_to = tk.StringVar(value="")
+        ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_to, width=4).pack(side=LEFT)
 
-        ttk.Label(fr_range, text="Từ:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
-        
-        self.var_print_from = tk.StringVar(value="1") 
-        self.spin_from = ttk.Spinbox(
-            fr_range, from_=1, to=9999, textvariable=self.var_print_from, 
-            width=4, bootstyle="light"
-        )
-        self.spin_from.pack(side=LEFT)
-
-        ttk.Label(fr_range, text="Đến:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
-
-        self.var_print_to = tk.StringVar(value="") 
-        self.spin_to = ttk.Spinbox(
-            fr_range, from_=1, to=9999, textvariable=self.var_print_to, 
-            width=4, bootstyle="light"
-        )
-        self.spin_to.pack(side=LEFT)
-
-        # ---------------------------------------------------------
-        # 5. KHỔ GIẤY & XOAY (Bên trái)
-        # Thay 'tb' -> 'self.tb_frame'
+        # 4. Cấu hình giấy
         fr_paper = ttk.Frame(self.tb_frame, bootstyle="secondary")
         fr_paper.pack(side=LEFT)
 
-        ttk.Label(fr_paper, text="Khổ:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(0,2))
-        
+        ttk.Label(fr_paper, text="Khổ:", bootstyle="inverse-secondary").pack(side=LEFT)
         self.var_paper_size = tk.StringVar(value="A4")
-        self.cbb_paper_size = ttk.Combobox(
-            fr_paper, 
-            textvariable=self.var_paper_size, 
-            values=["A4", "A5", "A6"], 
-            width=3, 
-            state="readonly", 
-            bootstyle="warning"
-        )
-        self.cbb_paper_size.pack(side=LEFT)
-        self.cbb_paper_size.bind("<<ComboboxSelected>>", self.router.on_paper_config_change)
+        cbb_size = ttk.Combobox(fr_paper, textvariable=self.var_paper_size, values=["A4", "A5", "A6"], width=3, state="readonly")
+        cbb_size.pack(side=LEFT, padx=2)
+        cbb_size.bind("<<ComboboxSelected>>", self.router.on_paper_config_change)
 
-        # Nút Xoay Nội Dung (Template)
-        create_button(
-            fr_paper, "↻", self.router.rotate_template_right, 
-            style="info-outline", width=4
-        ).pack(side=LEFT, padx=2)
-        
-        # Nút Xoay Giấy (Paper Orientation) - Chỉ hiện Icon ▮
-        self.btn_rotate_paper = create_button(
-            fr_paper, 
-            "▮",  # Icon mặc định (Dọc)
-            self.router.toggle_paper_orientation, 
-            style="info-outline", 
-            width=4 
-        )
-        self.btn_rotate_paper.pack(side=LEFT, padx=2)
+        self.var_orientation = tk.StringVar(value="portrait") 
+        ttk.Radiobutton(fr_paper, text="Dọc", variable=self.var_orientation, value="portrait", 
+                        command=self.router.on_orientation_change, bootstyle="info-toolbutton").pack(side=LEFT, padx=2)
+        ttk.Radiobutton(fr_paper, text="Ngang", variable=self.var_orientation, value="landscape", 
+                        command=self.router.on_orientation_change, bootstyle="warning-toolbutton").pack(side=LEFT, padx=2)
+
+        create_button(fr_paper, "↻ Ảnh", self.router.rotate_template_right, style="secondary-outline", width=6).pack(side=LEFT, padx=5)
