@@ -29,20 +29,24 @@ class RightPanelView(ttk.Frame):
         self.canvas.bind("<Configure>", router.on_canvas_resize)
 
     def _setup_top_toolbar(self):
-        tb = ttk.Frame(self, padding=5, bootstyle="secondary")
-        tb.pack(fill=X, side=TOP)
+        # --- SỬA LỖI TẠI ĐÂY ---
+        # Thay 'tb' bằng 'self.tb_frame' để MainView có thể truy cập được
+        self.tb_frame = ttk.Frame(self, padding=5, bootstyle="secondary")
+        self.tb_frame.pack(fill=X, side=TOP)
 
         # ---------------------------------------------------------
         # 1. Nút IN NGAY (Ngoài cùng bên phải)
+        # Thay 'tb' -> 'self.tb_frame'
         create_button(
-            tb, "🖨️ IN NGAY", self.router.start_print, style="danger"
+            self.tb_frame, "🖨️ IN NGAY", self.router.start_print, style="danger"
         ).pack(side=RIGHT, padx=(5, 0))
 
         # ---------------------------------------------------------
-        # 2. Combobox CHỌN CHẾ ĐỘ IN (Chỉ dữ liệu / Kèm phôi)
+        # 2. Combobox CHỌN CHẾ ĐỘ IN
+        # Thay 'tb' -> 'self.tb_frame'
         self.var_print_mode = tk.StringVar(value="Chỉ dữ liệu")  
         self.cbb_print_mode = ttk.Combobox(
-            tb, 
+            self.tb_frame, 
             textvariable=self.var_print_mode,
             values=["Chỉ dữ liệu", "Dữ liệu + Phôi"],
             state="readonly",
@@ -60,8 +64,9 @@ class RightPanelView(ttk.Frame):
             printers = []
             default_printer = ""
 
+        # Thay 'tb' -> 'self.tb_frame'
         self.cbb_printer = ttk.Combobox(
-            tb, values=printers, state="readonly", width=25, bootstyle="info"
+            self.tb_frame, values=printers, state="readonly", width=25, bootstyle="info"
         )
         self.cbb_printer.pack(side=RIGHT, padx=5)
         
@@ -70,11 +75,13 @@ class RightPanelView(ttk.Frame):
         elif printers:
             self.cbb_printer.current(0)
         
-        ttk.Label(tb, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT, padx=(5, 2))
+        # Thay 'tb' -> 'self.tb_frame'
+        ttk.Label(self.tb_frame, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT, padx=(5, 2))
 
         # ---------------------------------------------------------
         # 4. CỤM TỪ HÀNG - ĐẾN HÀNG
-        fr_range = ttk.Frame(tb, bootstyle="secondary")
+        # Thay 'tb' -> 'self.tb_frame'
+        fr_range = ttk.Frame(self.tb_frame, bootstyle="secondary")
         fr_range.pack(side=RIGHT, padx=10)
 
         ttk.Label(fr_range, text="Từ:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(5, 2))
@@ -97,7 +104,8 @@ class RightPanelView(ttk.Frame):
 
         # ---------------------------------------------------------
         # 5. KHỔ GIẤY & XOAY (Bên trái)
-        fr_paper = ttk.Frame(tb, bootstyle="secondary")
+        # Thay 'tb' -> 'self.tb_frame'
+        fr_paper = ttk.Frame(self.tb_frame, bootstyle="secondary")
         fr_paper.pack(side=LEFT)
 
         ttk.Label(fr_paper, text="Khổ:", bootstyle="inverse-secondary").pack(side=LEFT, padx=(0,2))

@@ -86,7 +86,7 @@ class MidPanelView(ttk.Frame):
             state="readonly", 
             bootstyle="info", 
             justify="left", 
-            width=20
+            width=15
         ) 
         self.cbb_filter.pack(side=LEFT, padx=(0, 5))
         self.cbb_filter.set("Lọc theo khu vực") 
@@ -94,12 +94,12 @@ class MidPanelView(ttk.Frame):
 
         # === 2. GROUP GIỮA ===
         fr_page = ttk.Frame(toolbar)
-        fr_page.grid(row=0, column=1, sticky="e", padx=(0, 10))
+        fr_page.grid(row=0, column=1, sticky="e", padx=(0, 5))
         
-        create_button(fr_page, "❮", self.router.prev_page, style="secondary-outline", width=3).pack(side=LEFT)
+        create_button(fr_page, "❮", self.router.prev_page, style="secondary-outline", width=2).pack(side=LEFT)
         self.lbl_page_info = ttk.Label(fr_page, text="0/0", width=8, anchor="center", font=("Segoe UI", 9, "bold"))
-        self.lbl_page_info.pack(side=LEFT, padx=2)
-        create_button(fr_page, "❯", self.router.next_page, style="secondary-outline", width=3).pack(side=LEFT)
+        self.lbl_page_info.pack(side=LEFT, padx=0)
+        create_button(fr_page, "❯", self.router.next_page, style="secondary-outline", width=2).pack(side=LEFT)
 
         # === 3. GROUP PHẢI (Set cứng Tổng số) ===
         container_total = ttk.Frame(toolbar)

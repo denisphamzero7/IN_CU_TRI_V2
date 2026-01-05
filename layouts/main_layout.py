@@ -1,4 +1,3 @@
-# layouts/main_layout.py
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
@@ -8,7 +7,6 @@ def create_3_columns(master):
     Sử dụng ttk.Panedwindow (chữ w thường)
     """
 
-    # --- SỬA LẠI DÒNG NÀY (PanedWindow -> Panedwindow) ---
     main_pane = ttk.Panedwindow(master, orient=HORIZONTAL, bootstyle="default")
     main_pane.pack(fill=BOTH, expand=YES)
 
@@ -22,8 +20,9 @@ def create_3_columns(master):
     right = ttk.Frame(main_pane, bootstyle="dark", padding=10)
 
     # --- 5. Add vào Panedwindow ---
-    main_pane.add(left, weight=1)  
-    main_pane.add(mid, weight=3)   
-    main_pane.add(right, weight=6) 
+    # THÊM tham số minsize=... để chặn co từng cột cụ thể
+    main_pane.add(left, weight=1)   # Có thể thêm minsize=250
+    main_pane.add(mid, weight=3)    
+    main_pane.add(right, weight=6)  
 
     return left, mid, right

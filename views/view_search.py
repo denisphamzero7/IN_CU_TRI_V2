@@ -5,7 +5,7 @@ from ttkbootstrap.constants import *
 from helpers.ui_helpers import create_button
 
 class SearchView(ttk.Frame):
-    def __init__(self, parent, router, width=30):
+    def __init__(self, parent, router, width=20):
         super().__init__(parent)
         self.router = router
         self.placeholder_text = "Nhập tên hoặc CCCD..."

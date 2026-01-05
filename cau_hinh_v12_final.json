@@ -19,7 +19,7 @@
             "type": "text"
         },
         "Tên đơn vị": {
-            "x": 108,
+            "x": 106,
             "y": 55,
             "size": 16,
             "enable": true,
@@ -94,7 +94,7 @@
             "upper": false
         },
         "Khu vực bỏ phiếu": {
-            "x": 195,
+            "x": 218,
             "y": 266,
             "size": 16,
             "enable": true,

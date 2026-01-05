@@ -1,24 +1,32 @@
-# views/main_view.py
+# FILE: views/main_view.py
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import * # Import các hằng số như BOTH, YES
 from layouts.main_layout import create_3_columns
 from views.view_left import LeftPanelView
 from views.view_mid import MidPanelView
 from views.view_right import RightPanelView
-from views.custom_dialog import CustomDialog
-# 1. Kế thừa ttk.Frame để ăn theo Theme (Dark/Light)
+# Import helper mới tạo
+from helpers.window_helper import WindowSizeGuard 
+
 class MainView(ttk.Frame):
     def __init__(self, master, router):
-        # Có thể thêm padding cho thoáng: padding=10
-        super().__init__(master, padding=5) 
+        super().__init__(master, padding=5)
         
-        # 2. Đã bỏ dòng self.pack() vì app.py đã làm việc này rồi
-        
-        # Gọi hàm tạo layout
-        # Lưu ý: Hàm create_3_columns cũng cần trả về các khung là ttk.Frame nhé!
+        # Tạo layout 3 cột
         left_fr, mid_fr, right_fr = create_3_columns(self)
         
+        # Tạo các Panel
         self.p_left = LeftPanelView(left_fr, router)
         self.p_mid = MidPanelView(mid_fr, router)
         self.p_right = RightPanelView(right_fr, router)
-        
+
+        # =========================================================
+        # TỰ ĐỘNG KHÓA KÍCH THƯỚC MÀN HÌNH (Chống mất nút)
+        # =========================================================
+        # Helper sẽ đợi giao diện vẽ xong rồi tự đo chiều rộng thanh Toolbar
+        WindowSizeGuard(
+            root=self.winfo_toplevel(),
+            fixed_widgets=[self.p_right.tb_frame], # Thanh công cụ bên phải
+            flexible_widgets=[left_fr, mid_fr],    # Cột trái và giữa
+            padding_x=60,                          # Khoảng hở an toàn
+            min_height=720
+        )
