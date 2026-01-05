@@ -262,13 +262,54 @@ class AppRouter:
             self.model.update_config_value(self.current_idx, mode, self.selected_field, k, v)
 
     def reset_current_custom(self):
-        if not self.has_template(): return # [THÊM] Check
-        if self.model.reset_custom_config(self.current_idx):
-            self.view.p_mid.tree.item(str(self.current_idx), tags=())
-            self.render_canvas_safe() # [SỬA] Dùng hàm safe
-            if self.selected_field: self.load_field_props_to_ui()
-            Messagebox.show_info("Đã xóa cấu hình riêng.", "Reset")
+       # 1. BẮT LỖI: Kiểm tra đã chọn phôi chưa
+        if not self.has_template(): 
+            return MsgHelper.show_warning("Vui lòng chọn ảnh phôi trước khi thực hiện!")
+        
+        # 2. Lấy chế độ đang chọn (Global hay Individual)
+        mode = "global"
+        try: mode = self.edit_mode.get()
+        except: pass
 
+        # 3. Xử lý logic Reset dựa trên chế độ
+        if mode == "individual":
+            # --- TRƯỜNG HỢP 1: Đang ở chế độ "Chỉnh RIÊNG người này" ---
+            
+            # Hàm reset_custom_config trả về True nếu có dữ liệu để xóa, False nếu không có gì
+            if self.model.reset_custom_config(self.current_idx):
+                # Cập nhật giao diện: Xóa tag 'custom' (màu đỏ) ở dòng đó
+                self.view.p_mid.tree.item(str(self.current_idx), tags=())
+                
+                # Vẽ lại canvas và cập nhật thanh thuộc tính bên trái
+                self.render_canvas_safe()
+                if self.selected_field: self.load_field_props_to_ui()
+                
+                MsgHelper.show_info("Đã xóa cấu hình riêng. Dữ liệu đã trở về mặc định chung.", "Thành công")
+            else:
+                # Nếu người này chưa chỉnh sửa gì riêng, báo cho người dùng biết
+                MsgHelper.show_info("Người này đang sử dụng cấu hình chung.\nKhông có cấu hình riêng để reset.", "Thông báo")
+
+        else:
+            # --- TRƯỜNG HỢP 2: Đang ở chế độ "Chỉnh TẤT CẢ" ---
+            
+            # Logic này phụ thuộc vào việc bạn muốn Reset cái gì?
+            # Thường là reset trường đang chọn về font/size mặc định ban đầu.
+            
+            if not self.selected_field:
+                return MsgHelper.show_warning("Vui lòng chọn một trường (ví dụ: Họ tên) để reset!")
+
+            if MsgHelper.ask_yes_no(f"Bạn có chắc muốn đưa cấu hình chung của '{self.selected_field}' về mặc định gốc?", "Xác nhận"):
+                # Gọi hàm reset global (Bạn cần đảm bảo Model có hỗ trợ hoặc tự set cứng ở đây)
+                # Ví dụ set cứng lại font Arial size 14 màu đen:
+                self.model.update_config_value(0, "global", self.selected_field, "font", "Arial")
+                self.model.update_config_value(0, "global", self.selected_field, "size", 14)
+                self.model.update_config_value(0, "global", self.selected_field, "bold", False)
+                self.model.update_config_value(0, "global", self.selected_field, "color", "Black")
+                
+                # Cập nhật lại UI
+                self.render_canvas_safe()
+                self.load_field_props_to_ui()
+                MsgHelper.show_info("Đã khôi phục mặc định cho trường này.", "Thành công")
     def deselect_all(self):
         self.is_bulk_updating = True
         try: self.view.p_mid.tree.selection_set([])

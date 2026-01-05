@@ -10,13 +10,15 @@
             "path": "C:/Users/Admin/Pictures/Picture1.jpg"
         },
         "Stt": {
-            "x": 38,
-            "y": 27,
-            "size": 30,
+            "x": 26,
+            "y": 22,
+            "size": 20,
             "enable": true,
             "font": "Arial",
             "color": "Black",
-            "type": "text"
+            "type": "text",
+            "bold": false,
+            "upper": false
         },
         "Tên đơn vị": {
             "x": 174,
@@ -85,8 +87,8 @@
             "upper": false
         },
         "Số thẻ cử tri": {
-            "x": 309,
-            "y": 414,
+            "x": 291,
+            "y": 446,
             "size": 16,
             "enable": true,
             "font": "Arial",
