@@ -26,7 +26,7 @@ class RightPanelView(ttk.Frame):
         self.tb_frame.pack(fill=X, side=TOP)
 
         # 1. Nút IN NGAY (Primary)
-        create_button(self.tb_frame, "🖨️ IN NGAY", self.router.start_print, style="primary").pack(side=RIGHT, padx=(5, 0))
+        create_button(self.tb_frame, "🖨️ IN NGAY", self.router.start_print, style="danger").pack(side=RIGHT, padx=(5, 0))
 
         # 2. Máy in & Chế độ in
         # [SỬA TẠI ĐÂY] Mặc định là "Chỉ dữ liệu"

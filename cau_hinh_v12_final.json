@@ -10,8 +10,8 @@
             "path": "C:/Users/Admin/Pictures/Picture1.jpg"
         },
         "Stt": {
-            "x": 35,
-            "y": 24,
+            "x": 38,
+            "y": 27,
             "size": 30,
             "enable": true,
             "font": "Arial",
@@ -30,8 +30,8 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 237,
-            "y": 215,
+            "x": 247,
+            "y": 213,
             "size": 16,
             "enable": true,
             "font": "Arial",

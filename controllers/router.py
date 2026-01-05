@@ -24,7 +24,6 @@ class AppRouter:
         self.is_loading_ui = False
         
         # --- Cấu hình mặc định ---
-        # [SỬA TẠI ĐÂY] Mặc định là True (Ngang)
         self.is_paper_landscape = True 
         self.template_rotation = 0      
 
@@ -33,49 +32,29 @@ class AppRouter:
         if hasattr(view.p_left, 'var_edit_mode'):
             self.edit_mode = view.p_left.var_edit_mode
 
-    # --- HÀM XỬ LÝ SẮP XẾP ---
-    def on_header_click(self, col_id):
-        if self.model.df is None or self.model.df.empty: return
+    # --- [MỚI] HÀM KIỂM TRA PHÔI ---
+    def has_template(self):
+        """Kiểm tra xem Model đã có đường dẫn ảnh phôi chưa."""
+        if hasattr(self.model, 'template_path') and self.model.template_path:
+            return True
+        return False
 
-        if self.sort_state["col"] == col_id:
-            self.sort_state["reverse"] = not self.sort_state["reverse"]
-        else:
-            self.sort_state["col"] = col_id
-            self.sort_state["reverse"] = False 
-
-        is_ascending = not self.sort_state["reverse"]
-
-        try:
-            if col_id == "stt":
-                self.model.df.sort_index(ascending=is_ascending, inplace=True)
+    # --- [MỚI] HÀM VẼ CANVAS AN TOÀN ---
+    def render_canvas_safe(self):
+       # [GIỮ NGUYÊN]: Hàm này chịu trách nhiệm hiển thị lên "Giấy" (Canvas).
+        # Nếu chưa có phôi -> Không cho hiển thị dữ liệu lên canvas.
+        if not self.has_template():
+            # Tùy chọn: Có thể xóa trắng canvas hoặc hiện chữ "Chưa chọn phôi"
+            if hasattr(self.ctrl_canvas, 'canvas'):
+                self.ctrl_canvas.canvas.delete("all")
+                w = self.ctrl_canvas.canvas.winfo_width()
+                h = self.ctrl_canvas.canvas.winfo_height()
+                self.ctrl_canvas.canvas.create_text(w/2, h/2, text="Chưa chọn ảnh phôi", font=("Arial", 16), fill="gray")
+            return
             
-            elif col_id == "name":
-                target_col = None
-                for c in self.model.df.columns:
-                    if any(kw in c.lower() for kw in ["họ tên", "họ và tên", "name", "tên"]):
-                        target_col = c
-                        break
-                
-                if not target_col and len(self.model.df.columns) > 1:
-                    target_col = self.model.df.columns[1]
+        self.ctrl_canvas.render()
 
-                if target_col:
-                    self.model.df.sort_values(
-                        by=target_col, 
-                        ascending=is_ascending, 
-                        inplace=True,
-                        key=lambda col: col.astype(str).str.lower()
-                    )
-
-            self.refresh_mid_table()
-            
-            if self.view:
-                self.view.p_mid.update_header_arrow(col_id, self.sort_state["reverse"])
-                
-        except Exception as e:
-            print(f"Lỗi khi sắp xếp: {e}")
-
-    # --- Các hàm khác ---
+    # --- CÁC HÀM XỬ LÝ KHÁC ---
     def on_orientation_change(self, event=None):
         val = self.view.p_right.var_orientation.get()
         if val == "Ngang": 
@@ -84,30 +63,63 @@ class AppRouter:
         else:
             self.is_paper_landscape = False 
             self.template_rotation = 0
-        self.ctrl_canvas.render()
+        self.render_canvas_safe() # [SỬA] Dùng hàm safe
 
     def rotate_template_right(self):
         self.template_rotation = (self.template_rotation + 90) % 360
-        self.ctrl_canvas.render()
+        self.render_canvas_safe() # [SỬA] Dùng hàm safe
 
     def start_print(self):
+        # 1. Kiểm tra điều kiện tiên quyết
+        if not self.has_template(): 
+            return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
+        
         if self.model.df is None or self.model.df.empty:
             return MsgHelper.show_warning("Chưa có dữ liệu!")
+
         try:
-            val_from = self.view.p_right.var_print_from.get()
-            val_to = self.view.p_right.var_print_to.get()
+            # Lấy dữ liệu và xóa khoảng trắng
+            val_from = self.view.p_right.var_print_from.get().strip()
+            val_to = self.view.p_right.var_print_to.get().strip()
+
+            # --- KIỂM TRA Ô "TỪ" ---
+            if not val_from:
+                if hasattr(self.view.p_right, 'entry_from'):
+                    self.view.p_right.entry_from.focus()
+                return MsgHelper.show_warning("Vui lòng nhập số thứ tự bắt đầu (Từ)!")
+            
+            # --- [THÊM MỚI] KIỂM TRA Ô "ĐẾN" (BẮT BUỘC NHẬP) ---
+            if not val_to:
+                if hasattr(self.view.p_right, 'entry_to'):
+                    self.view.p_right.entry_to.focus()
+                return MsgHelper.show_warning("Vui lòng nhập số thứ tự kết thúc (Đến)!")
+
+            # Chuyển đổi sang số
             start_row = int(val_from)
-            end_row = int(val_to) if val_to.strip() else start_row
+            end_row = int(val_to)
+            
+            # --- Kiểm tra logic số học ---
             max_row = len(self.model.df)
+            
+            # Tự động gò số vào khoảng hợp lệ (1 -> Max)
             start_row = max(1, min(start_row, max_row))
             end_row = max(1, min(end_row, max_row))
-            if start_row > end_row: return MsgHelper.show_error("Lỗi: Từ > Đến")
+
+            # Kiểm tra logic khoảng in
+            if start_row > end_row: 
+                return MsgHelper.show_error(f"Lỗi: Số 'Từ' ({start_row}) không được lớn hơn số 'Đến' ({end_row})!")
+
+            # Tạo danh sách in
             custom_indices = list(range(start_row - 1, end_row))
+            
+            # Gửi lệnh in
             self.ctrl_print.print_batch(custom_indices)
+
         except ValueError:
-            return MsgHelper.show_error("Số hàng không hợp lệ!")
+            return MsgHelper.show_error("Lỗi: Vui lòng chỉ nhập số nguyên vào ô khoảng in!")
 
     def pick_manual_signature(self):
+        if not self.has_template(): return MsgHelper.show_warning("Vui lòng chọn phôi trước!") # [THÊM] Check
         path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg;*.jpeg")])
         if path:
             mode = "global"
@@ -116,33 +128,53 @@ class AppRouter:
             self.model.update_config_value(self.current_idx, mode, "signature_img", "path", path)
             self.model.update_config_value(self.current_idx, mode, "signature_img", "enable", True)
             if mode == "individual": self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
-            self.ctrl_canvas.render()
+            self.render_canvas_safe() # [SỬA] Dùng hàm safe
+
     def on_style_change(self):
-        self.ctrl_canvas.render()
+        self.render_canvas_safe() # [SỬA] Dùng hàm safe
         if self.selected_field: self.load_field_props_to_ui()
+
     def select_template(self): self.ctrl_data.select_template()
     def select_excel(self): self.ctrl_data.select_excel()
     def select_signature_folder(self): self.ctrl_data.select_signature_folder()
+    
     def exit_app(self):
         if MsgHelper.ask_yes_no("Thoát?", parent=self.view): self.view.master.destroy()
+
     def refresh_mid_table(self):
+        # [SỬA LẠI]: XÓA dòng kiểm tra self.has_template() ở đây.
+        # Lý do: Dù chưa có ảnh phôi, ta vẫn cần hiển thị danh sách Excel để người dùng xem.
+        
         if self.model.df is None: return
+
         self.is_bulk_updating = True 
-        df_page = self.model.get_current_page_data()
-        self.view.p_mid.update_data(df_page, self.model.custom_configs)
-        self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
-        if list(self.view.p_mid.cbb_filter['values']) != self.model.unique_areas:
-             self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
-        self.is_bulk_updating = False
+        try:
+            df_page = self.model.get_current_page_data()
+            self.view.p_mid.update_data(df_page, self.model.custom_configs)
+            self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
+            
+            # Cập nhật bộ lọc khu vực
+            if list(self.view.p_mid.cbb_filter['values']) != self.model.unique_areas:
+                 self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
+        except Exception as e:
+            print(f"Lỗi refresh table: {e}")
+        finally:
+            self.is_bulk_updating = False
+
     def next_page(self):
         if self.model.set_page(self.model.current_page + 1): self.refresh_mid_table()
+
     def prev_page(self):
         if self.model.set_page(self.model.current_page - 1): self.refresh_mid_table()
+
     def on_filter_change(self, event):
+        if not self.has_template(): return # [THÊM] Check
         self.model.filter_data(self.view.p_mid.cbb_filter.get())
         self.deselect_all()
         self.refresh_mid_table()
+
     def on_search_action(self, event=None):
+        if not self.has_template(): return # [THÊM] Check
         if self.view: self.view.master.config(cursor="watch")
         try:
             self.model.search_data(self.view.p_mid.search_view.get_keyword())
@@ -150,12 +182,14 @@ class AppRouter:
             self.refresh_mid_table()
         finally:
             if self.view: self.view.master.config(cursor="")
+
     def on_search_typing(self, event):
         if self.search_timer: self.view.after_cancel(self.search_timer)
         if not self.view.p_mid.search_view.get_keyword():
             self.on_search_action()
             return
         self.search_timer = self.view.after(500, self.on_search_action)
+
     def on_tree_left_click(self, event):
         item = self.view.p_mid.tree.identify_row(event.y)
         if not item: return
@@ -163,24 +197,30 @@ class AppRouter:
         self.view.p_mid.tree.focus(item)
         try:
             self.current_idx = int(item)
-            self.ctrl_canvas.render()
+            self.render_canvas_safe() # [SỬA] Dùng hàm safe
             if self.selected_field: self.load_field_props_to_ui()
         except: pass
         return "break"
+
     def on_user_select_change(self, event):
-        if self.is_bulk_updating or not self.model.df: return
+        if self.is_bulk_updating or self.model.df is None: return 
+        # Không cần check has_template ở đây vì nếu không có template thì table rỗng, user không click được
         sel = self.view.p_mid.tree.selection()
         if len(sel) == 1:
             self.current_idx = int(sel[0])
-            self.ctrl_canvas.render()
+            self.render_canvas_safe() # [SỬA] Dùng hàm safe
             if self.selected_field: self.load_field_props_to_ui()
+
     def on_field_toggle(self, col):
+        if not self.has_template(): return # [THÊM] Check
         is_on = self.view.p_left.field_vars[col].get()
         self.model.update_config_value(self.current_idx, "global", col, "enable", is_on)
-        self.ctrl_canvas.render()
+        self.render_canvas_safe() # [SỬA] Dùng hàm safe
+
     def select_field(self, col):
         self.selected_field = col
         self.load_field_props_to_ui()
+
     def load_field_props_to_ui(self):
         if not self.selected_field: return
         self.is_loading_ui = True 
@@ -188,8 +228,11 @@ class AppRouter:
             cfg = self.model.get_effective_config(self.current_idx).get(self.selected_field, {})
             self.view.p_left.update_prop_inputs(cfg, self.selected_field)
         finally: self.is_loading_ui = False
+
     def on_prop_change(self, event=None):
         if not self.selected_field or self.is_loading_ui: return
+        if not self.has_template(): return # [THÊM] Check chặn sửa thuộc tính khi chưa có phôi
+        
         view = self.view.p_left
         mode = "global"
         try: mode = self.edit_mode.get()
@@ -206,31 +249,64 @@ class AppRouter:
                 if hasattr(view, 'chk_bold_var'): self.model.update_config_value(self.current_idx, mode, col, "bold", view.chk_bold_var.get())
                 if hasattr(view, 'chk_upper_var'): self.model.update_config_value(self.current_idx, mode, col, "upper", view.chk_upper_var.get())
         except: pass
-        self.ctrl_canvas.render()
+        
+        self.render_canvas_safe() # [SỬA] Dùng hàm safe
         if mode == "individual": self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
+
     def update_field_config(self, k, v):
+        if not self.has_template(): return # [THÊM] Check
         if self.selected_field:
             mode = "global"
             try: mode = self.edit_mode.get()
             except: pass
             self.model.update_config_value(self.current_idx, mode, self.selected_field, k, v)
+
     def reset_current_custom(self):
+        if not self.has_template(): return # [THÊM] Check
         if self.model.reset_custom_config(self.current_idx):
             self.view.p_mid.tree.item(str(self.current_idx), tags=())
-            self.ctrl_canvas.render()
+            self.render_canvas_safe() # [SỬA] Dùng hàm safe
             if self.selected_field: self.load_field_props_to_ui()
             Messagebox.show_info("Đã xóa cấu hình riêng.", "Reset")
+
     def deselect_all(self):
         self.is_bulk_updating = True
         try: self.view.p_mid.tree.selection_set([])
         except: pass
         self.model.selected_indices.clear()
         self.is_bulk_updating = False
+
     def select_all(self): pass 
-    def on_header_click(self, col): pass 
-    def on_shift_zoom(self, e): self.ctrl_canvas.handle_zoom(e)
-    def on_drag_start(self, e): self.ctrl_canvas.drag_start(e)
-    def on_drag_motion(self, e): self.ctrl_canvas.drag_motion(e)
-    def on_drag_end(self, e): self.ctrl_canvas.drag_end(e)
-    def on_canvas_resize(self, e): self.ctrl_canvas.on_resize(e)
-    def on_paper_config_change(self, e=None): self.ctrl_canvas.render()
+
+    def on_header_click(self, col):
+        """Xử lý khi click vào tiêu đề cột để sắp xếp"""
+        if not self.has_template(): return # [THÊM] Check
+        
+        if self.sort_state["col"] == col:
+            self.sort_state["reverse"] = not self.sort_state["reverse"]
+        else:
+            self.sort_state["col"] = col
+            self.sort_state["reverse"] = False
+            
+        self.model.sort_data(col, self.sort_state["reverse"])
+        
+        if self.view and hasattr(self.view, 'p_mid'):
+            self.view.p_mid.update_header_arrow(col, self.sort_state["reverse"])
+        
+        self.refresh_mid_table()
+
+    # Các hàm thao tác Canvas (Zoom/Drag/Resize)
+    # Lưu ý: Canvas Controller nên tự check has_template hoặc self.image bên trong
+    # Nhưng ta cũng có thể chặn từ Router cho chắc chắn
+    def on_shift_zoom(self, e): 
+        if self.has_template(): self.ctrl_canvas.handle_zoom(e)
+    def on_drag_start(self, e): 
+        if self.has_template(): self.ctrl_canvas.drag_start(e)
+    def on_drag_motion(self, e): 
+        if self.has_template(): self.ctrl_canvas.drag_motion(e)
+    def on_drag_end(self, e): 
+        if self.has_template(): self.ctrl_canvas.drag_end(e)
+    def on_canvas_resize(self, e): 
+        self.ctrl_canvas.on_resize(e) # Resize thì vẫn cần để căn chỉnh khung
+        
+    def on_paper_config_change(self, e=None): self.render_canvas_safe()
