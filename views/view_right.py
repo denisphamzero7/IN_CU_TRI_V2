@@ -25,21 +25,21 @@ class RightPanelView(ttk.Frame):
         self.tb_frame = ttk.Frame(self, padding=5, bootstyle="secondary")
         self.tb_frame.pack(fill=X, side=TOP)
 
-        # 1. Nút IN NGAY
-        create_button(self.tb_frame, "🖨️ IN NGAY", self.router.start_print, style="danger").pack(side=RIGHT, padx=(5, 0))
+        # 1. Nút IN NGAY (Primary)
+        create_button(self.tb_frame, "🖨️ IN NGAY", self.router.start_print, style="primary").pack(side=RIGHT, padx=(5, 0))
 
-        # 2. Máy in & Chế độ in (FIX LỖI QUAN TRỌNG TẠI ĐÂY)
-        self.var_print_mode = tk.StringVar(value="Dữ liệu + Phôi")
-        # Gán vào self.cbb_print_mode để PrintController gọi được
+        # 2. Máy in & Chế độ in
+        # [SỬA TẠI ĐÂY] Mặc định là "Chỉ dữ liệu"
+        self.var_print_mode = tk.StringVar(value="Chỉ dữ liệu")
         self.cbb_print_mode = ttk.Combobox(self.tb_frame, textvariable=self.var_print_mode, 
                                            values=["Chỉ dữ liệu", "Dữ liệu + Phôi"], 
-                                           state="readonly", width=12)
+                                           state="readonly", width=17, bootstyle="primary")
         self.cbb_print_mode.pack(side=RIGHT, padx=5)
 
         try: printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
         except: printers = []
         
-        self.cbb_printer = ttk.Combobox(self.tb_frame, values=printers, state="readonly", width=20)
+        self.cbb_printer = ttk.Combobox(self.tb_frame, values=printers, state="readonly", width=20, bootstyle="primary")
         if printers: self.cbb_printer.current(0)
         self.cbb_printer.pack(side=RIGHT, padx=5)
         ttk.Label(self.tb_frame, text="Máy in:", bootstyle="inverse-secondary").pack(side=RIGHT)
@@ -49,25 +49,31 @@ class RightPanelView(ttk.Frame):
         fr_range.pack(side=RIGHT, padx=10)
         ttk.Label(fr_range, text="Từ:", bootstyle="inverse-secondary").pack(side=LEFT)
         self.var_print_from = tk.StringVar(value="1")
-        ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_from, width=4).pack(side=LEFT)
+        ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_from, width=4, bootstyle="primary").pack(side=LEFT)
         ttk.Label(fr_range, text="Đến:", bootstyle="inverse-secondary").pack(side=LEFT)
         self.var_print_to = tk.StringVar(value="")
-        ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_to, width=4).pack(side=LEFT)
+        ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_to, width=4, bootstyle="primary").pack(side=LEFT)
 
-        # 4. Cấu hình giấy
+        # 4. Cấu hình giấy & Hướng giấy
         fr_paper = ttk.Frame(self.tb_frame, bootstyle="secondary")
         fr_paper.pack(side=LEFT)
 
+        # -- Khổ giấy --
         ttk.Label(fr_paper, text="Khổ:", bootstyle="inverse-secondary").pack(side=LEFT)
         self.var_paper_size = tk.StringVar(value="A4")
-        cbb_size = ttk.Combobox(fr_paper, textvariable=self.var_paper_size, values=["A4", "A5", "A6"], width=3, state="readonly")
+        cbb_size = ttk.Combobox(fr_paper, textvariable=self.var_paper_size, values=["A4", "A5", "A6"], 
+                                width=3, state="readonly", bootstyle="primary")
         cbb_size.pack(side=LEFT, padx=2)
         cbb_size.bind("<<ComboboxSelected>>", self.router.on_paper_config_change)
 
-        self.var_orientation = tk.StringVar(value="portrait") 
-        ttk.Radiobutton(fr_paper, text="Dọc", variable=self.var_orientation, value="portrait", 
-                        command=self.router.on_orientation_change, bootstyle="info-toolbutton").pack(side=LEFT, padx=2)
-        ttk.Radiobutton(fr_paper, text="Ngang", variable=self.var_orientation, value="landscape", 
-                        command=self.router.on_orientation_change, bootstyle="warning-toolbutton").pack(side=LEFT, padx=2)
+        # -- COMBOBOX CHỌN HƯỚNG --
+        # [SỬA TẠI ĐÂY] Mặc định là "Ngang"
+        self.var_orientation = tk.StringVar(value="Ngang") 
+        self.cbb_orientation = ttk.Combobox(fr_paper, textvariable=self.var_orientation, 
+                                            values=["Dọc", "Ngang"], 
+                                            state="readonly", width=6, bootstyle="primary")
+        self.cbb_orientation.pack(side=LEFT, padx=5)
+        self.cbb_orientation.bind("<<ComboboxSelected>>", self.router.on_orientation_change)
 
-        create_button(fr_paper, "↻ Ảnh", self.router.rotate_template_right, style="secondary-outline", width=6).pack(side=LEFT, padx=5)
+        # Nút xoay ảnh
+        create_button(fr_paper, "↻ Ảnh", self.router.rotate_template_right, style="primary-outline", width=6).pack(side=LEFT, padx=5)

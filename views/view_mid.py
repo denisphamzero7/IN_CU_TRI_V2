@@ -2,7 +2,6 @@ import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from helpers.ui_helpers import create_button 
-from views.view_search import SearchView
 
 class MidPanelView(ttk.Frame):
     def __init__(self, parent, router):
@@ -36,11 +35,14 @@ class MidPanelView(ttk.Frame):
             bootstyle="primary"
         )
         
+        # --- KHÔI PHỤC TÍNH NĂNG SẮP XẾP ---
         for c_id, c_name, c_width in self.cols_def:
             if c_id in ["stt", "name"]:
-                self.tree.heading(c_id, text=c_name, command=lambda c=c_id: router.on_header_click(c))
+                # Thêm command để gọi hàm sắp xếp từ Router
+                self.tree.heading(c_id, text=c_name, command=lambda c=c_id: self.router.on_header_click(c))
             else:
                 self.tree.heading(c_id, text=c_name)
+            
             anchor_val = "center" if c_id in ["stt", "gender"] else "w"
             self.tree.column(c_id, width=c_width, anchor=anchor_val)
             
@@ -67,6 +69,9 @@ class MidPanelView(ttk.Frame):
         self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
     def _setup_toolbar(self):
+        # Import cục bộ để tránh lỗi vòng lặp
+        from views.view_search import SearchView
+
         toolbar = ttk.Frame(self)
         toolbar.pack(fill=X, pady=(0, 10))
         
@@ -117,20 +122,17 @@ class MidPanelView(ttk.Frame):
         for i in self.tree.get_children(): 
             self.tree.delete(i)
             
-        # 1. Nếu chưa có file Excel -> Reset về 0
         if df is None:
             self.lbl_placeholder.config(text="📂 Vui lòng chọn File Excel dữ liệu", bootstyle="secondary", font=("Segoe UI", 14, "italic"))
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
             self.lbl_total_val.config(text="0") 
             return
             
-        # 2. Nếu có file nhưng lọc không ra ai -> Giữ nguyên tổng số, chỉ hiện thông báo
         elif df.empty:
             self.lbl_placeholder.config(text="🔍 Không tìm thấy kết quả nào...", bootstyle="warning", font=("Segoe UI", 13))
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
             return
             
-        # 3. Có dữ liệu -> Hiển thị
         else:
             self.lbl_placeholder.place_forget()
             
@@ -151,12 +153,15 @@ class MidPanelView(ttk.Frame):
                 vals = (i + 1, row.get(col_name, ""), row.get(col_gender, ""), row.get(col_cccd, ""), row.get(col_area, ""))
                 self.tree.insert("", "end", iid=str(i), values=vals, tags=tag)
 
+    # --- KHÔI PHỤC HÀM HIỂN THỊ MŨI TÊN ---
     def update_header_arrow(self, sort_col, reverse):
+        """Cập nhật mũi tên chỉ hướng sắp xếp trên tiêu đề cột"""
         arrow = " ▼" if reverse else " ▲"
         for c_id, c_name, _ in self.cols_def:
-            if c_id == sort_col: self.tree.heading(c_id, text=f"{c_name}{arrow}")
-            else: self.tree.heading(c_id, text=c_name)
+            if c_id == sort_col: 
+                self.tree.heading(c_id, text=f"{c_name}{arrow}")
+            else: 
+                self.tree.heading(c_id, text=c_name)
 
     def set_total_count(self, count):
-        """Hàm này chỉ gọi 1 lần khi load file để set cứng tổng số"""
         self.lbl_total_val.config(text=f"{count}")

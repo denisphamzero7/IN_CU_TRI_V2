@@ -24,7 +24,8 @@ class AppRouter:
         self.is_loading_ui = False
         
         # --- Cấu hình mặc định ---
-        self.is_paper_landscape = False 
+        # [SỬA TẠI ĐÂY] Mặc định là True (Ngang)
+        self.is_paper_landscape = True 
         self.template_rotation = 0      
 
     def set_view(self, view):
@@ -32,24 +33,60 @@ class AppRouter:
         if hasattr(view.p_left, 'var_edit_mode'):
             self.edit_mode = view.p_left.var_edit_mode
 
-    # --- LOGIC QUAN TRỌNG: MÀN HÌNH HIỂN THỊ ---
-    def on_orientation_change(self):
-        """Khi bấm nút Dọc/Ngang"""
-        val = self.view.p_right.var_orientation.get()
-        
-        if val == "landscape":
-            # Chọn Ngang -> Khung giấy trên màn hình xoay NGANG
-            self.is_paper_landscape = True
-            self.template_rotation = 0 # Ảnh bên trong không cần xoay thêm
+    # --- HÀM XỬ LÝ SẮP XẾP ---
+    def on_header_click(self, col_id):
+        if self.model.df is None or self.model.df.empty: return
+
+        if self.sort_state["col"] == col_id:
+            self.sort_state["reverse"] = not self.sort_state["reverse"]
         else:
-            # Chọn Dọc -> Khung giấy trên màn hình xoay DỌC
-            self.is_paper_landscape = False
-            self.template_rotation = 0
+            self.sort_state["col"] = col_id
+            self.sort_state["reverse"] = False 
+
+        is_ascending = not self.sort_state["reverse"]
+
+        try:
+            if col_id == "stt":
+                self.model.df.sort_index(ascending=is_ascending, inplace=True)
             
+            elif col_id == "name":
+                target_col = None
+                for c in self.model.df.columns:
+                    if any(kw in c.lower() for kw in ["họ tên", "họ và tên", "name", "tên"]):
+                        target_col = c
+                        break
+                
+                if not target_col and len(self.model.df.columns) > 1:
+                    target_col = self.model.df.columns[1]
+
+                if target_col:
+                    self.model.df.sort_values(
+                        by=target_col, 
+                        ascending=is_ascending, 
+                        inplace=True,
+                        key=lambda col: col.astype(str).str.lower()
+                    )
+
+            self.refresh_mid_table()
+            
+            if self.view:
+                self.view.p_mid.update_header_arrow(col_id, self.sort_state["reverse"])
+                
+        except Exception as e:
+            print(f"Lỗi khi sắp xếp: {e}")
+
+    # --- Các hàm khác ---
+    def on_orientation_change(self, event=None):
+        val = self.view.p_right.var_orientation.get()
+        if val == "Ngang": 
+            self.is_paper_landscape = True 
+            self.template_rotation = 0
+        else:
+            self.is_paper_landscape = False 
+            self.template_rotation = 0
         self.ctrl_canvas.render()
 
     def rotate_template_right(self):
-        """Xoay ảnh thủ công"""
         self.template_rotation = (self.template_rotation + 90) % 360
         self.ctrl_canvas.render()
 
@@ -70,7 +107,6 @@ class AppRouter:
         except ValueError:
             return MsgHelper.show_error("Số hàng không hợp lệ!")
 
-    # --- (Các hàm cũ giữ nguyên) ---
     def pick_manual_signature(self):
         path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg;*.jpeg")])
         if path:
