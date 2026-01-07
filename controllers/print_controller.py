@@ -194,34 +194,30 @@ class PrintController:
 
     def _direct_print_to_dc(self, hDC, pil_image):
         """
-        Vẽ ảnh lên Device Context của máy in.
-        Tự động tính toán tỷ lệ co giãn (Aspect Ratio) để vừa khít trang giấy.
+        Vẽ ảnh lên DC máy in.
+        CHẾ ĐỘ: STRETCH TO FILL (Kéo dãn lấp đầy)
+        Mục đích: Loại bỏ viền trắng do phần mềm tạo ra.
         """
         hDC.StartPage()
         
-        # 1. Lấy kích thước vật lý của trang in (theo Pixel/DPI của máy in)
-        # Ví dụ máy in 600dpi, khổ A4 => khoảng 4960 x 7016 px
+        # 1. Lấy kích thước vùng in khả dụng của máy in (Pixel)
+        # Lưu ý: Đây là vùng in được bên trong lề vật lý của máy in
         printer_w = hDC.GetDeviceCaps(win32con.HORZRES)
         printer_h = hDC.GetDeviceCaps(win32con.VERTRES)
         
-        # 2. Lấy kích thước ảnh cần in
-        img_w, img_h = pil_image.size
+        # 2. BỎ QUA việc tính toán tỷ lệ (ratio).
+        # Ép kích thước ảnh bằng đúng kích thước vùng in.
+        # Nếu ảnh gốc và khổ giấy lệch tỷ lệ một chút, ảnh sẽ hơi bị co/dãn nhẹ,
+        # nhưng bù lại sẽ lấp đầy trang giấy.
         
-        # 3. Tính tỷ lệ Scale (Fit to Page - Giữ nguyên tỉ lệ)
-        ratio_w = printer_w / img_w
-        ratio_h = printer_h / img_h
-        scale = min(ratio_w, ratio_h) # Chọn số nhỏ hơn để đảm bảo lọt lòng
-        
-        new_w = int(img_w * scale)
-        new_h = int(img_h * scale)
-        
-        # 4. Tính tọa độ để Căn Giữa trang giấy
-        x = (printer_w - new_w) // 2
-        y = (printer_h - new_h) // 2
-        
-        # 5. Vẽ ảnh (Dùng ImageWin để vẽ lên DC handle)
+        x = 0
+        y = 0
+        new_w = printer_w
+        new_h = printer_h
+
+        # 3. Vẽ ảnh
         dib = ImageWin.Dib(pil_image)
-        # Tọa độ vẽ: (Left, Top, Right, Bottom)
+        # Vẽ từ góc 0,0 đến kịch kim chiều rộng và chiều cao máy in cho phép
         dib.draw(hDC.GetHandleOutput(), (x, y, x + new_w, y + new_h))
         
         hDC.EndPage()

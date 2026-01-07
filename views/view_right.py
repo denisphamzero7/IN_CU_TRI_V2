@@ -61,7 +61,7 @@ class RightPanelView(ttk.Frame):
         # -- Khổ giấy --
         ttk.Label(fr_paper, text="Khổ:", bootstyle="inverse-secondary").pack(side=LEFT)
         self.var_paper_size = tk.StringVar(value="A4")
-        cbb_size = ttk.Combobox(fr_paper, textvariable=self.var_paper_size, values=["A4", "A5", "A6"], 
+        cbb_size = ttk.Combobox(fr_paper, textvariable=self.var_paper_size, values=["A4", "A5", "A6","TheCuTri"], 
                                 width=3, state="readonly", bootstyle="primary")
         cbb_size.pack(side=LEFT, padx=2)
         cbb_size.bind("<<ComboboxSelected>>", self.router.on_paper_config_change)
