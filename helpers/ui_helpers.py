@@ -1,16 +1,17 @@
+# helpers/ui_helpers.py
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from helpers.path_manager import resource_path
 from config.settings import APP_ICON_NAME
-def create_button(master, text, command, style="primary", width=None, icon=None):
+
+def create_button(master, text, command, style="primary", width=None, icon=None, **kwargs):
     """
     Tạo nút bấm chuẩn ttkbootstrap.
     
     Args:
         style: Tên màu (primary, success, danger) hoặc kèm kiểu (primary-outline, success-link)
+        **kwargs: Các tham số khác của ttk.Button (ví dụ: state, cursor, padding...)
     """
-    # ttkbootstrap hỗ trợ từ khóa "outline" để làm nút viền
-    # Ví dụ: style="danger-outline"
     
     btn = ttk.Button(
         master, 
@@ -19,7 +20,8 @@ def create_button(master, text, command, style="primary", width=None, icon=None)
         bootstyle=style, # Đây là sức mạnh của ttkbootstrap
         width=width,
         image=icon,
-        compound=LEFT if icon else None # Nếu có icon thì đặt bên trái chữ
+        compound=LEFT if icon else None, # Nếu có icon thì đặt bên trái chữ
+        **kwargs # <--- [QUAN TRỌNG] Truyền các tham số mở rộng (như state="disabled") vào đây
     )
     return btn
 

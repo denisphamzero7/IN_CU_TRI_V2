@@ -7,6 +7,7 @@ from tkinter import filedialog
 
 # --- [MỚI] IMPORT HEADER ---
 from views.view_header import HeaderView 
+from config.settings import APP_SUPPORT, APP_CREDIT
 # ---------------------------
 
 class LeftPanelView(ttk.Frame):
@@ -19,11 +20,9 @@ class LeftPanelView(ttk.Frame):
         self.field_labels = {} 
 
         # --- [MỚI] 0. HEADER THÔNG TIN (ĐẶT TRÊN CÙNG) ---
-        # Khởi tạo header và gắn vào đầu panel
         self.header = HeaderView(self)
         self.header.pack(fill=X, pady=(0, 15)) 
-        # --------------------------------------------------
-
+        
         # --- 1. CẤU HÌNH GIAO DIỆN (THEME) ---
         self._setup_theme_toggle()
         
@@ -44,18 +43,64 @@ class LeftPanelView(ttk.Frame):
         self.scroll_container = ScrolledFrame(self, autohide=True, height=200)
         self.scroll_container.pack(fill=BOTH, expand=YES, pady=5)
         
+        # --- [MỚI] 5. FOOTER (HỖ TRỢ & BẢN QUYỀN) ---
+        # Lưu ý: Pack cái này TRƯỚC style_controls để nó nằm dưới cùng (do dùng side=BOTTOM)
+        self._setup_footer()
+
         # --- 4. TÙY CHỈNH STYLE ---
         self._setup_style_controls()
+
+    def _setup_footer(self):
+        """Thiết lập phần chân trang (Support & Credit)"""
+
+        # --- CẬP NHẬT NỘI DUNG TEXT ---
+        txt_support = "Hỗ trợ kỹ thuật: 0911.02.12.87 (Anh Quân)"
+        txt_credit = "Thiết kế bởi Danatec"
+
+        # --- 1. Khung: Thiết kế bởi Danatec (Nằm dưới cùng nhất) ---
+        # [MẸO] Dùng Frame lồng nhau để tạo viền màu liền mạch
         
-        ttk.Separator(self, orient=HORIZONTAL).pack(fill=X, pady=10)
-        ttk.Button(self, text="❌ Thoát", command=router.exit_app, bootstyle="danger-outline").pack(fill=X, pady=5)
+        # Frame Ngoại: Đóng vai trò là viền (Màu vàng/warning)
+        fr_credit_border = ttk.Frame(self, bootstyle="warning")
+        fr_credit_border.pack(side=BOTTOM, fill=X, pady=(5, 5))
+        
+        # Frame Nội: Chứa nội dung, padding=1 để lộ 1px viền vàng
+        fr_credit_inner = ttk.Frame(fr_credit_border)
+        fr_credit_inner.pack(fill=BOTH, expand=YES, padx=1, pady=1)
+
+        # Chữ màu vàng
+        lbl_credit = ttk.Label(
+            fr_credit_inner, 
+            text=txt_credit, 
+            font=("Segoe UI", 9, "bold", "italic"), 
+            foreground="#FFD700",   # Màu vàng Gold
+            anchor="center"
+        )
+        lbl_credit.pack(fill=X, pady=5)
+
+        # --- 2. Khung: Hỗ trợ kỹ thuật (Nằm trên dòng Danatec) ---
+        
+        # Frame Ngoại: Đóng vai trò là viền (Màu xanh/info)
+        fr_support_border = ttk.Frame(self, bootstyle="info")
+        fr_support_border.pack(side=BOTTOM, fill=X, pady=(5, 0))
+        
+        # Frame Nội: Chứa nội dung, padding=1 để lộ 1px viền xanh
+        fr_support_inner = ttk.Frame(fr_support_border)
+        fr_support_inner.pack(fill=BOTH, expand=YES, padx=1, pady=1)
+        
+        ttk.Label(
+            fr_support_inner, 
+            text=txt_support, 
+            font=("Segoe UI", 9, "bold"), 
+            bootstyle="info",
+            anchor="center"
+        ).pack(fill=X, pady=5)
 
     def _setup_theme_toggle(self):
         fr = ttk.Frame(self)
         fr.pack(fill=X)
         ttk.Label(fr, text="Giao diện:").pack(side=LEFT)
         
-        # --- TỪ ĐIỂN ÁNH XẠ TÊN THEME ---
         self.theme_map = {
             " Tối - Siêu anh hùng": "superhero",
             " Tối - Đêm đen": "darkly",
@@ -95,6 +140,7 @@ class LeftPanelView(ttk.Frame):
 
     def _setup_style_controls(self):
         group = ttk.Labelframe(self, text="3. TÙY CHỈNH STYLE", padding=10, bootstyle="info")
+        # Lưu ý: side=BOTTOM sẽ đẩy cái này xuống dưới, nhưng nằm TRÊN footer vừa tạo
         group.pack(fill=X, side=BOTTOM, pady=10)
         
         self.var_edit_mode = tk.StringVar(value="global")
@@ -156,7 +202,7 @@ class LeftPanelView(ttk.Frame):
         self.spin_img_w.bind("<Return>", self.router.on_prop_change)
         self.spin_img_h.bind("<Return>", self.router.on_prop_change)
 
-        ttk.Button(group, text="↺ Mặt định", command=self.router.reset_current_custom, bootstyle="link").pack(fill=X, pady=(5,0))
+        ttk.Button(group, text="↺ Mặc định", command=self.router.reset_current_custom, bootstyle="link").pack(fill=X, pady=(5,0))
 
     def refresh_field_list(self, cols, global_config):
         for widget in self.scroll_container.winfo_children():
