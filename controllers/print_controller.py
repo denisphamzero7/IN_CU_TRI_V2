@@ -6,7 +6,7 @@ import win32ui
 import win32con
 import win32gui
 from datetime import datetime, timedelta
-from PIL import Image, ImageWin, ImageDraw, ImageFont
+from PIL import Image, ImageWin, ImageDraw, ImageFont, ImageFilter # <--- THÊM ImageFilter
 from helpers.msg_helper import MsgHelper
 from helpers.ui_helpers import apply_window_icon
 from helpers.font_manager import FontManager
@@ -14,15 +14,13 @@ import tkinter as tk
 from tkinter import Toplevel, ttk
 
 class PrintController:
-    # Mã giấy chuẩn Windows: 9=A4, 11=A5, 70=A6. 
-    # Nếu máy in dùng khổ Custom, nó có thể không khớp mã này, nhưng A4/A5 là chuẩn.
     PAPER_IDS = {"A4": 9, "A5": 11, "A6": 70}
 
     def __init__(self, router):
         self.router = router
         self.model = router.model
         self.stop_event = threading.Event()
-        self.errors_log = [] 
+        self.errors_log = []
         self.prog_win = None
 
     def _get_parent_window(self):
@@ -31,20 +29,15 @@ class PrintController:
 
     def print_batch(self, custom_indices=None):
         parent_ui = self._get_parent_window()
-        if not custom_indices: 
+        if not custom_indices:
             return MsgHelper.show_warning("Chưa chọn hàng!", parent=parent_ui)
         
         try:
-            # Lấy thông tin từ UI
             printer = self.router.view.p_right.cbb_printer.get()
-            size = self.router.view.p_right.var_paper_size.get() # A4, A5...
-            mode = self.router.view.p_right.cbb_print_mode.get() # Chế độ in (Dữ liệu/Cả khung)
-            
-            # Lấy thông tin hướng giấy từ biến router (đã bind với UI radio button)
-            # True = Landscape (Ngang), False = Portrait (Dọc)
+            size = self.router.view.p_right.var_paper_size.get() 
+            mode = self.router.view.p_right.cbb_print_mode.get() 
             is_landscape = getattr(self.router, 'is_paper_landscape', False)
             orientation_text = "Ngang" if is_landscape else "Dọc"
-            
         except Exception as e:
             return MsgHelper.show_error(f"Lỗi cấu hình in: {e}", parent=parent_ui)
 
@@ -72,9 +65,6 @@ class PrintController:
         thread.start()
 
     def _get_devmode(self, printer_name, paper_size, is_landscape):
-        """
-        Cấu hình Driver máy in (Khổ giấy, Hướng giấy)
-        """
         try:
             hPrinter = win32print.OpenPrinter(printer_name)
             try:
@@ -83,14 +73,9 @@ class PrintController:
             finally:
                 win32print.ClosePrinter(hPrinter)
             
-            # 1. Cấu hình khổ giấy
             if paper_size in self.PAPER_IDS:
                 devmode.PaperSize = self.PAPER_IDS[paper_size]
-            
-            # 2. Cấu hình hướng giấy (1=Portrait, 2=Landscape)
             devmode.Orientation = 2 if is_landscape else 1
-            
-            # Báo cho Windows biết mình đã thay đổi field nào
             devmode.Fields |= (win32con.DM_PAPERSIZE | win32con.DM_ORIENTATION)
             return devmode
         except Exception as e:
@@ -100,73 +85,86 @@ class PrintController:
     def _run_print_process(self, selection, output_folder, is_landscape, printer_name, paper_size, print_mode):
         hDC = None
         try:
-            # 1. Khởi tạo DC (Device Context) cho máy in
             devmode = self._get_devmode(printer_name, paper_size, is_landscape)
-            
             if devmode:
                 hdc_handle = win32gui.CreateDC("WINSPOOL", printer_name, devmode)
                 hDC = win32ui.CreateDCFromHandle(hdc_handle)
             else:
-                # Fallback nếu không chỉnh được setting
                 hDC = win32ui.CreateDC()
                 hDC.CreatePrinterDC(printer_name)
 
             hDC.StartDoc("Voter Cards Batch")
 
-            # 2. Chuẩn bị ảnh gốc (Template)
-            real_template = Image.open(self.model.template_path).convert("RGB")
-            
-            # Nếu chỉ in dữ liệu nền trắng
-            if "Chỉ dữ liệu" in print_mode:
-                base_img_source = Image.new("RGB", real_template.size, (255, 255, 255))
+            # 1. Kích thước chuẩn thiết kế (Reference - luôn là A4)
+            REF_A4_W, REF_A4_H = 595, 842
+
+            # 2. Kích thước khổ giấy đích
+            SIZE_MAP = {"A4": (595, 842), "A5": (420, 595), "A6": (298, 420), "TheCuTri": (298, 420)}
+            target_base_w, target_base_h = SIZE_MAP.get(paper_size, (595, 842))
+
+            if is_landscape:
+                ref_w, ref_h = REF_A4_H, REF_A4_W
+                target_w, target_h = target_base_h, target_base_w
             else:
-                base_img_source = real_template
+                ref_w, ref_h = REF_A4_W, REF_A4_H
+                target_w, target_h = target_base_w, target_base_h
+
+            SCALE_RATIO = target_w / ref_w 
+            
+            # --- TĂNG DPI ĐỂ ẢNH KHÔNG BỊ VỠ KHI IN ---
+            # Màn hình thường chỉ 72-96 DPI, máy in cần 300-600 DPI
+            # Scale gấp 4 lần là đủ nét cho hầu hết máy in văn phòng
+            DPI_SCALE = 4.0 
+            
+            TOTAL_SCALE = SCALE_RATIO * DPI_SCALE
+            
+            final_print_w = int(target_w * DPI_SCALE)
+            final_print_h = int(target_h * DPI_SCALE)
+
+            # --- Chuẩn bị ảnh nền ---
+            try:
+                # Mở ảnh gốc (Full Resolution)
+                original_template = Image.open(self.model.template_path).convert("RGB")
+                
+                # 1. Xoay trên ảnh gốc chất lượng cao
+                rot = getattr(self.router, 'template_rotation', 0)
+                if rot == 90: original_template = original_template.transpose(Image.ROTATE_270)
+                elif rot == 180: original_template = original_template.transpose(Image.ROTATE_180)
+                elif rot == 270: original_template = original_template.transpose(Image.ROTATE_90)
+            except:
+                original_template = Image.new("RGB", (final_print_w, final_print_h), "white")
+
+            if "Chỉ dữ liệu" in print_mode:
+                bg_img = Image.new("RGB", (final_print_w, final_print_h), "white")
+            else:
+                # 2. Resize dùng thuật toán LANCZOS (Chống răng cưa tốt nhất)
+                bg_img = original_template.resize((final_print_w, final_print_h), Image.Resampling.LANCZOS)
+                
+                # 3. >>> KỸ THUẬT LÀM NÉT (SHARPEN) <<<
+                # Giúp ảnh in ra trông "đanh" hơn, đỡ bị mờ nhòe do resize
+                bg_img = bg_img.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
 
             total = len(selection)
             start_time = time.time()
-            
-            # Lấy góc xoay thủ công (nếu người dùng chỉnh trên UI preview)
-            manual_rotation = getattr(self.router, 'template_rotation', 0)
 
             for i, idx in enumerate(selection):
                 if self.stop_event.is_set(): break
                 try:
-                    # A. Vẽ dữ liệu lên ảnh (trên bộ nhớ)
-                    # Lưu ý: Luôn vẽ trên bản copy để không hỏng template gốc
-                    img_draw = base_img_source.copy()
-                    self._draw_data_on_original(img_draw, int(idx))
+                    img_to_print = bg_img.copy()
                     
-                    # B. Xử lý Xoay ảnh (Image Rotation)
-                    # Logic: Nếu máy in thiết lập NGANG (Landscape), nhưng ảnh đang DỌC,
-                    # ta cần xoay ảnh 90 độ để nó nằm ngang khớp với giấy.
+                    self._draw_data_scaled(img_to_print, int(idx), TOTAL_SCALE)
                     
-                    img_final = img_draw
-                    
-                    # Xoay theo thiết lập thủ công trước
-                    if manual_rotation == 90: img_final = img_final.transpose(Image.ROTATE_270)
-                    elif manual_rotation == 180: img_final = img_final.transpose(Image.ROTATE_180)
-                    elif manual_rotation == 270: img_final = img_final.transpose(Image.ROTATE_90)
+                    final_img = img_to_print
+                    if is_landscape and final_img.height > final_img.width:
+                        final_img = final_img.transpose(Image.ROTATE_90)
+                    elif not is_landscape and final_img.width > final_img.height:
+                        final_img = final_img.transpose(Image.ROTATE_90)
 
-                    # Xoay tự động theo khổ giấy:
-                    # Nếu giấy in là Landscape (Ngang) thì ảnh cuối cùng cũng phải nằm Ngang
-                    if is_landscape:
-                        # Nếu ảnh đang đứng (Cao > Rộng) thì xoay cho nằm xuống
-                        if img_final.height > img_final.width:
-                             img_final = img_final.transpose(Image.ROTATE_90)
-                    else:
-                        # Nếu giấy in là Portrait (Dọc)
-                        # Nếu ảnh đang nằm ngang (Rộng > Cao) thì xoay cho đứng lên
-                        if img_final.width > img_final.height:
-                             img_final = img_final.transpose(Image.ROTATE_90)
-
-                    # C. Đẩy xuống Driver máy in
-                    self._direct_print_to_dc(hDC, img_final)
+                    self._direct_print_to_dc(hDC, final_img)
 
                 except Exception as e:
-                    print(f"Lỗi in dòng {idx}: {e}")
                     self.errors_log.append(f"Row {idx}: {e}")
 
-                # Update Progress Bar
                 elapsed = time.time() - start_time
                 if i > 0:
                     avg_time = elapsed / i
@@ -177,7 +175,6 @@ class PrintController:
                 
                 self._update_ui_label(f"Đang in: {i+1}/{total} (Còn: {eta})", i+1)
 
-            # Kết thúc lệnh in
             hDC.EndDoc()
             self._finish_ui(True, output_folder, "Đã hoàn thành quá trình in!")
 
@@ -192,38 +189,7 @@ class PrintController:
                 try: hDC.DeleteDC()
                 except: pass
 
-    def _direct_print_to_dc(self, hDC, pil_image):
-        """
-        Vẽ ảnh lên DC máy in.
-        CHẾ ĐỘ: STRETCH TO FILL (Kéo dãn lấp đầy)
-        Mục đích: Loại bỏ viền trắng do phần mềm tạo ra.
-        """
-        hDC.StartPage()
-        
-        # 1. Lấy kích thước vùng in khả dụng của máy in (Pixel)
-        # Lưu ý: Đây là vùng in được bên trong lề vật lý của máy in
-        printer_w = hDC.GetDeviceCaps(win32con.HORZRES)
-        printer_h = hDC.GetDeviceCaps(win32con.VERTRES)
-        
-        # 2. BỎ QUA việc tính toán tỷ lệ (ratio).
-        # Ép kích thước ảnh bằng đúng kích thước vùng in.
-        # Nếu ảnh gốc và khổ giấy lệch tỷ lệ một chút, ảnh sẽ hơi bị co/dãn nhẹ,
-        # nhưng bù lại sẽ lấp đầy trang giấy.
-        
-        x = 0
-        y = 0
-        new_w = printer_w
-        new_h = printer_h
-
-        # 3. Vẽ ảnh
-        dib = ImageWin.Dib(pil_image)
-        # Vẽ từ góc 0,0 đến kịch kim chiều rộng và chiều cao máy in cho phép
-        dib.draw(hDC.GetHandleOutput(), (x, y, x + new_w, y + new_h))
-        
-        hDC.EndPage()
-
-    def _draw_data_on_original(self, img, idx):
-        # Hàm này giữ nguyên logic vẽ text của bạn
+    def _draw_data_scaled(self, img, idx, scale):
         draw = ImageDraw.Draw(img)
         row = self.model.df.iloc[idx]
         config = self.model.get_effective_config(idx)
@@ -231,38 +197,38 @@ class PrintController:
         for col, cfg in config.items():
             if not cfg.get("enable", False): continue
             
-            x, y = cfg["x"], cfg["y"]
+            x = int(cfg["x"] * scale)
+            y = int(cfg["y"] * scale)
             
-            # Xử lý Chữ ký (Ảnh)
             if col == "signature_img":
                 sig = self.model.get_signature_image(idx)
                 if sig:
-                    w, h = cfg.get("w", 150), cfg.get("h", 80)
+                    w = int(cfg.get("w", 150) * scale)
+                    h = int(cfg.get("h", 80) * scale)
+                    # Chữ ký cũng cần Lanczos để nét
                     sig = sig.resize((w, h), Image.Resampling.LANCZOS)
-                    # Căn giữa ảnh chữ ký vào điểm x,y
-                    paste_x = int(x - w/2)
-                    paste_y = int(y - h/2)
-                    if sig.mode == 'RGBA': 
-                        img.paste(sig, (paste_x, paste_y), sig)
-                    else: 
-                        img.paste(sig, (paste_x, paste_y))
-            
-            # Xử lý Text
+                    img.paste(sig, (x - w//2, y - h//2), sig)
             else:
                 val = str(row.get(col, "")).replace("nan", "")
                 if not val: continue
-                
                 if "00:00:00" in val: val = val.split(" ")[0]
                 if cfg.get("upper", False): val = val.upper()
                 
+                font_size = int(cfg.get("size", 30) * scale)
                 font_path = FontManager.get_path(cfg.get("font", "Arial"), cfg.get("bold", False))
-                try: 
-                    font = ImageFont.truetype(font_path, cfg.get("size", 30))
-                except: 
-                    font = ImageFont.load_default()
+                try: font = ImageFont.truetype(font_path, font_size)
+                except: font = ImageFont.load_default()
                 
-                # anchor="mm": Middle-Middle (Căn giữa tâm text vào tọa độ x,y)
                 draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="mm")
+
+    def _direct_print_to_dc(self, hDC, pil_image):
+        hDC.StartPage()
+        printer_w = hDC.GetDeviceCaps(win32con.HORZRES)
+        printer_h = hDC.GetDeviceCaps(win32con.VERTRES)
+        
+        dib = ImageWin.Dib(pil_image)
+        dib.draw(hDC.GetHandleOutput(), (0, 0, printer_w, printer_h))
+        hDC.EndPage()
 
     def show_progress_window(self, total):
         parent = self._get_parent_window()
@@ -271,7 +237,6 @@ class PrintController:
         self.prog_win.title("Đang in ấn...")
         self.prog_win.geometry("350x150")
         
-        # Căn giữa màn hình cha
         try:
             x = parent.winfo_rootx() + 50
             y = parent.winfo_rooty() + 50
@@ -289,7 +254,6 @@ class PrintController:
         
         ttk.Button(fr, text="HỦY IN", command=self.stop_event.set).pack(pady=10)
         
-        # Chặn tương tác với cửa sổ chính khi đang in
         self.prog_win.transient(parent)
         self.prog_win.grab_set()
 
@@ -299,11 +263,11 @@ class PrintController:
             self.progress_bar["value"] = val
 
     def _finish_ui(self, s, f, m):
-        if self.router.view: 
+        if self.router.view:
             self.router.view.after(0, lambda: self._finish_process_ui_thread(s, f, m))
 
     def _finish_process_ui_thread(self, s, f, m):
-        try: 
+        try:
             if self.prog_win:
                 self.prog_win.grab_release()
                 self.prog_win.destroy()

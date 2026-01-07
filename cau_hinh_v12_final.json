@@ -1,8 +1,8 @@
 {
     "global": {
         "signature_img": {
-            "x": 686,
-            "y": 519,
+            "x": 685,
+            "y": 513,
             "w": 150,
             "h": 80,
             "enable": true,
@@ -21,19 +21,19 @@
             "upper": false
         },
         "Tên đơn vị": {
-            "x": 204,
-            "y": 39,
+            "x": 182,
+            "y": 44,
             "size": 21,
             "enable": true,
-            "font": "Times New Roman",
+            "font": "Arial",
             "color": "Black",
             "type": "text",
             "bold": true,
             "upper": false
         },
         "Họ tên": {
-            "x": 299,
-            "y": 215,
+            "x": 235,
+            "y": 209,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -43,8 +43,8 @@
             "upper": false
         },
         "Ngày sinh": {
-            "x": 412,
-            "y": 250,
+            "x": 334,
+            "y": 239,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -54,8 +54,8 @@
             "upper": false
         },
         "Giới tính": {
-            "x": 227,
-            "y": 284,
+            "x": 194,
+            "y": 271,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -65,8 +65,8 @@
             "upper": false
         },
         "Nơi cư trú": {
-            "x": 251,
-            "y": 321,
+            "x": 219,
+            "y": 307,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -76,8 +76,8 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 310,
-            "y": 355,
+            "x": 251,
+            "y": 334,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -88,18 +88,18 @@
         },
         "Số thẻ cử tri": {
             "x": 250,
-            "y": 397,
+            "y": 378,
             "size": 21,
             "enable": true,
-            "font": "Times New Roman",
+            "font": "Arial",
             "color": "Black",
             "type": "text",
             "bold": true,
             "upper": false
         },
         "Khu vực bỏ phiếu": {
-            "x": 337,
-            "y": 431,
+            "x": 323,
+            "y": 408,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -109,11 +109,11 @@
             "upper": false
         },
         "Thành phố": {
-            "x": 293,
-            "y": 462,
+            "x": 274,
+            "y": 440,
             "size": 21,
             "enable": true,
-            "font": "Times New Roman",
+            "font": "Arial",
             "color": "Black",
             "type": "text",
             "bold": true,
@@ -124,7 +124,7 @@
             "y": 580,
             "size": 21,
             "enable": true,
-            "font": "Times New Roman",
+            "font": "Arial",
             "color": "Black",
             "type": "text",
             "bold": true,
