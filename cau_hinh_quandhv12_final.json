@@ -109,8 +109,8 @@
             "upper": false
         },
         "Thành phố": {
-            "x": 430,
-            "y": 456,
+            "x": 419,
+            "y": 459,
             "size": 21,
             "enable": true,
             "font": "Arial",

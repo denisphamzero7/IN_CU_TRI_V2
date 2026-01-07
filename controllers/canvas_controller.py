@@ -261,30 +261,40 @@ class CanvasController:
         th = bbox[3]-bbox[1]
         draw.text(((w-tw)/2, (h-th)/2), text, font=f, fill="red")
         return img
-    # --- THÊM HÀM NÀY VÀO CUỐI CLASS CanvasController ---
-    def nudge_selected_item(self, dx, dy):
-        """Dịch chuyển trường đang chọn một khoảng nhỏ (dùng cho phím mũi tên)"""
-        # 1. Kiểm tra có đang chọn trường nào không
+    
+    # --- [MỚI] HÀM HỖ TRỢ DI CHUYỂN MƯỢT ---
+    def visual_move_selection(self, dx, dy):
+        """Di chuyển hình ảnh trên màn hình (Rất nhẹ, không lưu dữ liệu ngay)"""
         if not self.router.selected_field: return
+        canvas = self.router.view.p_right.canvas
+        tag_id = f"col:{self.router.selected_field}"
+        # Dùng lệnh move của Canvas (tối ưu hóa phần cứng)
+        canvas.move(tag_id, dx, dy)
 
-        # 2. Lấy cấu hình hiện tại
-        idx = self.router.current_idx
-        config = self.model.get_effective_config(idx)
-        col = self.router.selected_field
+    def commit_selection_position(self):
+        """Khi thả phím -> Tính toán lại tọa độ thật và lưu vào Model"""
+        if not self.router.selected_field: return
+        canvas = self.router.view.p_right.canvas
+        tag_id = f"col:{self.router.selected_field}"
         
-        if col not in config: return
+        items = canvas.find_withtag(tag_id)
+        if not items: return
         
-        current_x = config[col]["x"]
-        current_y = config[col]["y"]
+        # Lấy tọa độ mới trên màn hình
+        coords = canvas.coords(items[0])
+        
+        # Xử lý tọa độ (Image có 2 điểm, Text/Rect có thể khác)
+        if len(coords) == 2: screen_x, screen_y = coords[0], coords[1]
+        elif len(coords) == 4: screen_x, screen_y = (coords[0]+coords[2])/2, (coords[1]+coords[3])/2
+        else: return
 
-        # 3. Tính tọa độ mới (Cộng dồn dx, dy)
-        new_x = int(current_x + dx)
-        new_y = int(current_y + dy)
+        # Quy đổi từ Pixel màn hình -> Tọa độ dữ liệu gốc
+        raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
 
-        # 4. Cập nhật vào Model
-        self.router.update_field_config("x", new_x)
-        self.router.update_field_config("y", new_y)
-
-        # 5. Render lại và cập nhật thanh thuộc tính
-        self.render()
+        # Lưu vào Model
+        self.router.update_field_config("x", int(raw_x))
+        self.router.update_field_config("y", int(raw_y))
+        
+        # Cập nhật UI thanh bên trái và render lại cho nét
         self.router.load_field_props_to_ui()
+        self.render()

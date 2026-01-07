@@ -11,40 +11,33 @@ class RightPanelView(ttk.Frame):
         self.router = router
         self._setup_top_toolbar()
         
-        # Thêm takefocus=1 để Canvas có thể nhận phím bấm
+        # takefocus=1 để Canvas có thể nhận phím bấm
         self.canvas = tk.Canvas(self, bg="#57606f", cursor="fleur", highlightthickness=1, takefocus=1)
         self.canvas.pack(fill=BOTH, expand=YES, padx=5, pady=5)
         
-        # --- BINDING CHUỘT (Giữ nguyên) ---
-        self.canvas.tag_bind("draggable", "<ButtonPress-1>", self._on_canvas_click) # Sửa nhẹ chỗ này để gộp logic Focus
+        # --- BINDING CHUỘT ---
+        self.canvas.tag_bind("draggable", "<ButtonPress-1>", self._on_canvas_click)
         self.canvas.tag_bind("draggable", "<B1-Motion>", router.on_drag_motion)
         self.canvas.tag_bind("draggable", "<ButtonRelease-1>", router.on_drag_end)
         self.canvas.bind("<Shift-MouseWheel>", router.on_shift_zoom)
         self.canvas.bind("<Control-MouseWheel>", router.on_shift_zoom) 
         self.canvas.bind("<Configure>", router.on_canvas_resize)
 
-        # --- BINDING BÀN PHÍM (MỚI) ---
-        # Khi click vào canvas (khoảng trắng), cũng cho nó focus để nhận phím
+        # --- [ĐÃ SỬA] BINDING BÀN PHÍM ---
+        # 1. Click vào canvas để Focus nhận phím
         self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set())
         
-        self.canvas.bind("<Up>", router.on_arrow_key)
-        self.canvas.bind("<Down>", router.on_arrow_key)
-        self.canvas.bind("<Left>", router.on_arrow_key)
-        self.canvas.bind("<Right>", router.on_arrow_key)
-        
-        # Hỗ trợ Shift + Mũi tên (Di chuyển nhanh)
-        self.canvas.bind("<Shift-Up>", router.on_arrow_key)
-        self.canvas.bind("<Shift-Down>", router.on_arrow_key)
-        self.canvas.bind("<Shift-Left>", router.on_arrow_key)
-        self.canvas.bind("<Shift-Right>", router.on_arrow_key)
+        # 2. CHỈ CẦN 2 DÒNG NÀY (Cơ chế game loop)
+        # Các dòng bind <Up>, <Down> cũ gây lỗi vì hàm on_arrow_key không còn tồn tại
+        self.canvas.bind("<KeyPress>", router.on_key_press)
+        self.canvas.bind("<KeyRelease>", router.on_key_release)
 
     def _on_canvas_click(self, event):
         """Vừa xử lý Drag start, vừa Focus vào canvas để nhận phím"""
-        self.canvas.focus_set() # Quan trọng: Phải Focus mới bấm phím được
+        self.canvas.focus_set() 
         self.router.on_drag_start(event)
 
     def _setup_top_toolbar(self):
-        # ... (Giữ nguyên code cũ của hàm này) ...
         self.tb_frame = ttk.Frame(self, padding=5, bootstyle="secondary")
         self.tb_frame.pack(fill=X, side=TOP)
 
