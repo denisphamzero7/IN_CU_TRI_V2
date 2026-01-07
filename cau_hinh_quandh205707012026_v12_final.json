@@ -21,7 +21,7 @@
             "upper": false
         },
         "Tên đơn vị": {
-            "x": 209,
+            "x": 183,
             "y": 44,
             "size": 21,
             "enable": true,
@@ -32,7 +32,7 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 437,
+            "x": 711,
             "y": 214,
             "size": 21,
             "enable": true,
@@ -43,7 +43,7 @@
             "upper": false
         },
         "Ngày sinh": {
-            "x": 449,
+            "x": 739,
             "y": 248,
             "size": 21,
             "enable": true,
@@ -54,8 +54,8 @@
             "upper": false
         },
         "Giới tính": {
-            "x": 461,
-            "y": 280,
+            "x": 768,
+            "y": 279,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -65,7 +65,7 @@
             "upper": false
         },
         "Nơi cư trú": {
-            "x": 458,
+            "x": 750,
             "y": 315,
             "size": 21,
             "enable": true,
@@ -76,7 +76,7 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 462,
+            "x": 730,
             "y": 349,
             "size": 21,
             "enable": true,
@@ -87,7 +87,7 @@
             "upper": false
         },
         "Số thẻ cử tri": {
-            "x": 282,
+            "x": 372,
             "y": 392,
             "size": 21,
             "enable": true,
@@ -98,7 +98,7 @@
             "upper": false
         },
         "Khu vực bỏ phiếu": {
-            "x": 329,
+            "x": 369,
             "y": 428,
             "size": 21,
             "enable": true,
@@ -109,8 +109,8 @@
             "upper": false
         },
         "Thành phố": {
-            "x": 284,
-            "y": 457,
+            "x": 407,
+            "y": 459,
             "size": 21,
             "enable": true,
             "font": "Arial",
