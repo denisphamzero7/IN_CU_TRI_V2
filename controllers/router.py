@@ -351,3 +351,18 @@ class AppRouter:
         self.ctrl_canvas.on_resize(e) # Resize thì vẫn cần để căn chỉnh khung
         
     def on_paper_config_change(self, e=None): self.render_canvas_safe()
+    def on_arrow_key(self, event):
+        """Xử lý sự kiện nhấn phím mũi tên"""
+        if not self.selected_field: return
+        
+        # Bước nhảy (Pixel): Giữ Shift để đi nhanh (10px), không giữ thì đi chậm (1px)
+        step = 10 if (event.state & 0x0001) else 1 
+        
+        if event.keysym == 'Up':
+            self.ctrl_canvas.nudge_selected_item(0, -step)
+        elif event.keysym == 'Down':
+            self.ctrl_canvas.nudge_selected_item(0, step)
+        elif event.keysym == 'Left':
+            self.ctrl_canvas.nudge_selected_item(-step, 0)
+        elif event.keysym == 'Right':
+            self.ctrl_canvas.nudge_selected_item(step, 0)

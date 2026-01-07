@@ -32,8 +32,8 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 235,
-            "y": 209,
+            "x": 246,
+            "y": 207,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -43,8 +43,8 @@
             "upper": false
         },
         "Ngày sinh": {
-            "x": 334,
-            "y": 239,
+            "x": 333,
+            "y": 238,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",

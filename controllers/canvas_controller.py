@@ -261,3 +261,30 @@ class CanvasController:
         th = bbox[3]-bbox[1]
         draw.text(((w-tw)/2, (h-th)/2), text, font=f, fill="red")
         return img
+    # --- THÊM HÀM NÀY VÀO CUỐI CLASS CanvasController ---
+    def nudge_selected_item(self, dx, dy):
+        """Dịch chuyển trường đang chọn một khoảng nhỏ (dùng cho phím mũi tên)"""
+        # 1. Kiểm tra có đang chọn trường nào không
+        if not self.router.selected_field: return
+
+        # 2. Lấy cấu hình hiện tại
+        idx = self.router.current_idx
+        config = self.model.get_effective_config(idx)
+        col = self.router.selected_field
+        
+        if col not in config: return
+        
+        current_x = config[col]["x"]
+        current_y = config[col]["y"]
+
+        # 3. Tính tọa độ mới (Cộng dồn dx, dy)
+        new_x = int(current_x + dx)
+        new_y = int(current_y + dy)
+
+        # 4. Cập nhật vào Model
+        self.router.update_field_config("x", new_x)
+        self.router.update_field_config("y", new_y)
+
+        # 5. Render lại và cập nhật thanh thuộc tính
+        self.render()
+        self.router.load_field_props_to_ui()
