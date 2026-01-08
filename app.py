@@ -8,7 +8,7 @@ from controllers.router import AppRouter
 
 class App(ttk.Window):
     def __init__(self):
-        super().__init__(themename="superhero")
+        super().__init__()
         
         self.title(APP_TITLE)
         

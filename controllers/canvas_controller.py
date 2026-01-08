@@ -76,7 +76,7 @@ class CanvasController:
         self.img_origin_x = paper_x1
         self.img_origin_y = paper_y1
 
-        canvas.create_rectangle(paper_x1 + 5, paper_y1 + 5, paper_x1 + disp_w + 5, paper_y1 + disp_h + 5, fill="#2f3640", outline="", tags="bg_shadow")
+        # canvas.create_rectangle(paper_x1 + 5, paper_y1 + 5, paper_x1 + disp_w + 5, paper_y1 + disp_h + 5, fill="#2f3640", outline="", tags="bg_shadow")
         canvas.create_rectangle(paper_x1, paper_y1, paper_x1 + disp_w, paper_y1 + disp_h, fill="white", outline="#bdc3c7", width=2, tags="draggable_paper")
 
         if self.model.template_path:

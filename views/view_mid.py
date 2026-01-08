@@ -1,12 +1,23 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from helpers.ui_helpers import create_button 
+from helpers.ui_helpers import create_button
+from config.settings import APP_BG_COLOR, APP_TEXT_COLOR # Import màu
 
 class MidPanelView(ttk.Frame):
     def __init__(self, parent, router):
-        super().__init__(parent, padding=10)
+        # --- CẤU HÌNH STYLE ---
+        style = ttk.Style()
+        style.configure('Misa.TFrame', background=APP_BG_COLOR)
+        # Label trong suốt hoặc cùng màu nền
+        style.configure('Misa.TLabel', background=APP_BG_COLOR, foreground="#333333") 
+        # Label tiêu đề tổng
+        style.configure('MisaTotal.TLabel', background=APP_BG_COLOR, foreground="#333333", font=("Segoe UI", 9, "bold"))
+
+        # Khởi tạo với Style Misa
+        super().__init__(parent, padding=10, style='Misa.TFrame')
         self.pack(fill=BOTH, expand=YES)
+        
         self.parent = parent
         self.router = router
         
@@ -14,7 +25,8 @@ class MidPanelView(ttk.Frame):
         self._setup_toolbar()
 
         # --- 2. TREEVIEW ---
-        self.tree_container = ttk.Frame(self)
+        # Container cho Treeview cũng phải theo màu nền
+        self.tree_container = ttk.Frame(self, style='Misa.TFrame')
         self.tree_container.pack(fill=BOTH, expand=YES, pady=5)
         self.tree_container.rowconfigure(0, weight=1)
         self.tree_container.columnconfigure(0, weight=1)
@@ -38,7 +50,6 @@ class MidPanelView(ttk.Frame):
         # --- KHÔI PHỤC TÍNH NĂNG SẮP XẾP ---
         for c_id, c_name, c_width in self.cols_def:
             if c_id in ["stt", "name"]:
-                # Thêm command để gọi hàm sắp xếp từ Router
                 self.tree.heading(c_id, text=c_name, command=lambda c=c_id: self.router.on_header_click(c))
             else:
                 self.tree.heading(c_id, text=c_name)
@@ -69,10 +80,10 @@ class MidPanelView(ttk.Frame):
         self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
     def _setup_toolbar(self):
-        # Import cục bộ để tránh lỗi vòng lặp
         from views.view_search import SearchView
 
-        toolbar = ttk.Frame(self)
+        # Toolbar Frame dùng style Misa
+        toolbar = ttk.Frame(self, style='Misa.TFrame')
         toolbar.pack(fill=X, pady=(0, 10))
         
         toolbar.columnconfigure(1, weight=1)
@@ -80,7 +91,7 @@ class MidPanelView(ttk.Frame):
         toolbar.columnconfigure(2, weight=0)
 
         # === 1. GROUP TRÁI ===
-        container_left = ttk.Frame(toolbar)
+        container_left = ttk.Frame(toolbar, style='Misa.TFrame')
         container_left.grid(row=0, column=0, sticky="ew", padx=(0, 10))
         
         self.search_view = SearchView(container_left, self.router)
@@ -98,27 +109,27 @@ class MidPanelView(ttk.Frame):
         self.cbb_filter.bind("<<ComboboxSelected>>", self.router.on_filter_change)
 
         # === 2. GROUP GIỮA ===
-        fr_page = ttk.Frame(toolbar)
+        fr_page = ttk.Frame(toolbar, style='Misa.TFrame')
         fr_page.grid(row=0, column=1, sticky="e", padx=(0, 5))
         
         create_button(fr_page, "❮", self.router.prev_page, style="secondary-outline", width=2).pack(side=LEFT)
-        self.lbl_page_info = ttk.Label(fr_page, text="0/0", width=8, anchor="center", font=("Segoe UI", 9, "bold"))
+        # Label phân trang dùng style Misa
+        self.lbl_page_info = ttk.Label(fr_page, text="0/0", width=8, anchor="center", style='Misa.TLabel', font=("Segoe UI", 9, "bold"))
         self.lbl_page_info.pack(side=LEFT, padx=0)
         create_button(fr_page, "❯", self.router.next_page, style="secondary-outline", width=2).pack(side=LEFT)
 
-        # === 3. GROUP PHẢI (Set cứng Tổng số) ===
-        container_total = ttk.Frame(toolbar)
+        # === 3. GROUP PHẢI ===
+        container_total = ttk.Frame(toolbar, style='Misa.TFrame')
         container_total.grid(row=0, column=2, sticky="e")
         
-        ttk.Label(container_total, text="Tổng số:", font=("Segoe UI", 9)).pack(side=LEFT)
-        self.lbl_total_val = ttk.Label(container_total, text="0", font=("Segoe UI", 9, "bold"), bootstyle="primary")
+        ttk.Label(container_total, text="Tổng số:", style='Misa.TLabel').pack(side=LEFT)
+        self.lbl_total_val = ttk.Label(container_total, text="0", style='MisaTotal.TLabel')
         self.lbl_total_val.pack(side=LEFT, padx=(5, 0))
 
     def update_pagination_label(self, current, total):
         self.lbl_page_info.config(text=f"{current} / {total}")
 
     def update_data(self, df, custom_configs):
-        # Xóa cũ
         for i in self.tree.get_children(): 
             self.tree.delete(i)
             
@@ -153,9 +164,7 @@ class MidPanelView(ttk.Frame):
                 vals = (i + 1, row.get(col_name, ""), row.get(col_gender, ""), row.get(col_cccd, ""), row.get(col_area, ""))
                 self.tree.insert("", "end", iid=str(i), values=vals, tags=tag)
 
-    # --- KHÔI PHỤC HÀM HIỂN THỊ MŨI TÊN ---
     def update_header_arrow(self, sort_col, reverse):
-        """Cập nhật mũi tên chỉ hướng sắp xếp trên tiêu đề cột"""
         arrow = " ▼" if reverse else " ▲"
         for c_id, c_name, _ in self.cols_def:
             if c_id == sort_col: 

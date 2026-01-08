@@ -1,70 +1,87 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from config.settings import APP_TITLE,APP_HEADER, APP_ADDRESS, APP_PHONE, APP_EMAIL
+from config.settings import APP_HEADER, APP_ADDRESS, APP_PHONE, APP_EMAIL
+
+# --- MÃ MÀU ---
+MISA_BLUE = "#002B5E"  # Xanh MISA Đậm
+WHITE     = "#FFFFFF"  # Trắng
+BLACK     = "#000000"  # Đen
 
 class HeaderView(ttk.Frame):
     def __init__(self, parent):
-        # Frame ngoài cùng: padding=5 để tạo khoảng cách với lề trái/phải/trên
-        super().__init__(parent, padding=5) 
+        # 1. CẤU HÌNH STYLE (CONFIG NHƯ LEFT PANEL)
+        style = ttk.Style()
+        
+        # A. Style cho Frame nền Trắng (Header.TFrame)
+        style.configure('Header.TFrame', background=WHITE)
+        
+        # B. Style cho Tiêu đề (HeaderTitle.TLabel): Nền trắng, Chữ Xanh MISA, Đậm
+        style.configure('HeaderTitle.TLabel', 
+                        background=WHITE, 
+                        foreground=MISA_BLUE, 
+                        font=("Segoe UI", 11, "bold"),
+                        anchor="center",
+                        justify="center")
+        
+        # C. Style cho Nội dung MISA (InfoMisa.TLabel): Nền trắng, Chữ Xanh MISA (Dùng cho địa chỉ)
+        style.configure('InfoMisa.TLabel', 
+                        background=WHITE, 
+                        foreground=BLACK, 
+                        font=("Segoe UI", 9))
+
+        # D. Style cho Nội dung Thường (InfoNormal.TLabel): Nền trắng, Chữ Đen (Dùng cho SĐT, Email)
+        style.configure('InfoNormal.TLabel', 
+                        background=WHITE, 
+                        foreground=BLACK, 
+                        font=("Segoe UI", 9))
+
+        # ---------------------------------------------------------
+
+        # 2. KHỞI TẠO HEADER VỚI STYLE TRẮNG
+        super().__init__(parent, style='Header.TFrame', padding=5)
         self.pack(fill=X)
         
-        # --- CẤU HÌNH AN TOÀN ---
-        # Trừ đi padding (5*2) và viền (2*2) ~ 14px. Panel ~280-300px.
-        SAFE_WIDTH = 250 
+        SAFE_WIDTH = 300 
         
-        # --- TẠO KHUNG VIỀN (BORDER CONTAINER) ---
-        # Dùng màu 'warning' (Vàng cam) làm viền mỏng để tạo sự trang trọng
-        border_frame = ttk.Frame(self, bootstyle="warning", padding=2)
-        border_frame.pack(fill=X)
-
-        # --- 1. PHẦN TIÊU ĐỀ (BANNER MÀU ĐỎ) ---
-        title_frame = ttk.Frame(border_frame, bootstyle="danger", padding=(5, 10))
-        title_frame.pack(fill=X)
-        
-        # Quốc huy hoặc Icon ngôi sao vàng (nếu muốn đơn giản dùng text)
-        # ttk.Label(
-        #     title_frame,
-        #     # text="★ ★ ★", # Trang trí
-        #     font=("Segoe UI", 8),
-        #     bootstyle="inverse-danger",
-        #     anchor="center"
-        # ).pack(fill=X)
-
+        # 3. TIÊU ĐỀ (Dùng style HeaderTitle)
         ttk.Label(
-            title_frame, 
+            self, 
             text=APP_HEADER.upper(), 
-            font=("Segoe UI", 10, "bold"), 
-            bootstyle="inverse-danger", # Chữ trắng trên nền đỏ
-            anchor="center",
-            justify="center",
+            style='HeaderTitle.TLabel', # <--- Áp dụng style tiêu đề
             wraplength=SAFE_WIDTH
-        ).pack(fill=X, pady=(2, 5))
+        ).pack(fill=X, pady=(0, 2))
 
-        # --- 2. PHẦN THÔNG TIN (NỀN TỐI) ---
-        info_frame = ttk.Frame(border_frame, bootstyle="dark", padding=10)
+        # 4. KHUNG THÔNG TIN (Dùng style nền trắng)
+        info_frame = ttk.Frame(self, style='Header.TFrame')
         info_frame.pack(fill=X)
 
-        def create_info_row(icon, text, color="white"):
-            row = ttk.Frame(info_frame, bootstyle="dark")
-            row.pack(fill=X, pady=2)
+        def create_row(icon, text, text_style):
+            # Row Frame (Nền trắng)
+            row = ttk.Frame(info_frame, style='Header.TFrame')
+            row.pack(fill=X, pady=0) # Sát nhau
             
-            # Icon màu vàng cam (warning) để nổi bật trên nền tối
+            # Icon (Luôn dùng màu đen -> InfoNormal)
             ttk.Label(
-                row, text=icon, font=("Segoe UI Emoji", 9), 
-                bootstyle="warning", width=3, anchor="n"
-            ).pack(side=LEFT, anchor="n")
+                row, 
+                text=icon, 
+                style='InfoNormal.TLabel', 
+                width=3
+            ).pack(side=LEFT, anchor="n", pady=1)
             
-            # Text nội dung
+            # Text nội dung (Style tùy biến: Xanh hoặc Đen)
             ttk.Label(
-                row, text=text, font=("Segoe UI", 9), 
-                foreground=color, # Tự chỉnh màu text (trắng/xám nhạt)
-                background="#2c3e50", # Hack nhẹ: màu nền trùng màu dark theme mặc định (hoặc bỏ dòng này nếu dùng bootstyle chuẩn)
-                bootstyle="inverse-dark", 
-                wraplength=SAFE_WIDTH - 30,
-                justify="left"
-            ).pack(side=LEFT, fill=X, expand=YES)
+                row, 
+                text=text, 
+                style=text_style, # <--- Nhận style từ tham số
+                wraplength=SAFE_WIDTH - 30
+            ).pack(side=LEFT, fill=X, expand=YES, pady=1)
 
-        # Render thông tin
-        create_info_row("📍", APP_ADDRESS, color="#ecf0f1") # Màu trắng khói
-        create_info_row("📞", APP_PHONE, color="#f1c40f")   # Màu vàng cho số điện thoại
-        create_info_row("📧", APP_EMAIL, color="#3498db")   # Màu xanh dương nhạt cho email
+        # 5. RENDER DỮ LIỆU
+        # - Địa chỉ: Màu Xanh MISA -> Dùng 'InfoMisa.TLabel'
+        create_row("📍", APP_ADDRESS, 'InfoMisa.TLabel') 
+        
+        # - SĐT: Màu Đen -> Dùng 'InfoNormal.TLabel'
+        create_row("📞", APP_PHONE, 'InfoNormal.TLabel')
+        
+        # - Email: Màu Đen -> Dùng 'InfoNormal.TLabel'
+        create_row("📧", APP_EMAIL, 'InfoNormal.TLabel')
