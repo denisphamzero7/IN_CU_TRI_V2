@@ -262,7 +262,7 @@ class CanvasController:
         draw.text(((w-tw)/2, (h-th)/2), text, font=f, fill="red")
         return img
     
-    # --- [MỚI] HÀM HỖ TRỢ DI CHUYỂN MƯỢT ---
+    # --- [HÀM HỖ TRỢ DI CHUYỂN MƯỢT] ---
     def visual_move_selection(self, dx, dy):
         """Di chuyển hình ảnh trên màn hình (Rất nhẹ, không lưu dữ liệu ngay)"""
         if not self.router.selected_field: return

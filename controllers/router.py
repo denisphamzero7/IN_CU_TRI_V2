@@ -29,7 +29,7 @@ class AppRouter:
 
         # --- [THÊM] Biến quản lý trạng thái phím ---
         self.pressed_keys = set()  # Lưu các phím đang được giữ
-        self.move_loop_id = None   # ID của vòng lặp after    
+        self.move_loop_id = None   # ID của vòng lặp after     
 
     def set_view(self, view):
         self.view = view
@@ -312,40 +312,74 @@ class AppRouter:
         self.ctrl_canvas.on_resize(e)
     def on_paper_config_change(self, e=None): self.render_canvas_safe()
 
-    # --- [MỚI] KEYBOARD HANDLER CHO DI CHUYỂN MƯỢT ---
+   # --- [CHỈNH SỬA LẠI ĐOẠN NÀY] KEYBOARD HANDLER CHUẨN OS ---
     def on_key_press(self, event):
-        """Khi nhấn phím: Thêm vào danh sách và bắt đầu chạy"""
+        """Khi nhấn phím"""
         key = event.keysym
-        # Chỉ quan tâm các phím điều hướng và Shift
         valid_keys = ('Up', 'Down', 'Left', 'Right', 'Shift_L', 'Shift_R')
-        if key in valid_keys:
-            self.pressed_keys.add(key)
-            if not self.move_loop_id: # Nếu chưa chạy vòng lặp thì bắt đầu chạy
-                self.move_loop()
+        
+        if key not in valid_keys: return
+        
+        # Nếu phím này đã được ghi nhận là đang nhấn rồi thì bỏ qua (chặn auto-repeat của OS)
+        if key in self.pressed_keys: return
+        
+        # Nếu đây là phím đầu tiên được nhấn (bắt đầu chuỗi hành động)
+        first_press = (len(self.pressed_keys) == 0)
+        
+        self.pressed_keys.add(key)
+        
+        if first_press:
+            # 1. DI CHUYỂN NGAY LẬP TỨC 1 LẦN (Cho cú nhấp)
+            self.perform_move_step()
+            
+            # 2. Thiết lập Delay (Khựng lại 400ms) trước khi bắt đầu chạy mượt
+            # Nếu nhả tay trước 400ms -> move_loop không bao giờ chạy -> Không bị trượt
+            self.is_holding = False
+            self.move_loop_id = self.view.after(400, self.start_smooth_move)
                 
     def on_key_release(self, event):
-        """Khi thả phím: Xóa khỏi danh sách và chốt vị trí"""
+        """Khi thả phím"""
         key = event.keysym
         if key in self.pressed_keys:
             self.pressed_keys.remove(key)
 
-        # Nếu không còn phím mũi tên nào được giữ -> Dừng lại và Lưu dữ liệu
+        # Kiểm tra xem còn phím mũi tên nào không
         arrows = {'Up', 'Down', 'Left', 'Right'}
-        if not (self.pressed_keys & arrows) and self.move_loop_id:
-            self.view.after_cancel(self.move_loop_id)
-            self.move_loop_id = None
-            # Gọi Controller chốt hạ tọa độ (Save to DB/Model)
+        if not (self.pressed_keys & arrows):
+            # Nếu không còn phím điều hướng -> Hủy mọi vòng lặp
+            if self.move_loop_id:
+                self.view.after_cancel(self.move_loop_id)
+                self.move_loop_id = None
+            
+            self.is_holding = False
+            # Lưu vị trí cuối cùng vào Model
             self.ctrl_canvas.commit_selection_position()
 
+    def start_smooth_move(self):
+        """Bắt đầu vào chế độ di chuyển mượt sau khi đã delay"""
+        self.is_holding = True
+        self.move_loop()
+
     def move_loop(self):
-        """Vòng lặp 60FPS để di chuyển mượt"""
+        """Vòng lặp di chuyển liên tục"""
         if not self.pressed_keys or not self.selected_field:
             self.move_loop_id = None
             return
 
-        # Tính toán tốc độ
+        self.perform_move_step()
+
+        # Tốc độ lặp lại: 15ms (Khoảng 60 FPS) -> Đủ mượt mà không quá nhanh
+        self.move_loop_id = self.view.after(15, self.move_loop)
+
+    def perform_move_step(self):
+        """Hàm thực hiện 1 bước di chuyển"""
+        # Kiểm tra Shift để tăng tốc
         is_fast = ('Shift_L' in self.pressed_keys) or ('Shift_R' in self.pressed_keys)
-        speed = 10 if is_fast else 2 
+        
+        # TỐC ĐỘ:
+        # - Bình thường: 1px (Chính xác tuyệt đối)
+        # - Giữ Shift: 10px (Di chuyển nhanh)
+        speed = 10 if is_fast else 1 
         
         dx, dy = 0, 0
         if 'Up' in self.pressed_keys:    dy -= speed
@@ -354,8 +388,4 @@ class AppRouter:
         if 'Right' in self.pressed_keys: dx += speed
 
         if dx != 0 or dy != 0:
-            # Gọi Controller di chuyển hình ảnh (Chỉ Visual)
             self.ctrl_canvas.visual_move_selection(dx, dy)
-
-        # Gọi lại hàm này sau 16ms
-        self.move_loop_id = self.view.after(16, self.move_loop)
