@@ -1,13 +1,13 @@
 {
     "global": {
         "signature_img": {
-            "x": 638,
-            "y": 508,
+            "x": 645,
+            "y": 513,
             "w": 150,
             "h": 80,
             "enable": true,
             "type": "image",
-            "path": "C:/Users/Admin/Documents/TINTUC/inra/Chữ ký Mr Quân_Không con dấu.png"
+            "path": "C:/Users/Admin/Pictures/Picture1.jpg"
         },
         "Stt": {
             "x": 42,
@@ -21,19 +21,19 @@
             "upper": false
         },
         "Tên đơn vị": {
-            "x": 177,
+            "x": 204,
             "y": 44,
             "size": 21,
             "enable": true,
-            "font": "Times New Roman",
+            "font": "Arial",
             "color": "Black",
             "type": "text",
             "bold": true,
             "upper": false
         },
         "Họ tên": {
-            "x": 256,
-            "y": 208,
+            "x": 419,
+            "y": 214,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -43,8 +43,8 @@
             "upper": false
         },
         "Ngày sinh": {
-            "x": 366,
-            "y": 238,
+            "x": 430,
+            "y": 244,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -54,8 +54,8 @@
             "upper": false
         },
         "Giới tính": {
-            "x": 195,
-            "y": 270,
+            "x": 419,
+            "y": 276,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -65,8 +65,8 @@
             "upper": false
         },
         "Nơi cư trú": {
-            "x": 219,
-            "y": 306,
+            "x": 438,
+            "y": 315,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -76,8 +76,8 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 256,
-            "y": 334,
+            "x": 445,
+            "y": 349,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -87,8 +87,8 @@
             "upper": false
         },
         "Số thẻ cử tri": {
-            "x": 262,
-            "y": 374,
+            "x": 270,
+            "y": 391,
             "size": 21,
             "enable": true,
             "font": "Arial",
@@ -98,8 +98,8 @@
             "upper": false
         },
         "Khu vực bỏ phiếu": {
-            "x": 316,
-            "y": 409,
+            "x": 322,
+            "y": 426,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -109,8 +109,8 @@
             "upper": true
         },
         "Thành phố": {
-            "x": 278,
-            "y": 438,
+            "x": 281,
+            "y": 456,
             "size": 21,
             "enable": true,
             "font": "Arial",
@@ -120,8 +120,8 @@
             "upper": false
         },
         "Người ký": {
-            "x": 640,
-            "y": 564,
+            "x": 649,
+            "y": 573,
             "size": 21,
             "enable": true,
             "font": "Arial",
@@ -137,9 +137,7 @@
             "enable": false,
             "font": "Arial",
             "color": "Black",
-            "type": "text",
-            "bold": false,
-            "upper": false
+            "type": "text"
         },
         "Xã/phường/đặc khu": {
             "x": 50,

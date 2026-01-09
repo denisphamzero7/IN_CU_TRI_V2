@@ -84,7 +84,11 @@ class PrintController:
 
     def _run_print_process(self, selection, output_folder, is_landscape, printer_name, paper_size, print_mode):
         hDC = None
+        BATCH_SIZE = 50  # <--- [QUAN TRỌNG] Gửi xuống máy in mỗi lần 50 trang
+        import gc # Import thư viện dọn rác bộ nhớ
+
         try:
+            # 1. Khởi tạo DC
             devmode = self._get_devmode(printer_name, paper_size, is_landscape)
             if devmode:
                 hdc_handle = win32gui.CreateDC("WINSPOOL", printer_name, devmode)
@@ -93,12 +97,8 @@ class PrintController:
                 hDC = win32ui.CreateDC()
                 hDC.CreatePrinterDC(printer_name)
 
-            hDC.StartDoc("Voter Cards Batch")
-
-            # 1. Kích thước chuẩn thiết kế (Reference - luôn là A4)
+            # 2. Tính toán kích thước (giữ nguyên code cũ)
             REF_A4_W, REF_A4_H = 595, 842
-
-            # 2. Kích thước khổ giấy đích
             SIZE_MAP = {"A4": (595, 842), "A5": (420, 595), "A6": (298, 420), "TheCuTri": (298, 420)}
             target_base_w, target_base_h = SIZE_MAP.get(paper_size, (595, 842))
 
@@ -110,23 +110,14 @@ class PrintController:
                 target_w, target_h = target_base_w, target_base_h
 
             SCALE_RATIO = target_w / ref_w 
-            
-            # --- TĂNG DPI ĐỂ ẢNH KHÔNG BỊ VỠ KHI IN ---
-            # Màn hình thường chỉ 72-96 DPI, máy in cần 300-600 DPI
-            # Scale gấp 4 lần là đủ nét cho hầu hết máy in văn phòng
             DPI_SCALE = 4.0 
-            
             TOTAL_SCALE = SCALE_RATIO * DPI_SCALE
-            
             final_print_w = int(target_w * DPI_SCALE)
             final_print_h = int(target_h * DPI_SCALE)
 
-            # --- Chuẩn bị ảnh nền ---
+            # 3. Chuẩn bị ảnh nền (Giữ nguyên code cũ)
             try:
-                # Mở ảnh gốc (Full Resolution)
                 original_template = Image.open(self.model.template_path).convert("RGB")
-                
-                # 1. Xoay trên ảnh gốc chất lượng cao
                 rot = getattr(self.router, 'template_rotation', 0)
                 if rot == 90: original_template = original_template.transpose(Image.ROTATE_270)
                 elif rot == 180: original_template = original_template.transpose(Image.ROTATE_180)
@@ -137,21 +128,29 @@ class PrintController:
             if "Chỉ dữ liệu" in print_mode:
                 bg_img = Image.new("RGB", (final_print_w, final_print_h), "white")
             else:
-                # 2. Resize dùng thuật toán LANCZOS (Chống răng cưa tốt nhất)
                 bg_img = original_template.resize((final_print_w, final_print_h), Image.Resampling.LANCZOS)
-                
-                # 3. >>> KỸ THUẬT LÀM NÉT (SHARPEN) <<<
-                # Giúp ảnh in ra trông "đanh" hơn, đỡ bị mờ nhòe do resize
                 bg_img = bg_img.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
 
             total = len(selection)
             start_time = time.time()
+            
+            # --- BẮT ĐẦU VÒNG LẶP XỬ LÝ ---
+            is_job_active = False # Cờ kiểm tra xem có đang StartDoc không
 
             for i, idx in enumerate(selection):
                 if self.stop_event.is_set(): break
+                
+                # [QUAN TRỌNG] Bắt đầu Batch mới
+                if i % BATCH_SIZE == 0:
+                    batch_num = (i // BATCH_SIZE) + 1
+                    # Tên job hiển thị trong hàng đợi máy in: "Batch 1 (Tu 1 - 50)"
+                    job_name = f"Misa Job {batch_num} (Row {i+1}-...)" 
+                    hDC.StartDoc(job_name)
+                    is_job_active = True
+
                 try:
+                    # --- Render trang in ---
                     img_to_print = bg_img.copy()
-                    
                     self._draw_data_scaled(img_to_print, int(idx), TOTAL_SCALE)
                     
                     final_img = img_to_print
@@ -160,11 +159,17 @@ class PrintController:
                     elif not is_landscape and final_img.width > final_img.height:
                         final_img = final_img.transpose(Image.ROTATE_90)
 
+                    # Đẩy dữ liệu xuống DC
                     self._direct_print_to_dc(hDC, final_img)
+                    
+                    # Giải phóng bộ nhớ ảnh ngay lập tức
+                    del img_to_print
+                    del final_img
 
                 except Exception as e:
                     self.errors_log.append(f"Row {idx}: {e}")
 
+                # Cập nhật UI
                 elapsed = time.time() - start_time
                 if i > 0:
                     avg_time = elapsed / i
@@ -172,14 +177,28 @@ class PrintController:
                     eta = str(timedelta(seconds=remain_sec))
                 else:
                     eta = "..."
-                
-                self._update_ui_label(f"Đang in: {i+1}/{total} (Còn: {eta})", i+1)
+                self._update_ui_label(f"Đang xử lý: {i+1}/{total} (ETA: {eta})", i+1)
 
-            hDC.EndDoc()
-            self._finish_ui(True, output_folder, "Đã hoàn thành quá trình in!")
+                # [QUAN TRỌNG] Kết thúc Batch hiện tại -> Đẩy xuống máy in thật
+                if (i + 1) % BATCH_SIZE == 0:
+                    hDC.EndDoc()
+                    is_job_active = False
+                    
+                    # Dọn dẹp bộ nhớ RAM ép buộc để tránh Memory Leak
+                    gc.collect() 
+                    
+                    # Nghỉ 1 chút để Spooler Windows kịp "thở"
+                    time.sleep(0.5) 
+
+            # Kết thúc những trang lẻ còn lại (ví dụ 50.005 trang thì còn dư 5 trang cuối)
+            if is_job_active:
+                hDC.EndDoc()
+                gc.collect()
+
+            self._finish_ui(True, output_folder, f"Đã gửi {total} thẻ xuống máy in!")
 
         except Exception as e:
-            if hDC:
+            if hDC and is_job_active: # Chỉ Abort nếu đang StartDoc
                 try: hDC.AbortDoc()
                 except: pass
             self._finish_ui(False, output_folder, f"Lỗi hệ thống in: {e}")

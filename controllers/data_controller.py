@@ -1,7 +1,7 @@
 import os
 from tkinter import filedialog, messagebox
 # from PIL import Image # Không cần dùng PIL ở đây nữa
-
+from helpers.msg_helper import MsgHelper
 class DataController:
     def __init__(self, router):
         self.router = router
@@ -19,7 +19,7 @@ class DataController:
         folder = filedialog.askdirectory()
         if folder:
             self.model.signature_folder = folder
-            messagebox.showinfo("OK", f"Đã chọn folder chữ ký:\n{folder}")
+            MsgHelper.show_info("Tuyệt vời", f"Đã chọn folder chữ ký:\n{folder}")
 
     def select_excel(self):
         path = filedialog.askopenfilename(filetypes=[("Excel", "*.xlsx;*.xls")])
