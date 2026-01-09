@@ -137,7 +137,9 @@
             "enable": false,
             "font": "Arial",
             "color": "Black",
-            "type": "text"
+            "type": "text",
+            "bold": false,
+            "upper": false
         },
         "Xã/phường/đặc khu": {
             "x": 50,

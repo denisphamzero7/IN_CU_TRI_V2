@@ -6,7 +6,7 @@ from controllers.canvas_controller import CanvasController
 from controllers.print_controller import PrintController
 from helpers.msg_helper import MsgHelper
 from ttkbootstrap.dialogs import Messagebox
-
+from controllers.license_controller import LicenseController
 class AppRouter:
     def __init__(self):
         self.model = VoterModel()
@@ -14,7 +14,10 @@ class AppRouter:
         self.ctrl_data = DataController(self)
         self.ctrl_canvas = CanvasController(self)
         self.ctrl_print = PrintController(self)
-        
+        # [MỚI] Khởi tạo quản lý bản quyền
+       # [MỚI] Khởi tạo License Controller
+        self.ctrl_license = LicenseController(self)
+
         self.current_idx = 0
         self.selected_field = None
         self.edit_mode = None 
@@ -35,6 +38,10 @@ class AppRouter:
         self.view = view
         if hasattr(view.p_left, 'var_edit_mode'):
             self.edit_mode = view.p_left.var_edit_mode
+        # [MỚI] Kiểm tra bản quyền ngay khi view đã load xong
+        self.ctrl_license.set_view(view)
+        # Check bản quyền ngay khi view load xong
+        self.ctrl_license.check_at_startup()
 
     # --- HÀM KIỂM TRA PHÔI ---
     def has_template(self):
@@ -72,6 +79,9 @@ class AppRouter:
         self.render_canvas_safe()
 
     def start_print(self):
+        if not self.ctrl_license.is_licensed:
+            MsgHelper.show_warning("Tính năng IN chỉ dành cho bản Pro!")
+            return
         # 1. Kiểm tra điều kiện tiên quyết
         if not self.has_template(): 
             return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
@@ -110,6 +120,9 @@ class AppRouter:
             return MsgHelper.show_error("Lỗi: Vui lòng chỉ nhập số nguyên vào ô khoảng in!")
 
     def pick_manual_signature(self):
+        if not self.ctrl_license.is_licensed:
+            MsgHelper.show_warning("Vui lòng đăng kí bẳn quyền!")
+            return
         if not self.has_template(): return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
         path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg;*.jpeg")])
         if path:
@@ -212,17 +225,27 @@ class AppRouter:
         self.is_loading_ui = True 
         try:
             cfg = self.model.get_effective_config(self.current_idx).get(self.selected_field, {})
-            self.view.p_left.update_prop_inputs(cfg, self.selected_field)
-        finally: self.is_loading_ui = False
-
+            
+            # 1. Gọi Left Panel để tô màu dòng chọn
+            if hasattr(self.view.p_left, 'highlight_selected_field'):
+                self.view.p_left.highlight_selected_field(self.selected_field)
+            
+            # 2. Gọi Right Panel để điền thông số vào Toolbar [MỚI]
+            self.view.p_right.update_prop_inputs(cfg, self.selected_field)
+            
+        finally: self.is_loading_ui = False 
     def on_prop_change(self, event=None):
         if not self.selected_field or self.is_loading_ui: return
         if not self.has_template(): return 
         
-        view = self.view.p_left
+        # [QUAN TRỌNG] Lấy dữ liệu từ VIEW.P_RIGHT (Bên phải)
+        view = self.view.p_right 
+        
         mode = "global"
-        try: mode = self.edit_mode.get()
-        except: pass
+        if hasattr(self.view.p_left, 'var_edit_mode'): # Edit mode vẫn nằm bên trái (nếu bạn chưa chuyển)
+             try: mode = self.view.p_left.var_edit_mode.get()
+             except: pass
+        
         col = self.selected_field
         try:
             if col == "signature_img":
