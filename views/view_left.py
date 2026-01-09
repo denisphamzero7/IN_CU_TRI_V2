@@ -46,17 +46,16 @@ class LeftPanelView(ttk.Frame):
         self.fr_buttons = ttk.Frame(self) 
         self.fr_buttons.pack(fill=X, pady=5)
         
-        btn_opts = {"width": 20, "style": "Misa.TButton", "cursor": "hand2"}
+        btn_opts = {"width": 12, "style": "Misa.TButton", "cursor": "hand2"}
         
-        # Các nút chọn file
-        self.btn_template = ttk.Button(self.fr_buttons, text="📂 Chọn Ảnh Phôi", command=router.select_template, **btn_opts)
-        self.btn_template.pack(fill=X, pady=2)
+        self.btn_template = ttk.Button(self.fr_buttons, text="📷 Ảnh Phôi", command=router.select_template, **btn_opts)
+        self.btn_template.pack(side=LEFT, padx=2, expand=YES, fill=X)
         
-        self.btn_excel = ttk.Button(self.fr_buttons, text="📊 Chọn File Excel", command=router.select_excel, **btn_opts)
-        self.btn_excel.pack(fill=X, pady=2)
+        self.btn_excel = ttk.Button(self.fr_buttons, text="📊 Dữ Liệu", command=router.select_excel, **btn_opts)
+        self.btn_excel.pack(side=LEFT, padx=2, expand=YES, fill=X)
         
-        self.btn_folder = ttk.Button(self.fr_buttons, text="📂 Folder Chữ Ký", command=router.select_signature_folder, **btn_opts)
-        self.btn_folder.pack(fill=X, pady=2)
+        self.btn_folder = ttk.Button(self.fr_buttons, text="📂 Chữ Ký", command=router.select_signature_folder, **btn_opts)
+        self.btn_folder.pack(side=LEFT, padx=2, expand=YES, fill=X)
         
         # --- 2. CẤU HÌNH TRƯỜNG ---
         ttk.Label(self, text="2. CẤU HÌNH TRƯỜNG", style="Section.TLabel").pack(anchor="w", pady=(15, 5))
@@ -77,8 +76,8 @@ class LeftPanelView(ttk.Frame):
         self._setup_license_ui()
 
     def _setup_license_ui(self):
-        """Khu vực hiển thị HWID và nhập Key - CẦN PHẢI CÓ HÀM NÀY"""
-        self.fr_license = ttk.Labelframe(self, text="Kích hoạt bản quyền", padding=10, bootstyle="danger")
+        """Khu vực hiển thị HWID và nhập Key"""
+        self.fr_license = ttk.Labelframe(self, text="cập nhật mã sử dụng", padding=10, bootstyle="danger")
         self.fr_license.pack(side=BOTTOM, fill=X, pady=(10, 0))
 
         # 1. Hiển thị HWID
@@ -89,8 +88,8 @@ class LeftPanelView(ttk.Frame):
         self.ent_hwid = ttk.Entry(r1, state="readonly", width=25, font=("Consolas", 9))
         self.ent_hwid.pack(side=LEFT, padx=5, fill=X, expand=YES)
         
-        # Nút copy nhỏ
-        ttk.Button(r1, text="Copy", width=4, bootstyle="secondary-outline", 
+        # Nút copy nhỏ với biểu tượng
+        ttk.Button(r1, text="📋", width=3, bootstyle="info", 
                    command=lambda: self.router.ctrl_license.on_copy_hwid()).pack(side=RIGHT)
 
         # 2. Nhập Key
@@ -103,14 +102,11 @@ class LeftPanelView(ttk.Frame):
         self.ent_key.pack(side=LEFT, fill=X, expand=YES)
         
         # Nút Kích Hoạt
-        self.btn_activate = ttk.Button(r2, text="Kích hoạt", bootstyle="danger", 
+        self.btn_activate = ttk.Button(r2, text="⚠", bootstyle="danger", 
                                        command=lambda: self.router.ctrl_license.on_activate())
         self.btn_activate.pack(side=RIGHT, padx=(5,0))
 
-        # Label trạng thái
-        self.lbl_license_status = ttk.Label(self.fr_license, text="Chưa kích hoạt - Vui lòng nhập key", 
-                                            foreground="red", font=("Segoe UI", 8, "italic"), anchor="center")
-        self.lbl_license_status.pack(fill=X, pady=(5,0))
+        # [ĐÃ XÓA] Dòng Label trạng thái ở đây
 
     def _setup_footer(self):
         fr_footer = ttk.Labelframe(self, text="Thông tin liên hệ", padding=5)

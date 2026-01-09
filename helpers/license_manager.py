@@ -29,7 +29,7 @@ class LicenseManager:
             return False, hwid
 
         try:
-            with open(self.LICENSE_FILE, "r") as f:
+            with open(self.LICENSE_FILE, "r", encoding="utf-8") as f:
                 user_key = f.read().strip()
             
             if user_key == expected:

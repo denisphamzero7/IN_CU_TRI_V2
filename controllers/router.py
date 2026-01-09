@@ -7,6 +7,7 @@ from controllers.print_controller import PrintController
 from helpers.msg_helper import MsgHelper
 from ttkbootstrap.dialogs import Messagebox
 from controllers.license_controller import LicenseController
+
 class AppRouter:
     def __init__(self):
         self.model = VoterModel()
@@ -14,8 +15,6 @@ class AppRouter:
         self.ctrl_data = DataController(self)
         self.ctrl_canvas = CanvasController(self)
         self.ctrl_print = PrintController(self)
-        # [MỚI] Khởi tạo quản lý bản quyền
-       # [MỚI] Khởi tạo License Controller
         self.ctrl_license = LicenseController(self)
 
         self.current_idx = 0
@@ -26,29 +25,26 @@ class AppRouter:
         self.is_bulk_updating = False 
         self.is_loading_ui = False
         
-        # --- Cấu hình mặc định ---
         self.is_paper_landscape = True 
         self.template_rotation = 0   
-
-        # --- [THÊM] Biến quản lý trạng thái phím ---
-        self.pressed_keys = set()  # Lưu các phím đang được giữ
-        self.move_loop_id = None   # ID của vòng lặp after     
+        self.pressed_keys = set()
+        self.move_loop_id = None 
 
     def set_view(self, view):
         self.view = view
         if hasattr(view.p_left, 'var_edit_mode'):
             self.edit_mode = view.p_left.var_edit_mode
-        # [MỚI] Kiểm tra bản quyền ngay khi view đã load xong
         self.ctrl_license.set_view(view)
-        # Check bản quyền ngay khi view load xong
         self.ctrl_license.check_at_startup()
 
-    # --- HÀM KIỂM TRA PHÔI ---
-    def has_template(self):
-        """Kiểm tra xem Model đã có đường dẫn ảnh phôi chưa."""
-        if hasattr(self.model, 'template_path') and self.model.template_path:
+    # --- HÀM KIỂM TRA BẢN QUYỀN (DÙNG CHUNG) ---
+    def check_license(self):
+        """Trả về True nếu đã Active, False nếu chưa (và hiện thông báo)"""
+        if self.ctrl_license.is_licensed:
             return True
-        return False
+        else:
+            MsgHelper.show_warning("Vui lòng kích hoạt bản quyền để sử dụng tính năng này!")
+            return False
 
     # --- HÀM VẼ CANVAS AN TOÀN ---
     def render_canvas_safe(self):
@@ -60,11 +56,59 @@ class AppRouter:
                 h = self.ctrl_canvas.canvas.winfo_height()
                 self.ctrl_canvas.canvas.create_text(w/2, h/2, text="Chưa chọn ảnh phôi", font=("Arial", 16), fill="gray")
             return
-            
         self.ctrl_canvas.render()
 
-    # --- CÁC HÀM XỬ LÝ KHÁC ---
+    def has_template(self):
+        if hasattr(self.model, 'template_path') and self.model.template_path:
+            return True
+        return False
+
+    # -------------------------------------------------------------
+    # CÁC HÀM ACTION - BẠN MUỐN KHÓA CÁI NÀO THÌ THÊM CHECK VÀO
+    # -------------------------------------------------------------
+
+    def start_print(self):
+        # 1. CHECK BẢN QUYỀN TRƯỚC
+        if not self.check_license(): return 
+
+        if not self.has_template(): return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
+        if self.model.df is None or self.model.df.empty: return MsgHelper.show_warning("Chưa có dữ liệu!")
+
+        try:
+            val_from = self.view.p_right.var_print_from.get().strip()
+            val_to = self.view.p_right.var_print_to.get().strip()
+            if not val_from or not val_to: return MsgHelper.show_warning("Vui lòng nhập số thứ tự Từ - Đến!")
+            
+            start_row = int(val_from)
+            end_row = int(val_to)
+            max_row = len(self.model.df)
+            start_row = max(1, min(start_row, max_row))
+            end_row = max(1, min(end_row, max_row))
+
+            if start_row > end_row: return MsgHelper.show_error("Số 'Từ' không được lớn hơn 'Đến'!")
+
+            custom_indices = list(range(start_row - 1, end_row))
+            self.ctrl_print.print_batch(custom_indices)
+        except ValueError:
+            return MsgHelper.show_error("Lỗi nhập liệu!")
+
+    def rotate_template_right(self):
+        # Ví dụ: Xoay ảnh cũng cần bản quyền
+        if not self.check_license(): return 
+
+        self.template_rotation = (self.template_rotation + 90) % 360
+        self.render_canvas_safe()
+
+    def on_paper_config_change(self, event=None):
+        # Đổi khổ giấy cần bản quyền
+        if not self.check_license(): 
+            # Reset lại combobox về cũ nếu cần (tùy chọn)
+            return 
+        self.render_canvas_safe()
+
     def on_orientation_change(self, event=None):
+        if not self.check_license(): return
+        
         val = self.view.p_right.var_orientation.get()
         if val == "Ngang": 
             self.is_paper_landscape = True 
@@ -74,55 +118,38 @@ class AppRouter:
             self.template_rotation = 0
         self.render_canvas_safe()
 
-    def rotate_template_right(self):
-        self.template_rotation = (self.template_rotation + 90) % 360
-        self.render_canvas_safe()
+    def on_prop_change(self, event=None):
+        # Chỉnh sửa font/size cần bản quyền
+        if not self.check_license(): return
 
-    def start_print(self):
-        if not self.ctrl_license.is_licensed:
-            MsgHelper.show_warning("Tính năng IN chỉ dành cho bản Pro!")
-            return
-        # 1. Kiểm tra điều kiện tiên quyết
-        if not self.has_template(): 
-            return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
+        if not self.selected_field or self.is_loading_ui: return
+        if not self.has_template(): return 
         
-        if self.model.df is None or self.model.df.empty:
-            return MsgHelper.show_warning("Chưa có dữ liệu!")
-
+        view = self.view.p_right 
+        mode = "global"
+        if hasattr(self.view.p_left, 'var_edit_mode'):
+             try: mode = self.view.p_left.var_edit_mode.get()
+             except: pass
+        
+        col = self.selected_field
         try:
-            val_from = self.view.p_right.var_print_from.get().strip()
-            val_to = self.view.p_right.var_print_to.get().strip()
-
-            if not val_from:
-                if hasattr(self.view.p_right, 'entry_from'):
-                    self.view.p_right.entry_from.focus()
-                return MsgHelper.show_warning("Vui lòng nhập số thứ tự bắt đầu (Từ)!")
-            
-            if not val_to:
-                if hasattr(self.view.p_right, 'entry_to'):
-                    self.view.p_right.entry_to.focus()
-                return MsgHelper.show_warning("Vui lòng nhập số thứ tự kết thúc (Đến)!")
-
-            start_row = int(val_from)
-            end_row = int(val_to)
-            
-            max_row = len(self.model.df)
-            start_row = max(1, min(start_row, max_row))
-            end_row = max(1, min(end_row, max_row))
-
-            if start_row > end_row: 
-                return MsgHelper.show_error(f"Lỗi: Số 'Từ' ({start_row}) không được lớn hơn số 'Đến' ({end_row})!")
-
-            custom_indices = list(range(start_row - 1, end_row))
-            self.ctrl_print.print_batch(custom_indices)
-
-        except ValueError:
-            return MsgHelper.show_error("Lỗi: Vui lòng chỉ nhập số nguyên vào ô khoảng in!")
+            if col == "signature_img":
+                self.model.update_config_value(self.current_idx, mode, col, "w", int(view.spin_img_w.get() or 150))
+                self.model.update_config_value(self.current_idx, mode, col, "h", int(view.spin_img_h.get() or 80))
+            else:
+                if hasattr(view, 'combo_font'): self.model.update_config_value(self.current_idx, mode, col, "font", view.combo_font.get())
+                if hasattr(view, 'combo_color'): self.model.update_config_value(self.current_idx, mode, col, "color", view.combo_color.get())
+                self.model.update_config_value(self.current_idx, mode, col, "size", int(view.spin_size.get() or 14))
+                if hasattr(view, 'chk_bold_var'): self.model.update_config_value(self.current_idx, mode, col, "bold", view.chk_bold_var.get())
+                if hasattr(view, 'chk_upper_var'): self.model.update_config_value(self.current_idx, mode, col, "upper", view.chk_upper_var.get())
+        except: pass
+        
+        self.render_canvas_safe()
+        if mode == "individual": self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
 
     def pick_manual_signature(self):
-        if not self.ctrl_license.is_licensed:
-            MsgHelper.show_warning("Vui lòng đăng kí bẳn quyền!")
-            return
+        if not self.check_license(): return 
+
         if not self.has_template(): return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
         path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg;*.jpeg")])
         if path:
@@ -134,10 +161,37 @@ class AppRouter:
             if mode == "individual": self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
             self.render_canvas_safe()
 
-    def on_style_change(self):
-        self.render_canvas_safe()
-        if self.selected_field: self.load_field_props_to_ui()
+    def reset_current_custom(self):
+        if not self.check_license(): return 
 
+        if not self.has_template(): return MsgHelper.show_warning("Chưa có phôi!")
+        
+        mode = "global"
+        try: mode = self.edit_mode.get()
+        except: pass
+
+        if mode == "individual":
+            if self.model.reset_custom_config(self.current_idx):
+                self.view.p_mid.tree.item(str(self.current_idx), tags=())
+                self.render_canvas_safe()
+                if self.selected_field: self.load_field_props_to_ui()
+                MsgHelper.show_info("Đã xóa cấu hình riêng.", "Thành công")
+            else:
+                MsgHelper.show_info("Đang dùng cấu hình chung.", "Thông báo")
+        else:
+            if not self.selected_field: return MsgHelper.show_warning("Chọn một trường để reset!")
+            if MsgHelper.ask_yes_no(f"Reset '{self.selected_field}' về mặc định?", "Xác nhận"):
+                self.model.update_config_value(0, "global", self.selected_field, "font", "Arial")
+                self.model.update_config_value(0, "global", self.selected_field, "size", 14)
+                self.model.update_config_value(0, "global", self.selected_field, "bold", False)
+                self.model.update_config_value(0, "global", self.selected_field, "color", "Black")
+                self.render_canvas_safe()
+                self.load_field_props_to_ui()
+                MsgHelper.show_info("Đã khôi phục mặc định.", "Thành công")
+
+    # -------------------------------------------------------------
+    # CÁC HÀM KHÁC (KHÔNG CẦN BẢN QUYỀN HOẶC TÙY BẠN)
+    # -------------------------------------------------------------
     def select_template(self): self.ctrl_data.select_template()
     def select_excel(self): self.ctrl_data.select_excel()
     def select_signature_folder(self): self.ctrl_data.select_signature_folder()
@@ -147,19 +201,22 @@ class AppRouter:
 
     def refresh_mid_table(self):
         if self.model.df is None: return
-
         self.is_bulk_updating = True 
         try:
             df_page = self.model.get_current_page_data()
             self.view.p_mid.update_data(df_page, self.model.custom_configs)
             self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
             
+            # --- [THÊM MỚI] Cập nhật ô "Đến" bằng tổng số dòng dữ liệu ---
+            total_rows = len(self.model.df)
+            if hasattr(self.view.p_right, 'var_print_to'):
+                self.view.p_right.var_print_to.set(str(total_rows))
+            # -------------------------------------------------------------
+
             if list(self.view.p_mid.cbb_filter['values']) != self.model.unique_areas:
                  self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
-        except Exception as e:
-            print(f"Lỗi refresh table: {e}")
-        finally:
-            self.is_bulk_updating = False
+        except Exception as e: print(f"Lỗi refresh table: {e}")
+        finally: self.is_bulk_updating = False
 
     def next_page(self):
         if self.model.set_page(self.model.current_page + 1): self.refresh_mid_table()
@@ -225,42 +282,10 @@ class AppRouter:
         self.is_loading_ui = True 
         try:
             cfg = self.model.get_effective_config(self.current_idx).get(self.selected_field, {})
-            
-            # 1. Gọi Left Panel để tô màu dòng chọn
             if hasattr(self.view.p_left, 'highlight_selected_field'):
                 self.view.p_left.highlight_selected_field(self.selected_field)
-            
-            # 2. Gọi Right Panel để điền thông số vào Toolbar [MỚI]
             self.view.p_right.update_prop_inputs(cfg, self.selected_field)
-            
         finally: self.is_loading_ui = False 
-    def on_prop_change(self, event=None):
-        if not self.selected_field or self.is_loading_ui: return
-        if not self.has_template(): return 
-        
-        # [QUAN TRỌNG] Lấy dữ liệu từ VIEW.P_RIGHT (Bên phải)
-        view = self.view.p_right 
-        
-        mode = "global"
-        if hasattr(self.view.p_left, 'var_edit_mode'): # Edit mode vẫn nằm bên trái (nếu bạn chưa chuyển)
-             try: mode = self.view.p_left.var_edit_mode.get()
-             except: pass
-        
-        col = self.selected_field
-        try:
-            if col == "signature_img":
-                self.model.update_config_value(self.current_idx, mode, col, "w", int(view.spin_img_w.get() or 150))
-                self.model.update_config_value(self.current_idx, mode, col, "h", int(view.spin_img_h.get() or 80))
-            else:
-                if hasattr(view, 'combo_font'): self.model.update_config_value(self.current_idx, mode, col, "font", view.combo_font.get())
-                if hasattr(view, 'combo_color'): self.model.update_config_value(self.current_idx, mode, col, "color", view.combo_color.get())
-                self.model.update_config_value(self.current_idx, mode, col, "size", int(view.spin_size.get() or 14))
-                if hasattr(view, 'chk_bold_var'): self.model.update_config_value(self.current_idx, mode, col, "bold", view.chk_bold_var.get())
-                if hasattr(view, 'chk_upper_var'): self.model.update_config_value(self.current_idx, mode, col, "upper", view.chk_upper_var.get())
-        except: pass
-        
-        self.render_canvas_safe()
-        if mode == "individual": self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
 
     def update_field_config(self, k, v):
         if not self.has_template(): return
@@ -270,44 +295,12 @@ class AppRouter:
             except: pass
             self.model.update_config_value(self.current_idx, mode, self.selected_field, k, v)
 
-    def reset_current_custom(self):
-        if not self.has_template(): 
-            return MsgHelper.show_warning("Vui lòng chọn ảnh phôi trước khi thực hiện!")
-        
-        mode = "global"
-        try: mode = self.edit_mode.get()
-        except: pass
-
-        if mode == "individual":
-            if self.model.reset_custom_config(self.current_idx):
-                self.view.p_mid.tree.item(str(self.current_idx), tags=())
-                self.render_canvas_safe()
-                if self.selected_field: self.load_field_props_to_ui()
-                MsgHelper.show_info("Đã xóa cấu hình riêng.", "Thành công")
-            else:
-                MsgHelper.show_info("Người này đang sử dụng cấu hình chung.", "Thông báo")
-        else:
-            if not self.selected_field:
-                return MsgHelper.show_warning("Vui lòng chọn một trường để reset!")
-
-            if MsgHelper.ask_yes_no(f"Bạn có chắc muốn đưa cấu hình chung của '{self.selected_field}' về mặc định gốc?", "Xác nhận"):
-                self.model.update_config_value(0, "global", self.selected_field, "font", "Arial")
-                self.model.update_config_value(0, "global", self.selected_field, "size", 14)
-                self.model.update_config_value(0, "global", self.selected_field, "bold", False)
-                self.model.update_config_value(0, "global", self.selected_field, "color", "Black")
-                
-                self.render_canvas_safe()
-                self.load_field_props_to_ui()
-                MsgHelper.show_info("Đã khôi phục mặc định cho trường này.", "Thành công")
-
     def deselect_all(self):
         self.is_bulk_updating = True
         try: self.view.p_mid.tree.selection_set([])
         except: pass
         self.model.selected_indices.clear()
         self.is_bulk_updating = False
-
-    def select_all(self): pass 
 
     def on_header_click(self, col):
         if not self.has_template(): return
@@ -316,13 +309,12 @@ class AppRouter:
         else:
             self.sort_state["col"] = col
             self.sort_state["reverse"] = False
-            
         self.model.sort_data(col, self.sort_state["reverse"])
         if self.view and hasattr(self.view, 'p_mid'):
             self.view.p_mid.update_header_arrow(col, self.sort_state["reverse"])
         self.refresh_mid_table()
 
-    # --- CANVAS HANDLERS ---
+    # --- CANVAS & KEYBOARD (Di chuyển trên Canvas cũng có thể check bản quyền nếu muốn) ---
     def on_shift_zoom(self, e): 
         if self.has_template(): self.ctrl_canvas.handle_zoom(e)
     def on_drag_start(self, e): 
@@ -333,82 +325,54 @@ class AppRouter:
         if self.has_template(): self.ctrl_canvas.drag_end(e)
     def on_canvas_resize(self, e): 
         self.ctrl_canvas.on_resize(e)
-    def on_paper_config_change(self, e=None): self.render_canvas_safe()
-
-   # --- [CHỈNH SỬA LẠI ĐOẠN NÀY] KEYBOARD HANDLER CHUẨN OS ---
+    
+    # KEYBOARD
     def on_key_press(self, event):
-        """Khi nhấn phím"""
         key = event.keysym
         valid_keys = ('Up', 'Down', 'Left', 'Right', 'Shift_L', 'Shift_R')
-        
         if key not in valid_keys: return
-        
-        # Nếu phím này đã được ghi nhận là đang nhấn rồi thì bỏ qua (chặn auto-repeat của OS)
         if key in self.pressed_keys: return
         
-        # Nếu đây là phím đầu tiên được nhấn (bắt đầu chuỗi hành động)
+        # Nếu muốn di chuyển bằng phím cũng cần bản quyền thì thêm dòng này:
+        # if not self.check_license(): return
+
         first_press = (len(self.pressed_keys) == 0)
-        
         self.pressed_keys.add(key)
-        
         if first_press:
-            # 1. DI CHUYỂN NGAY LẬP TỨC 1 LẦN (Cho cú nhấp)
             self.perform_move_step()
-            
-            # 2. Thiết lập Delay (Khựng lại 400ms) trước khi bắt đầu chạy mượt
-            # Nếu nhả tay trước 400ms -> move_loop không bao giờ chạy -> Không bị trượt
             self.is_holding = False
             self.move_loop_id = self.view.after(400, self.start_smooth_move)
                 
     def on_key_release(self, event):
-        """Khi thả phím"""
         key = event.keysym
         if key in self.pressed_keys:
             self.pressed_keys.remove(key)
-
-        # Kiểm tra xem còn phím mũi tên nào không
         arrows = {'Up', 'Down', 'Left', 'Right'}
         if not (self.pressed_keys & arrows):
-            # Nếu không còn phím điều hướng -> Hủy mọi vòng lặp
             if self.move_loop_id:
                 self.view.after_cancel(self.move_loop_id)
                 self.move_loop_id = None
-            
             self.is_holding = False
-            # Lưu vị trí cuối cùng vào Model
             self.ctrl_canvas.commit_selection_position()
 
     def start_smooth_move(self):
-        """Bắt đầu vào chế độ di chuyển mượt sau khi đã delay"""
         self.is_holding = True
         self.move_loop()
 
     def move_loop(self):
-        """Vòng lặp di chuyển liên tục"""
         if not self.pressed_keys or not self.selected_field:
             self.move_loop_id = None
             return
-
         self.perform_move_step()
-
-        # Tốc độ lặp lại: 15ms (Khoảng 60 FPS) -> Đủ mượt mà không quá nhanh
         self.move_loop_id = self.view.after(15, self.move_loop)
 
     def perform_move_step(self):
-        """Hàm thực hiện 1 bước di chuyển"""
-        # Kiểm tra Shift để tăng tốc
         is_fast = ('Shift_L' in self.pressed_keys) or ('Shift_R' in self.pressed_keys)
-        
-        # TỐC ĐỘ:
-        # - Bình thường: 1px (Chính xác tuyệt đối)
-        # - Giữ Shift: 10px (Di chuyển nhanh)
         speed = 10 if is_fast else 1 
-        
         dx, dy = 0, 0
         if 'Up' in self.pressed_keys:    dy -= speed
         if 'Down' in self.pressed_keys:  dy += speed
         if 'Left' in self.pressed_keys:  dx -= speed
         if 'Right' in self.pressed_keys: dx += speed
-
         if dx != 0 or dy != 0:
             self.ctrl_canvas.visual_move_selection(dx, dy)

@@ -7,21 +7,21 @@ from config.settings import APP_ICON_NAME
 def create_button(master, text, command, style="primary", width=None, icon=None, **kwargs):
     """
     Tạo nút bấm chuẩn ttkbootstrap.
-    
-    Args:
-        style: Tên màu (primary, success, danger) hoặc kèm kiểu (primary-outline, success-link)
-        **kwargs: Các tham số khác của ttk.Button (ví dụ: state, cursor, padding...)
     """
     
+    # [LOGIC MỚI]: Chỉ đặt compound=LEFT nếu CÓ CẢ Icon VÀ Text.
+    # Nếu chỉ có Icon (text rỗng hoặc None), compound sẽ là None -> Icon tự động căn giữa.
+    comp_state = LEFT if (icon and text) else None
+
     btn = ttk.Button(
         master, 
         text=text, 
         command=command,
-        bootstyle=style, # Đây là sức mạnh của ttkbootstrap
+        bootstyle=style, 
         width=width,
         image=icon,
-        compound=LEFT if icon else None, # Nếu có icon thì đặt bên trái chữ
-        **kwargs # <--- [QUAN TRỌNG] Truyền các tham số mở rộng (như state="disabled") vào đây
+        compound=comp_state, # <--- Đã sửa dòng này
+        **kwargs 
     )
     return btn
 
