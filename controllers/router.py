@@ -208,9 +208,9 @@ class AppRouter:
             self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
             
             # --- [THÊM MỚI] Cập nhật ô "Đến" bằng tổng số dòng dữ liệu ---
-            total_rows = len(self.model.df)
-            if hasattr(self.view.p_right, 'var_print_to'):
-                self.view.p_right.var_print_to.set(str(total_rows))
+            # total_rows = len(self.model.df)
+            # if hasattr(self.view.p_right, 'var_print_to'):
+            #     self.view.p_right.var_print_to.set(str(total_rows))
             # -------------------------------------------------------------
 
             if list(self.view.p_mid.cbb_filter['values']) != self.model.unique_areas:

@@ -10,10 +10,10 @@
             "path": "C:/Users/Admin/Pictures/Picture1.jpg"
         },
         "Stt": {
-            "x": 42,
-            "y": 27,
+            "x": 90,
+            "y": 88,
             "size": 20,
-            "enable": false,
+            "enable": true,
             "font": "Arial",
             "color": "Black",
             "type": "text",
@@ -21,7 +21,7 @@
             "upper": false
         },
         "Tên đơn vị": {
-            "x": 204,
+            "x": 248,
             "y": 44,
             "size": 21,
             "enable": true,
@@ -32,7 +32,7 @@
             "upper": false
         },
         "Họ tên": {
-            "x": 419,
+            "x": 665,
             "y": 214,
             "size": 21,
             "enable": true,
@@ -43,7 +43,7 @@
             "upper": false
         },
         "Ngày sinh": {
-            "x": 430,
+            "x": 666,
             "y": 244,
             "size": 21,
             "enable": true,
@@ -54,7 +54,7 @@
             "upper": false
         },
         "Giới tính": {
-            "x": 419,
+            "x": 655,
             "y": 276,
             "size": 21,
             "enable": true,
@@ -65,7 +65,7 @@
             "upper": false
         },
         "Nơi cư trú": {
-            "x": 438,
+            "x": 661,
             "y": 315,
             "size": 21,
             "enable": true,
@@ -76,7 +76,7 @@
             "upper": false
         },
         "Số cccd": {
-            "x": 445,
+            "x": 702,
             "y": 349,
             "size": 21,
             "enable": true,
@@ -87,7 +87,7 @@
             "upper": false
         },
         "Số thẻ cử tri": {
-            "x": 270,
+            "x": 371,
             "y": 391,
             "size": 21,
             "enable": true,
@@ -98,7 +98,7 @@
             "upper": false
         },
         "Khu vực bỏ phiếu": {
-            "x": 322,
+            "x": 380,
             "y": 426,
             "size": 21,
             "enable": true,
@@ -109,7 +109,7 @@
             "upper": true
         },
         "Thành phố": {
-            "x": 281,
+            "x": 344,
             "y": 456,
             "size": 21,
             "enable": true,

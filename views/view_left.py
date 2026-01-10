@@ -77,7 +77,7 @@ class LeftPanelView(ttk.Frame):
 
     def _setup_license_ui(self):
         """Khu vực hiển thị HWID và nhập Key"""
-        self.fr_license = ttk.Labelframe(self, text="cập nhật mã sử dụng", padding=10, bootstyle="danger")
+        self.fr_license = ttk.Labelframe(self, text="Cập nhật mã sử dụng", padding=10, bootstyle="danger")
         self.fr_license.pack(side=BOTTOM, fill=X, pady=(10, 0))
 
         # 1. Hiển thị HWID
@@ -93,7 +93,7 @@ class LeftPanelView(ttk.Frame):
                    command=lambda: self.router.ctrl_license.on_copy_hwid()).pack(side=RIGHT)
 
         # 2. Nhập Key
-        ttk.Label(self.fr_license, text="Nhập Key:", font=("Segoe UI", 9)).pack(anchor="w", pady=(5,0))
+        ttk.Label(self.fr_license, text="Nhập key:", font=("Segoe UI", 9,"bold")).pack(anchor="w", pady=(5,0))
         
         r2 = ttk.Frame(self.fr_license, style='TFrame')
         r2.pack(fill=X, pady=2)

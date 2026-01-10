@@ -90,6 +90,7 @@ class RightPanelView(ttk.Frame):
         try: printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
         except: printers = []
         
+        
         self.cbb_printer = ttk.Combobox(row1, values=printers, state="readonly", width=20, bootstyle="primary")
         if printers: self.cbb_printer.current(0)
         self.cbb_printer.pack(side=RIGHT, padx=5)
@@ -224,3 +225,4 @@ class RightPanelView(ttk.Frame):
             self.chk_bold_var.set(cfg.get("bold", False))
             self.chk_upper_var.set(cfg.get("upper", False))
             self.combo_color.set(cfg.get("color", "Black"))
+            

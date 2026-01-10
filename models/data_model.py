@@ -44,14 +44,29 @@ class VoterModel:
             json.dump({"global": self.global_config, "custom": self.custom_configs}, f, indent=4, ensure_ascii=False)
 
     def load_excel(self, path):
-        self.df = pd.read_excel(path).fillna("")
+        """
+        Tối ưu hóa việc đọc file lớn
+        """
+        try:
+            # CÁCH 1: Dùng engine 'calamine' (Siêu nhanh - Cần pip install python-calamine)
+            self.df = pd.read_excel(path, engine="calamine").fillna("")
+        except ImportError:
+            print("Chưa cài 'python-calamine'. Đang dùng engine mặc định (chậm hơn)...")
+            # CÁCH 2: Fallback về openpyxl nếu chưa cài calamine
+            self.df = pd.read_excel(path).fillna("")
+        except Exception as e:
+            # Trường hợp file .xls cũ quá thì calamine có thể kén, thử lại mặc định
+            self.df = pd.read_excel(path).fillna("")
+
+        # Chuẩn hóa tên cột (xóa khoảng trắng thừa đầu đuôi)
         self.df.columns = self.df.columns.str.strip()
         
-        # --- [SỬA] Reset về trạng thái mặc định ---
+        # --- Logic Reset cũ giữ nguyên ---
         self.current_area_filter = "Lọc theo khu vực"
         self.current_search_keyword = ""
-        # ------------------------------------------
+        # ---------------------------------
         
+        # ... (Phần logic tìm cột Area và unique_areas giữ nguyên) ...
         col_area = None
         for col in self.df.columns:
             if "Khu vực" in col or "Thôn" in col or "Xã" in col:
@@ -59,15 +74,16 @@ class VoterModel:
                 break
         
         if col_area:
-            raw = self.df[col_area].unique()
-            clean_areas = [str(x) for x in raw if str(x) != "nan" and str(x) != ""]
-            # Thêm từ khóa mặc định vào đầu danh sách để người dùng chọn quay lại
+            # Tối ưu lấy unique nhanh hơn cho dữ liệu lớn
+            raw = self.df[col_area].dropna().unique()
+            clean_areas = [str(x) for x in raw if str(x).strip() != ""]
             self.unique_areas = ["Lọc theo khu vực"] + sorted(clean_areas)
         else:
             self.unique_areas = ["Lọc theo khu vực"]
             
         self.apply_filters()
         
+        # Khởi tạo config cho các cột mới (Giữ nguyên code cũ)
         for col in self.df.columns:
             if col not in self.global_config:
                 self.global_config[col] = {"x": 50, "y": 50, "size": 30, "enable": False, "font": "Arial", "color": "Black", "type": "text"}

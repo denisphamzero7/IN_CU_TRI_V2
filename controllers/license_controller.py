@@ -102,7 +102,7 @@ class LicenseController:
 
         if is_valid:
             # --- TRƯỜNG HỢP: ĐÃ KÍCH HOẠT ---
-            p_left.fr_license.configure(text="cập nhật mã sử dụng", bootstyle="success")
+            p_left.fr_license.configure(text="Cập nhật mã sử dụng", bootstyle="success")
             
             # Nút Active: Xanh, Không bấm được
             p_left.btn_activate.configure(
@@ -124,7 +124,7 @@ class LicenseController:
 
         else:
             # --- TRƯỜNG HỢP: CHƯA KÍCH HOẠT ---
-            p_left.fr_license.configure(text="cập nhật mã sử dụng", bootstyle="danger")
+            p_left.fr_license.configure(text="Cập nhật mã sử dụng", bootstyle="danger")
             
             # Nút Active: Đỏ, Bấm được
             p_left.btn_activate.configure(
