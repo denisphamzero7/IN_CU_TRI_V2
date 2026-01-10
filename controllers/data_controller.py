@@ -16,7 +16,7 @@ class DataController:
             self.router.ctrl_canvas.render()
 
     def select_signature_folder(self):
-        folder = filedialog.askdirectory()
+        folder = filedialog.askdirectory(title="open")
         if folder:
             self.model.signature_folder = folder
             MsgHelper.show_info("Tuyệt vời", f"Đã chọn folder chữ ký:\n{folder}")
