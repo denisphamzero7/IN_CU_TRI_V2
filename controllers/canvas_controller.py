@@ -298,3 +298,43 @@ class CanvasController:
         # Cập nhật UI thanh bên trái và render lại cho nét
         self.router.load_field_props_to_ui()
         self.render()
+    def fit_to_window(self):
+        """
+        [MỚI] Hàm này tính toán zoom_multiplier để trang giấy 
+        nằm trọn vẹn trong khung nhìn (Fit to Screen)
+        """
+        if not self.router.view: return
+        canvas = self.router.view.p_right.canvas
+        
+        # 1. Lấy kích thước khung hiển thị thực tế (View Port)
+        cw = canvas.winfo_width()
+        ch = canvas.winfo_height()
+
+        # Nếu cửa sổ chưa hiện hoặc quá bé thì bỏ qua
+        if cw < 50 or ch < 50: return
+
+        # 2. Xác định kích thước giấy chuẩn (Logic giống hệt hàm render)
+        # Vì ta render dựa trên A4 (595x842) nên ta dùng kích thước này để tính tỷ lệ
+        STD_W, STD_H = 595, 842 
+        is_landscape_mode = getattr(self.router, 'is_paper_landscape', False)
+        
+        if is_landscape_mode:
+            paper_w, paper_h = STD_H, STD_W  
+        else:
+            paper_w, paper_h = STD_W, STD_H
+
+        # 3. Tính tỷ lệ Zoom để vừa khít
+        ratio_w = cw / paper_w
+        ratio_h = ch / paper_h
+        
+        # Lấy tỷ lệ nhỏ hơn để đảm bảo chiều dài hay rộng đều lọt lòng
+        # Nhân 0.9 để chừa lề 10% cho đẹp
+        new_zoom = min(ratio_w, ratio_h) * 0.9
+
+        # 4. Áp dụng thông số mới
+        self.zoom_multiplier = new_zoom
+        self.pan_offset_x = 0  # Reset vị trí về chính giữa (trục X)
+        self.pan_offset_y = 0  # Reset vị trí về chính giữa (trục Y)
+
+        # 5. Vẽ lại ngay lập tức
+        self.render()

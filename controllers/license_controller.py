@@ -104,42 +104,40 @@ class LicenseController:
             # --- TRƯỜNG HỢP: ĐÃ KÍCH HOẠT ---
             p_left.fr_license.configure(text="Cập nhật mã sử dụng", bootstyle="success")
             
-            # Nút Active: Xanh, Không bấm được
+            # [SỬA] Nút Active: Dùng style="Small.success.TButton" (Xóa bootstyle cũ đi)
             p_left.btn_activate.configure(
                 text="✔", 
-                bootstyle="success", 
+                style="Small.success.TButton", # <--- QUAN TRỌNG: Style nhỏ màu xanh
                 state="normal", 
                 command=lambda: None
             )
 
-            # Ô Key: Xanh, Chỉ đọc, HIỆN CHỮ
+            # Ô Key: Xanh, Chỉ đọc
             p_left.ent_key.configure(
                 bootstyle="success", 
                 state="readonly", 
-                show=""  # <--- Luôn hiện chữ
+                show="" 
             )
             
-            # Mở khóa các nút chức năng
             if hasattr(p_left, 'fr_buttons'): self._unlock_area(p_left.fr_buttons)
 
         else:
             # --- TRƯỜNG HỢP: CHƯA KÍCH HOẠT ---
             p_left.fr_license.configure(text="Cập nhật mã sử dụng", bootstyle="danger")
             
-            # Nút Active: Đỏ, Bấm được
+            # [SỬA] Nút Active: Dùng style="Small.danger.TButton"
             p_left.btn_activate.configure(
                 text="⚠", 
-                bootstyle="danger", 
+                style="Small.danger.TButton", # <--- QUAN TRỌNG: Style nhỏ màu đỏ
                 state="normal",
                 command=self.on_activate
             )
 
-            # Ô Key: Bình thường, Cho nhập, HIỆN CHỮ
+            # Ô Key: Bình thường
             p_left.ent_key.configure(
                 bootstyle="default", 
                 state="normal", 
-                show=""  # <--- QUAN TRỌNG: Để rỗng thay vì "*" để không che
+                show="" 
             )
             
-            # Khóa các nút chức năng
             if hasattr(p_left, 'fr_buttons'): self._lock_area(p_left.fr_buttons)

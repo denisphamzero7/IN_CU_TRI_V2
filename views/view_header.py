@@ -3,85 +3,70 @@ from ttkbootstrap.constants import *
 from config.settings import APP_HEADER, APP_ADDRESS, APP_PHONE, APP_EMAIL
 
 # --- MÃ MÀU ---
-MISA_BLUE = "#002B5E"  # Xanh MISA Đậm
-WHITE     = "#FFFFFF"  # Trắng
-BLACK     = "#000000"  # Đen
+MISA_BLUE = "#002B5E"
+WHITE     = "#FFFFFF"
+BLACK     = "#000000"
 
 class HeaderView(ttk.Frame):
     def __init__(self, parent):
-        # 1. CẤU HÌNH STYLE (CONFIG NHƯ LEFT PANEL)
+        # 1. CẤU HÌNH STYLE
         style = ttk.Style()
-        
-        # A. Style cho Frame nền Trắng (Header.TFrame)
         style.configure('Header.TFrame', background=WHITE)
         
-        # B. Style cho Tiêu đề (HeaderTitle.TLabel): Nền trắng, Chữ Xanh MISA, Đậm
+        # Tiêu đề: Font 11 Bold (To đẹp)
         style.configure('HeaderTitle.TLabel', 
                         background=WHITE, 
                         foreground=MISA_BLUE, 
-                        font=("Segoe UI", 11, "bold"),
+                        font=("Segoe UI", 8, "bold"), 
                         anchor="center",
                         justify="center")
         
-        # C. Style cho Nội dung MISA (InfoMisa.TLabel): Nền trắng, Chữ Xanh MISA (Dùng cho địa chỉ)
-        style.configure('InfoMisa.TLabel', 
-                        background=WHITE, 
-                        foreground=BLACK, 
-                        font=("Segoe UI", 9))
+        # Nội dung: Font 9
+        style.configure('InfoMisa.TLabel', background=WHITE, foreground=BLACK, font=("Segoe UI", 7))
+        style.configure('InfoNormal.TLabel', background=WHITE, foreground=BLACK, font=("Segoe UI", 7))
 
-        # D. Style cho Nội dung Thường (InfoNormal.TLabel): Nền trắng, Chữ Đen (Dùng cho SĐT, Email)
-        style.configure('InfoNormal.TLabel', 
-                        background=WHITE, 
-                        foreground=BLACK, 
-                        font=("Segoe UI", 9))
-
-        # ---------------------------------------------------------
-
-        # 2. KHỞI TẠO HEADER VỚI STYLE TRẮNG
+        # 2. KHỞI TẠO FRAME
         super().__init__(parent, style='Header.TFrame', padding=5)
         self.pack(fill=X)
         
-        SAFE_WIDTH = 300 
+        SAFE_WIDTH = 210 # Giới hạn độ rộng dùng cho ĐỊA CHỈ
         
-        # 3. TIÊU ĐỀ (Dùng style HeaderTitle)
+        # 3. TIÊU ĐỀ (ĐÃ SỬA: Bỏ wraplength để luôn là 1 hàng)
         ttk.Label(
             self, 
             text=APP_HEADER.upper(), 
-            style='HeaderTitle.TLabel', # <--- Áp dụng style tiêu đề
-            wraplength=SAFE_WIDTH
-        ).pack(fill=X, pady=(0, 2))
+            style='HeaderTitle.TLabel', 
+            # wraplength=SAFE_WIDTH, <--- ĐÃ XÓA DÒNG NÀY ĐỂ KHÔNG TỰ XUỐNG DÒNG
+            justify="center"
+        ).pack(fill=X, pady=(0, 5))
 
-        # 4. KHUNG THÔNG TIN (Dùng style nền trắng)
+        # 4. KHUNG THÔNG TIN
         info_frame = ttk.Frame(self, style='Header.TFrame')
         info_frame.pack(fill=X)
 
         def create_row(icon, text, text_style):
-            # Row Frame (Nền trắng)
             row = ttk.Frame(info_frame, style='Header.TFrame')
-            row.pack(fill=X, pady=0) # Sát nhau
+            row.pack(fill=X, pady=1) 
             
-            # Icon (Luôn dùng màu đen -> InfoNormal)
+            # Icon
             ttk.Label(
                 row, 
                 text=icon, 
                 style='InfoNormal.TLabel', 
                 width=3
-            ).pack(side=LEFT, anchor="n", pady=1)
+            ).pack(side=LEFT, anchor="n") 
             
-            # Text nội dung (Style tùy biến: Xanh hoặc Đen)
+            # Text nội dung (Vẫn giữ xuống dòng cho địa chỉ)
             ttk.Label(
                 row, 
                 text=text, 
-                style=text_style, # <--- Nhận style từ tham số
-                wraplength=SAFE_WIDTH - 30
-            ).pack(side=LEFT, fill=X, expand=YES, pady=1)
+                style=text_style,
+                wraplength=SAFE_WIDTH, # Địa chỉ vẫn cần cái này để không bị mất chữ
+                justify="left",        
+                anchor="w"
+            ).pack(side=LEFT, fill=X, expand=YES)
 
         # 5. RENDER DỮ LIỆU
-        # - Địa chỉ: Màu Xanh MISA -> Dùng 'InfoMisa.TLabel'
         create_row("📍", APP_ADDRESS, 'InfoMisa.TLabel') 
-        
-        # - SĐT: Màu Đen -> Dùng 'InfoNormal.TLabel'
         create_row("📞", APP_PHONE, 'InfoNormal.TLabel')
-        
-        # - Email: Màu Đen -> Dùng 'InfoNormal.TLabel'
         create_row("📧", APP_EMAIL, 'InfoNormal.TLabel')

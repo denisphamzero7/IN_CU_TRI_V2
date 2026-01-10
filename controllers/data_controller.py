@@ -2,6 +2,7 @@ import threading
 from tkinter import filedialog, messagebox
 # from PIL import Image # Không cần dùng PIL ở đây nữa
 from helpers.msg_helper import MsgHelper
+
 class DataController:
     def __init__(self, router):
         self.router = router
@@ -9,14 +10,23 @@ class DataController:
         self.view = None
 
     def select_template(self):
-        # Chỉ cần lưu đường dẫn, không cần tính toán resize gì cả
+        # 1. Mở hộp thoại chọn file
         path = filedialog.askopenfilename(filetypes=[("Image", "*.jpg;*.png;*.jpeg")])
+        
         if path:
+            # 2. Lưu đường dẫn vào Model
             self.model.template_path = path
-            self.router.ctrl_canvas.render()
+            
+            # 3. [QUAN TRỌNG] Gọi lệnh Fit to Window
+            # Cần update_idletasks để Tkinter kịp cập nhật kích thước khung Canvas trước khi tính toán
+            if self.router.view:
+                self.router.view.update_idletasks()
+            
+            # Gọi hàm tự động zoom vừa màn hình (đã thêm ở bước trước)
+            self.router.ctrl_canvas.fit_to_window()
 
     def select_signature_folder(self):
-        folder = filedialog.askdirectory(title="open")
+        folder = filedialog.askdirectory(title="Chọn thư mục chứa chữ ký")
         if folder:
             self.model.signature_folder = folder
             MsgHelper.show_info("Tuyệt vời", f"Đã chọn folder chữ ký:\n{folder}")
@@ -27,7 +37,6 @@ class DataController:
             # 1. Bật trạng thái Loading (Đổi con trỏ chuột thành đồng hồ cát)
             if self.router.view:
                 self.router.view.master.config(cursor="watch")
-                # Nếu bạn có Progress Window thì hiện nó ở đây
             
             # 2. Chạy việc nặng trong luồng riêng (Thread)
             thread = threading.Thread(target=self._load_excel_thread, args=(path,))
@@ -57,6 +66,8 @@ class DataController:
 
             self.router.view.p_left.refresh_field_list(self.model.df.columns, self.model.global_config)
             self.router.refresh_mid_table()
+            
+            # Render lại canvas (nếu đã có phôi thì render đè dữ liệu lên)
             self.router.ctrl_canvas.render()
             self.router.deselect_all()
             

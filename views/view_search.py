@@ -5,10 +5,10 @@ from ttkbootstrap.constants import *
 from helpers.ui_helpers import create_button
 
 class SearchView(ttk.Frame):
-    def __init__(self, parent, router, width=20):
+    def __init__(self, parent, router, width=11):
         super().__init__(parent)
         self.router = router
-        self.placeholder_text = "Nhập tên hoặc CCCD..."
+        self.placeholder_text = "Tìm Tên, Cccd"
         self.is_placeholder_active = True # Cờ theo dõi trạng thái placeholder
         
         # --- UI SETUP ---
@@ -19,7 +19,7 @@ class SearchView(ttk.Frame):
 
     def _setup_ui(self, width):
         # 1. Ô nhập liệu
-        self.ent_search = ttk.Entry(self, width=width, bootstyle="info")
+        self.ent_search = ttk.Entry(self, width=width, bootstyle="info",font=("Segoe UI", 7))
         self.ent_search.pack(side=LEFT, padx=(0, 5))
     
 

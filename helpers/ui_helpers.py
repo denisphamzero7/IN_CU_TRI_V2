@@ -1,17 +1,28 @@
 # helpers/ui_helpers.py
+
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from helpers.path_manager import resource_path
 from config.settings import APP_ICON_NAME
 
-def create_button(master, text, command, style="primary", width=None, icon=None, **kwargs):
+# Thêm tham số padding mặc định là None
+def create_button(master, text, command, style="primary", width=None, icon=None, padding=None, **kwargs):
     """
     Tạo nút bấm chuẩn ttkbootstrap.
+    - padding: (ngang, dọc) hoặc (trái, trên, phải, dưới). VD: (10, 20) để nút cao hơn.
     """
     
-    # [LOGIC MỚI]: Chỉ đặt compound=LEFT nếu CÓ CẢ Icon VÀ Text.
-    # Nếu chỉ có Icon (text rỗng hoặc None), compound sẽ là None -> Icon tự động căn giữa.
+    # [FIX LỖI]: Loại bỏ 'font' khỏi kwargs (như code cũ của bạn)
+    if 'font' in kwargs:
+        kwargs.pop('font') 
+
+    # [LOGIC]: Compound
     comp_state = LEFT if (icon and text) else None
+
+    # Nếu người dùng truyền padding, thêm vào kwargs để ttk.Button xử lý
+    # Nếu không truyền, để ttk tự quyết định (thường là mặc định của theme)
+    if padding:
+        kwargs['padding'] = padding
 
     btn = ttk.Button(
         master, 
@@ -20,7 +31,7 @@ def create_button(master, text, command, style="primary", width=None, icon=None,
         bootstyle=style, 
         width=width,
         image=icon,
-        compound=comp_state, # <--- Đã sửa dòng này
+        compound=comp_state,
         **kwargs 
     )
     return btn

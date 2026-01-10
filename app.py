@@ -6,18 +6,29 @@ from config.settings import APP_TITLE
 from views.main_view import MainView
 from controllers.router import AppRouter
 
+# [THÊM ĐOẠN NÀY] Import ctypes để xử lý DPI
+import ctypes
+try:
+    # Báo cho Windows biết app này hỗ trợ High DPI -> Giao diện sắc nét, đúng kích thước thật
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
 class App(ttk.Window):
     def __init__(self):
         super().__init__()
         
         self.title(APP_TITLE)
         
-        # CÁCH 1: Set kích thước cứng to hơn (VD: Full HD)
-        # self.geometry("1920x1000") 
-        
-        # CÁCH 2 (KHUYÊN DÙNG): Tự động phóng to toàn màn hình khi mở
-        # Windows sẽ tự căn chỉnh kích thước tối đa cho bạn.
+        # Tự động phóng to toàn màn hình
         self.state("zoomed") 
+        
+        # [QUAN TRỌNG] Đặt kích thước tối thiểu an toàn
+        # 1100x600 đảm bảo lọt lòng màn hình 1366x768 (trừ thanh taskbar)
+        self.minsize(1100, 600)
 
         # --- GỌI HÀM SET ICON Ở ĐÂY ---
         apply_window_icon(self) 

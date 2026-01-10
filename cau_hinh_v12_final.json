@@ -39,7 +39,7 @@
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
+            "bold": false,
             "upper": false
         },
         "Ngày sinh": {
@@ -110,10 +110,10 @@
         },
         "Thành phố": {
             "x": 344,
-            "y": 456,
+            "y": 455,
             "size": 21,
             "enable": true,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "type": "text",
             "bold": true,

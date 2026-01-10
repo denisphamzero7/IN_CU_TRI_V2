@@ -1,37 +1,41 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-# Import màu từ settings để đồng bộ
 from config.settings import APP_BG_COLOR 
 
 def create_3_columns(master):
     """
-    Tạo bố cục 3 cột (Trái - Giữa - Phải)
-    Sử dụng tk.Frame thuần để đảm bảo nền màu MISA đồng nhất
+    Tạo bố cục 3 cột.
+    Đã điều chỉnh cột Left để KHỚP với chữ 'Đà Nẵng'.
     """
-
-    # Panedwindow vẫn dùng ttk để có thanh kéo co giãn đẹp
-    # style có thể cần cấu hình, nhưng mặc định nó khá trung tính
     main_pane = ttk.Panedwindow(master, orient=HORIZONTAL)
     main_pane.pack(fill=BOTH, expand=YES)
 
-    # --- 2. Cột Trái (Left Sidebar) ---
-    # Dùng tk.Frame + bg=APP_BG_COLOR
-    # Bỏ padding ở đây, để padding cho View con xử lý thì linh hoạt hơn
-    left = tk.Frame(main_pane, bg=APP_BG_COLOR) 
+    # --- 1. Cột Trái (Menu) ---
+    # [ĐIỀU CHỈNH LẠI]: Tăng từ 180 lên 265.
+    # Con số 265px này đảm bảo hiển thị đủ dòng "ỦY BAN... ĐÀ NẴNG" 
+    # và khung "Thông tin liên hệ" bên dưới mà không bị cắt chữ.
+    left = tk.Frame(main_pane, bg=APP_BG_COLOR, width=265) 
     
-    # --- 3. Cột Giữa (Main Content) ---
-    # Dùng tk.Frame + bg=APP_BG_COLOR
-    # Thêm highlightthickness=1 để tạo đường kẻ mỏng ngăn cách nếu muốn
-    mid = tk.Frame(main_pane, bg=APP_BG_COLOR, highlightthickness=0)
+    # Giữ cố định size này để không bị nội dung bên trong làm vỡ khung
+    left.pack_propagate(False) 
+    left.grid_propagate(False)
     
-    # --- 4. Cột Phải (Right Panel) ---
-    # Dùng tk.Frame + bg=APP_BG_COLOR
-    right = tk.Frame(main_pane, bg=APP_BG_COLOR)
+    # --- 2. Cột Giữa (Dữ liệu) ---
+    # Mid chiếm khoảng 35% không gian còn lại
+    mid = tk.Frame(main_pane, bg=APP_BG_COLOR, width=500)
+    
+    # --- 3. Cột Phải (Preview) ---
+    # Right chiếm khoảng 50%
+    right = tk.Frame(main_pane, bg=APP_BG_COLOR, width=700)
 
-    # --- 5. Add vào Panedwindow ---
-    main_pane.add(left, weight=1)   # Cột trái nhỏ
-    main_pane.add(mid, weight=3)    # Cột giữa vừa
-    main_pane.add(right, weight=6)  # Cột phải lớn (Preview)
+    # --- Cấu hình Weight ---
+    # Left = 15: Tỉ lệ vừa phải, kết hợp với width=265 sẽ ra giao diện chuẩn.
+    # Mid = 35
+    # Right = 50
+    
+    main_pane.add(left, weight=15)   
+    main_pane.add(mid, weight=35)    
+    main_pane.add(right, weight=50)  
 
     return left, mid, right

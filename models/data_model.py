@@ -62,7 +62,7 @@ class VoterModel:
         self.df.columns = self.df.columns.str.strip()
         
         # --- Logic Reset cũ giữ nguyên ---
-        self.current_area_filter = "Lọc theo khu vực"
+        self.current_area_filter = "Khu vực"
         self.current_search_keyword = ""
         # ---------------------------------
         
@@ -77,9 +77,9 @@ class VoterModel:
             # Tối ưu lấy unique nhanh hơn cho dữ liệu lớn
             raw = self.df[col_area].dropna().unique()
             clean_areas = [str(x) for x in raw if str(x).strip() != ""]
-            self.unique_areas = ["Lọc theo khu vực"] + sorted(clean_areas)
+            self.unique_areas = ["Khu vực"] + sorted(clean_areas)
         else:
-            self.unique_areas = ["Lọc theo khu vực"]
+            self.unique_areas = ["Khu vực"]
             
         self.apply_filters()
         
@@ -100,7 +100,7 @@ class VoterModel:
 
         # --- [SỬA] Logic lọc: Nếu là từ khóa mặc định thì hiện tất cả ---
         # Danh sách các từ khóa được coi là "Không lọc"
-        ignore_filters = ["Tất cả", "Chưa chọn khu vực", "Lọc theo khu vực", ""]
+        ignore_filters = ["Tất cả", "Chưa chọn khu vực", "Khu vực", ""]
         
         if self.current_area_filter and self.current_area_filter not in ignore_filters:
             col_area = None

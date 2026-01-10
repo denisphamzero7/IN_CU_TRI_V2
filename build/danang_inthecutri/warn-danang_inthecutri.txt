@@ -279,7 +279,6 @@ missing module named 'odf.office' - imported by pandas.io.excel._odfreader (dela
 missing module named 'odf.element' - imported by pandas.io.excel._odfreader (delayed)
 missing module named 'odf.namespaces' - imported by pandas.io.excel._odfreader (delayed)
 missing module named odf - imported by pandas.io.excel._odfreader (conditional)
-missing module named python_calamine - imported by pandas.io.excel._calamine (delayed, conditional)
 missing module named 'matplotlib.pyplot' - imported by pandas.io.formats.style (optional)
 missing module named matplotlib - imported by pandas.plotting._core (conditional), pandas.io.formats.style (optional)
 missing module named 'matplotlib.colors' - imported by pandas.plotting._misc (conditional), pandas.io.formats.style (conditional)
