@@ -36,6 +36,7 @@ class AppRouter:
             self.edit_mode = view.p_left.var_edit_mode
         self.ctrl_license.set_view(view)
         self.ctrl_license.check_at_startup()
+        self.view.after(100, lambda: self.ctrl_canvas.fit_to_window())
 
     # --- HÀM KIỂM TRA BẢN QUYỀN (DÙNG CHUNG) ---
     def check_license(self):

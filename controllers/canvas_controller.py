@@ -11,7 +11,7 @@ class CanvasController:
         self.tk_image = None    
         self.sig_refs = {}      
         self.scale_factor = 1.0     
-        self.zoom_multiplier = 1.0  
+        self.zoom_multiplier = 0.65  
         
         self.img_origin_x = 0       
         self.img_origin_y = 0       

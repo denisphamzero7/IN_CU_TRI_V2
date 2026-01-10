@@ -206,7 +206,7 @@ class RightPanelView(ttk.Frame):
 
         # (Đã xóa Label "Font:")
         # Combobox Font: Set text mặc định là "Font"
-        self.combo_font = ttk.Combobox(self.fr_text_props, values=["Arial", "Times New Roman", "Calibri", "Segoe UI", "Tahoma"], width=12, state="readonly", font=TB_FONT)
+        self.combo_font = ttk.Combobox(self.fr_text_props, values=["Arial", "Times New Roman", "Calibri", "Segoe UI", "Tahoma"], width=20, state="readonly", font=TB_FONT)
         self.combo_font.set("Font") # Placeholder giả cho Combobox readonly
         self.combo_font.pack(side=LEFT, padx=(2, 2))
         self.combo_font.bind("<<ComboboxSelected>>", lambda e: self._require_license(self.router.on_prop_change, e))
