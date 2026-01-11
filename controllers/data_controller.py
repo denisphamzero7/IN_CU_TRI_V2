@@ -29,7 +29,7 @@ class DataController:
         folder = filedialog.askdirectory(title="Chọn thư mục chứa chữ ký")
         if folder:
             self.model.signature_folder = folder
-            MsgHelper.show_info("Tuyệt vời", f"Đã chọn folder chữ ký:\n{folder}")
+            MsgHelper.show_info("Thành công", f"Đã chọn folder chữ ký:\n{folder}")
 
     def select_excel(self):
         path = filedialog.askopenfilename(filetypes=[("Excel", "*.xlsx;*.xls;*.xlsb")])
