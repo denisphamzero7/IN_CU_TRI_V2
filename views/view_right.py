@@ -135,16 +135,7 @@ class RightPanelView(ttk.Frame):
         btn_print = ttk.Button(row1, text="🖨️", width=3, command=self.router.start_print, bootstyle="danger")
         btn_print.pack(side=RIGHT, padx=(3, 2))
         
-        # NÚT XOAY
-        self.btn_rotate = ttk.Button(
-            row1, 
-            text="↻ Ảnh", 
-            command=self.router.rotate_template_right, 
-            width=5,
-            style="Compact.Rotate.TButton", 
-            state="disabled"
-        )
-        self.btn_rotate.pack(side=RIGHT, padx=(2, 0), fill=Y)
+       
 
         # --- MÁY IN ---
         try: printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
@@ -197,6 +188,16 @@ class RightPanelView(ttk.Frame):
                                              values=["Chỉ dữ liệu", "Dữ liệu + Phôi"],
                                              state="disabled", width=9, bootstyle="primary", font=TB_FONT)
         self.cbb_print_mode.pack(side=LEFT, padx=1)
+         # NÚT XOAY
+        self.btn_rotate = ttk.Button(
+           fr_paper, 
+            text="↻ Ảnh", 
+            command=self.router.rotate_template_right, 
+            width=5,
+            style="Compact.Rotate.TButton", 
+            state="disabled"
+        )
+        self.btn_rotate.pack(side=RIGHT, padx=(2, 0), fill=Y)
 
         # ============================================================
         # [HÀNG 2]
