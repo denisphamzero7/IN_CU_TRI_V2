@@ -15,7 +15,6 @@ class RightPanelView(ttk.Frame):
         style = ttk.Style()
         style.configure('Misa.TFrame', background=APP_BG_COLOR)
         
-        # Lấy màu xanh chủ đạo (Primary) của theme hiện tại để dùng cho viền
         primary_color = style.colors.primary
         
         # 1. Label/Checkbox Toolbar
@@ -28,22 +27,16 @@ class RightPanelView(ttk.Frame):
         style.configure('Compact.Outline.TButton', font=TB_FONT, padding=(3, 0))
         style.configure('Compact.Link.TButton', font=TB_FONT, padding=(0, 0))
 
-        # 3. [STYLE ĐẶC BIỆT] Nút Xoay: Viền luôn Xanh, Chữ Xám khi Disabled
+        # 3. [STYLE ĐẶC BIỆT] Nút Xoay
         style.configure('Compact.Rotate.TButton', 
                         font=TB_FONT, 
-                        padding=(2, 0),        # Ép độ cao bằng Combobox
-                        borderwidth=1,         # Có viền
-                        background=APP_BG_COLOR) # Nền trùng màu app
+                        padding=(2, 0),       
+                        borderwidth=1,        
+                        background=APP_BG_COLOR) 
 
-        # Map màu sắc: Chìa khóa để viền xanh nhưng chữ xám
         style.map('Compact.Rotate.TButton',
-                  # Viền (bordercolor): Luôn là màu Primary (Xanh) bất kể trạng thái
                   bordercolor=[('disabled', primary_color), ('!disabled', primary_color)], 
-                  
-                  # Chữ (foreground): Xám khi disabled, Đen/Xanh khi active (tùy ý)
                   foreground=[('disabled', '#a0a0a0'), ('!disabled', 'black')],
-                  
-                  # Nền: Giữ nguyên màu nền app để nhìn như Outline
                   background=[('active', APP_BG_COLOR), ('!disabled', APP_BG_COLOR)]
         )
 
@@ -77,44 +70,30 @@ class RightPanelView(ttk.Frame):
         self.canvas.focus_set()
         self.router.on_drag_start(event)
 
-    def _require_license(self, func, *args):
-        if self.router.ctrl_license.is_licensed:
-            return func(*args)
-        else:
-            MsgHelper.show_warning("Tính năng này chỉ dành cho bản quyền Pro!")
-    
+    # [ĐÃ XÓA]: Hàm _require_license không còn cần thiết nữa
+
     def _bind_placeholder(self, widget, var, placeholder_text):
         """Hàm tạo hiệu ứng placeholder cho Spinbox"""
-        # Gán giá trị ban đầu là placeholder
         var.set(placeholder_text)
-        # Chỉnh màu chữ thành xám (giả lập placeholder)
         try: widget.configure(foreground="#888888")
         except: pass
 
         def on_focus_in(event):
-            # Khi click vào, nếu đang là chữ placeholder thì xóa đi
             if var.get() == placeholder_text:
                 var.set("")
-                try: widget.configure(foreground="#333333") # Màu chữ chính (đen/xám đậm)
+                try: widget.configure(foreground="#333333")
                 except: pass
 
         def on_focus_out(event):
-            # Khi click ra ngoài, nếu rỗng thì điền lại placeholder
             if var.get().strip() == "":
                 var.set(placeholder_text)
-                try: widget.configure(foreground="#888888") # Màu chữ mờ
+                try: widget.configure(foreground="#888888")
                 except: pass
         
         widget.bind("<FocusIn>", on_focus_in)
         widget.bind("<FocusOut>", on_focus_out)
 
     def _validate_positive_input(self, new_value):
-        """
-        Hàm kiểm tra hợp lệ:
-        - Cho phép rỗng (để người dùng xóa đi nhập lại)
-        - Cho phép chữ 'Từ', 'Đến' (để hiện placeholder)
-        - Chỉ cho phép số nguyên dương > 0
-        """
         if new_value == "": return True
         if new_value in ["Từ", "Đến"]: return True
         if new_value.isdigit():
@@ -135,8 +114,6 @@ class RightPanelView(ttk.Frame):
         btn_print = ttk.Button(row1, text="🖨️", width=3, command=self.router.start_print, bootstyle="danger")
         btn_print.pack(side=RIGHT, padx=(3, 2))
         
-       
-
         # --- MÁY IN ---
         try: printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
         except: printers = []
@@ -156,7 +133,7 @@ class RightPanelView(ttk.Frame):
         
         # Input Từ
         self.var_print_from = tk.StringVar()
-        self.entry_from = ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_from, width=6, style="Compact.TSpinbox", validate="key", validatecommand=vcmd)
+        self.entry_from = ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_from, width=10, style="Compact.TSpinbox", validate="key", validatecommand=vcmd)
         self.entry_from.pack(side=LEFT, padx=(1, 3))
         self._bind_placeholder(self.entry_from, self.var_print_from, "Từ")
         
@@ -164,7 +141,7 @@ class RightPanelView(ttk.Frame):
 
         # Input Đến
         self.var_print_to = tk.StringVar()
-        self.entry_to = ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_to, width=6, style="Compact.TSpinbox", validate="key", validatecommand=vcmd)
+        self.entry_to = ttk.Spinbox(fr_range, from_=1, to=9999, textvariable=self.var_print_to, width=10, style="Compact.TSpinbox", validate="key", validatecommand=vcmd)
         self.entry_to.pack(side=LEFT, padx=(3, 0))
         self._bind_placeholder(self.entry_to, self.var_print_to, "Đến")
 
@@ -185,10 +162,11 @@ class RightPanelView(ttk.Frame):
         # CHẾ ĐỘ IN
         self.var_print_mode = tk.StringVar(value="Chỉ dữ liệu")
         self.cbb_print_mode = ttk.Combobox(fr_paper, textvariable=self.var_print_mode,
-                                             values=["Chỉ dữ liệu", "Dữ liệu + Phôi"],
-                                             state="disabled", width=9, bootstyle="primary", font=TB_FONT)
+                                           values=["Chỉ dữ liệu", "Dữ liệu + Phôi"],
+                                           state="disabled", width=9, bootstyle="primary", font=TB_FONT)
         self.cbb_print_mode.pack(side=LEFT, padx=1)
-         # NÚT XOAY
+        
+        # NÚT XOAY
         self.btn_rotate = ttk.Button(
            fr_paper, 
             text="↻ Ảnh", 
@@ -209,51 +187,61 @@ class RightPanelView(ttk.Frame):
         self.fr_text_props = ttk.Frame(self.fr_style_toolbar, style='Misa.TFrame')
         self.fr_text_props.pack(side=LEFT, fill=X, expand=YES)
 
-        # Font
+        # Font - [SỬA]: Gọi trực tiếp router
         self.combo_font = ttk.Combobox(self.fr_text_props, values=["Arial", "Times New Roman", "Calibri", "Segoe UI", "Tahoma"], width=15, state="readonly", font=TB_FONT)
         self.combo_font.set("Font") 
         self.combo_font.pack(side=LEFT, padx=(2, 10))
-        self.combo_font.bind("<<ComboboxSelected>>", lambda e: self._require_license(self.router.on_prop_change, e))
+        self.combo_font.bind("<<ComboboxSelected>>", self.router.on_prop_change)
 
-        # Size
+        # Size - [SỬA]: Gọi trực tiếp router
         self.var_font_size = tk.StringVar()
-        self.spin_size = ttk.Spinbox(self.fr_text_props, from_=5, to=300, textvariable=self.var_font_size, width=5, command=lambda: self._require_license(self.router.on_prop_change), style="Compact.TSpinbox")
+        self.spin_size = ttk.Spinbox(self.fr_text_props, from_=5, to=300, textvariable=self.var_font_size, width=5, 
+                                     command=self.router.on_prop_change, 
+                                     style="Compact.TSpinbox")
         self.spin_size.pack(side=LEFT, padx=(0, 10))
         self._bind_placeholder(self.spin_size, self.var_font_size, "Size")
-        self.spin_size.bind("<Return>", lambda e: self._require_license(self.router.on_prop_change, e))
+        self.spin_size.bind("<Return>", self.router.on_prop_change)
 
-        # Bold / Upper
+        # Bold / Upper - [SỬA]: Gọi trực tiếp router
         self.chk_bold_var = tk.BooleanVar()
         self.chk_upper_var = tk.BooleanVar()
-        ttk.Checkbutton(self.fr_text_props, text="B", variable=self.chk_bold_var, style="Toolbar.TCheckbutton", command=lambda: self._require_license(self.router.on_prop_change)).pack(side=LEFT, padx=(0, 10))
-        ttk.Checkbutton(self.fr_text_props, text="AA", variable=self.chk_upper_var, style="Toolbar.TCheckbutton", command=lambda: self._require_license(self.router.on_prop_change)).pack(side=LEFT, padx=(0, 15))
+        ttk.Checkbutton(self.fr_text_props, text="B", variable=self.chk_bold_var, style="Toolbar.TCheckbutton", 
+                        command=self.router.on_prop_change).pack(side=LEFT, padx=(0, 10))
+        ttk.Checkbutton(self.fr_text_props, text="AA", variable=self.chk_upper_var, style="Toolbar.TCheckbutton", 
+                        command=self.router.on_prop_change).pack(side=LEFT, padx=(0, 15))
 
-        # Màu
+        # Màu - [SỬA]: Gọi trực tiếp router
         ttk.Label(self.fr_text_props, text="Màu:", style='MisaToolbar.TLabel').pack(side=LEFT, padx=(0,1))
         self.combo_color = ttk.Combobox(self.fr_text_props, values=["Black", "Red", "Blue"], width=6, state="readonly", font=TB_FONT)
         self.combo_color.set("Black")
         self.combo_color.pack(side=LEFT)
-        self.combo_color.bind("<<ComboboxSelected>>", lambda e: self._require_license(self.router.on_prop_change, e))
+        self.combo_color.bind("<<ComboboxSelected>>", self.router.on_prop_change)
 
         # --- IMAGE PROPS ---
         self.fr_img_props = ttk.Frame(self.fr_style_toolbar, style='Misa.TFrame')
         
         ttk.Label(self.fr_img_props, text="W:", style='MisaToolbar.TLabel').pack(side=LEFT, padx=(2,1))
-        self.spin_img_w = ttk.Spinbox(self.fr_img_props, from_=1, to=1000, width=4, command=lambda: self._require_license(self.router.on_prop_change), style="Compact.TSpinbox")
+        # [SỬA]: Gọi trực tiếp router
+        self.spin_img_w = ttk.Spinbox(self.fr_img_props, from_=1, to=1000, width=4, 
+                                      command=self.router.on_prop_change, 
+                                      style="Compact.TSpinbox")
         self.spin_img_w.pack(side=LEFT, padx=(0, 10))
-        self.spin_img_w.bind("<Return>", lambda e: self._require_license(self.router.on_prop_change, e))
+        self.spin_img_w.bind("<Return>", self.router.on_prop_change)
 
         ttk.Label(self.fr_img_props, text="H:", style='MisaToolbar.TLabel').pack(side=LEFT, padx=(0, 2))
-        self.spin_img_h = ttk.Spinbox(self.fr_img_props, from_=1, to=1000, width=4, command=lambda: self._require_license(self.router.on_prop_change), style="Compact.TSpinbox")
+        # [SỬA]: Gọi trực tiếp router
+        self.spin_img_h = ttk.Spinbox(self.fr_img_props, from_=1, to=1000, width=4, 
+                                      command=self.router.on_prop_change, 
+                                      style="Compact.TSpinbox")
         self.spin_img_h.pack(side=LEFT, padx=(0, 10))
-        self.spin_img_h.bind("<Return>", lambda e: self._require_license(self.router.on_prop_change, e))
+        self.spin_img_h.bind("<Return>", self.router.on_prop_change)
 
-        # NÚT CHỌN FILE (ĐÃ SỬA: Thêm width=15)
+        # NÚT CHỌN FILE
         ttk.Button(
             self.fr_img_props, 
             text="📂 File chữ ký riêng", 
-            width=15, # Tăng chiều rộng tại đây
-            command=lambda: self._require_license(self.router.pick_manual_signature), 
+            width=15,
+            command=self.router.pick_manual_signature, # [SỬA]: Gọi trực tiếp
             style="Compact.Outline.TButton", 
             bootstyle="warning-outline"
         ).pack(side=LEFT, padx=(5, 0),ipady=4)
@@ -261,7 +249,10 @@ class RightPanelView(ttk.Frame):
         # ============================================================
         # [PHẦN KHÔI PHỤC GỐC]
         # ============================================================
-        ttk.Button(self.fr_style_toolbar, text="↺ Mặc định", command=lambda: self._require_license(self.router.reset_current_custom), style="Compact.Link.TButton", bootstyle="link").pack(side=RIGHT, padx=(0, 2))
+        # [SỬA]: Gọi trực tiếp
+        ttk.Button(self.fr_style_toolbar, text="↺ Mặc định", 
+                   command=self.router.reset_current_custom, 
+                   style="Compact.Link.TButton", bootstyle="link").pack(side=RIGHT, padx=(0, 2))
 
         self.lbl_current_field = ttk.Label(self.fr_style_toolbar, text="(Chưa chọn)", font=TB_FONT_BOLD, foreground="blue", background=APP_BG_COLOR)
         self.lbl_current_field.pack(side=RIGHT, padx=5)
@@ -280,10 +271,7 @@ class RightPanelView(ttk.Frame):
             self.fr_img_props.pack_forget()
             self.fr_text_props.pack(side=LEFT, fill=X, expand=YES)
             self.combo_font.set(cfg.get("font", "Arial"))
-            
-            # Xử lý hiển thị Size cẩn thận vì có thể đang là chữ "Size"
             self.spin_size.set(cfg.get("size", 30))
-            
             self.chk_bold_var.set(cfg.get("bold", False))
             self.chk_upper_var.set(cfg.get("upper", False))
             self.combo_color.set(cfg.get("color", "Black"))

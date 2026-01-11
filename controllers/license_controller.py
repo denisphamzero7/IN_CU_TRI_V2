@@ -140,4 +140,4 @@ class LicenseController:
                 show="" 
             )
             
-            if hasattr(p_left, 'fr_buttons'): self._lock_area(p_left.fr_buttons)
+            # if hasattr(p_left, 'fr_buttons'): self._lock_area(p_left.fr_buttons)

@@ -5,37 +5,33 @@ from config.settings import APP_BG_COLOR
 
 def create_3_columns(master):
     """
-    Tạo bố cục 3 cột.
-    Đã điều chỉnh cột Left để KHỚP với chữ 'Đà Nẵng'.
+    Tạo bố cục 3 cột với tỷ lệ mới:
+    - Left:  15% (Giữ nguyên - Đủ cho menu)
+    - Mid:   25% (Thu hẹp lại)
+    - Right: 60% (Mở rộng tối đa cho Preview)
     """
     main_pane = ttk.Panedwindow(master, orient=HORIZONTAL)
     main_pane.pack(fill=BOTH, expand=YES)
 
     # --- 1. Cột Trái (Menu) ---
-    # [ĐIỀU CHỈNH LẠI]: Tăng từ 180 lên 265.
-    # Con số 265px này đảm bảo hiển thị đủ dòng "ỦY BAN... ĐÀ NẴNG" 
-    # và khung "Thông tin liên hệ" bên dưới mà không bị cắt chữ.
+    # Giữ nguyên width=265 và các thuộc tính cố định khung
     left = tk.Frame(main_pane, bg=APP_BG_COLOR, width=265) 
-    
-    # Giữ cố định size này để không bị nội dung bên trong làm vỡ khung
     left.pack_propagate(False) 
-    left.grid_propagate(False)
+    left.grid_propagate(False) 
     
     # --- 2. Cột Giữa (Dữ liệu) ---
-    # Mid chiếm khoảng 35% không gian còn lại
-    mid = tk.Frame(main_pane, bg=APP_BG_COLOR, width=500)
+    # Giảm width khởi tạo xuống một chút (400) để khớp với weight 25%
+    mid = tk.Frame(main_pane, bg=APP_BG_COLOR, width=400)
     
     # --- 3. Cột Phải (Preview) ---
-    # Right chiếm khoảng 50%
-    right = tk.Frame(main_pane, bg=APP_BG_COLOR, width=700)
+    # Tăng width khởi tạo lên (850) để khớp với weight 60%
+    right = tk.Frame(main_pane, bg=APP_BG_COLOR, width=850)
 
-    # --- Cấu hình Weight ---
-    # Left = 15: Tỉ lệ vừa phải, kết hợp với width=265 sẽ ra giao diện chuẩn.
-    # Mid = 35
-    # Right = 50
+    # --- Cấu hình Weight (Tỷ lệ co giãn) ---
+    # Tổng: 15 + 25 + 60 = 100
     
-    main_pane.add(left, weight=15)   
-    main_pane.add(mid, weight=35)    
-    main_pane.add(right, weight=50)  
+    main_pane.add(left, weight=15)   # Giữ nguyên
+    main_pane.add(mid, weight=25)    # Giảm từ 35 xuống 25
+    main_pane.add(right, weight=60)  # Tăng từ 50 lên 60
 
     return left, mid, right

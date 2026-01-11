@@ -91,24 +91,24 @@ class AppRouter:
             custom_indices = list(range(start_row - 1, end_row))
             self.ctrl_print.print_batch(custom_indices)
         except ValueError:
-            return MsgHelper.show_error("Lỗi nhập liệu!")
+            return MsgHelper.show_error("Vui lòng nhập số trang in?")
 
     def rotate_template_right(self):
         # Ví dụ: Xoay ảnh cũng cần bản quyền
-        if not self.check_license(): return 
+        # if not self.check_license(): return 
 
         self.template_rotation = (self.template_rotation + 90) % 360
         self.render_canvas_safe()
 
     def on_paper_config_change(self, event=None):
         # Đổi khổ giấy cần bản quyền
-        if not self.check_license(): 
-            # Reset lại combobox về cũ nếu cần (tùy chọn)
-            return 
+        # if not self.check_license(): 
+        #     # Reset lại combobox về cũ nếu cần (tùy chọn)
+        #     return 
         self.render_canvas_safe()
 
     def on_orientation_change(self, event=None):
-        if not self.check_license(): return
+        # if not self.check_license(): return
         
         val = self.view.p_right.var_orientation.get()
         if val == "Ngang": 
@@ -121,7 +121,7 @@ class AppRouter:
 
     def on_prop_change(self, event=None):
         # Chỉnh sửa font/size cần bản quyền
-        if not self.check_license(): return
+        # if not self.check_license(): return
 
         if not self.selected_field or self.is_loading_ui: return
         if not self.has_template(): return 
@@ -149,7 +149,7 @@ class AppRouter:
         if mode == "individual": self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
 
     def pick_manual_signature(self):
-        if not self.check_license(): return 
+        # if not self.check_license(): return 
 
         if not self.has_template(): return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
         path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg;*.jpeg")])
@@ -163,7 +163,7 @@ class AppRouter:
             self.render_canvas_safe()
 
     def reset_current_custom(self):
-        if not self.check_license(): return 
+        # if not self.check_license(): return 
 
         if not self.has_template(): return MsgHelper.show_warning("Chưa có phôi!")
         
@@ -193,9 +193,20 @@ class AppRouter:
     # -------------------------------------------------------------
     # CÁC HÀM KHÁC (KHÔNG CẦN BẢN QUYỀN HOẶC TÙY BẠN)
     # -------------------------------------------------------------
-    def select_template(self): self.ctrl_data.select_template()
-    def select_excel(self): self.ctrl_data.select_excel()
-    def select_signature_folder(self): self.ctrl_data.select_signature_folder()
+    def select_template(self): 
+        # Thêm dòng này: Nếu chưa active thì dừng luôn
+        if not self.check_license(): return 
+        self.ctrl_data.select_template()
+
+    def select_excel(self): 
+        # Thêm dòng này
+        if not self.check_license(): return 
+        self.ctrl_data.select_excel()
+
+    def select_signature_folder(self): 
+        # Thêm dòng này
+        if not self.check_license(): return 
+        self.ctrl_data.select_signature_folder()
     
     def exit_app(self):
         if MsgHelper.ask_yes_no("Thoát?", parent=self.view): self.view.master.destroy()
