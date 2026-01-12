@@ -7,11 +7,11 @@
             "h": 80,
             "enable": true,
             "type": "image",
-            "path": "C:/Users/Admin/Pictures/Picture1.jpg"
+            "path": "C:/Users/Admin/Documents/TINTUC/inra/Chữ ký Mr Quân_Không con dấu.png"
         },
         "Stt": {
-            "x": 90,
-            "y": 88,
+            "x": 26,
+            "y": 160,
             "size": 20,
             "enable": true,
             "font": "Arial",
