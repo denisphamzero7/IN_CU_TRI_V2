@@ -33,8 +33,8 @@
             "text": "Cẩm lệ"
         },
         "Họ tên": {
-            "x": 564,
-            "y": 214,
+            "x": 741,
+            "y": 86,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -44,8 +44,8 @@
             "upper": false
         },
         "Ngày sinh": {
-            "x": 371,
-            "y": 239,
+            "x": 352,
+            "y": 254,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -55,8 +55,8 @@
             "upper": false
         },
         "Giới tính": {
-            "x": 419,
-            "y": 276,
+            "x": 346,
+            "y": 277,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -66,8 +66,8 @@
             "upper": false
         },
         "Nơi cư trú": {
-            "x": 434,
-            "y": 310,
+            "x": 359,
+            "y": 292,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -136,14 +136,14 @@
             "x": 50,
             "y": 50,
             "size": 30,
-            "enable": false,
+            "enable": true,
             "font": "Arial",
             "color": "Black",
             "type": "text"
         },
         "Họ và tên": {
-            "x": 307,
-            "y": 204,
+            "x": 268,
+            "y": 197,
             "size": 30,
             "enable": true,
             "font": "Arial",
@@ -151,8 +151,8 @@
             "type": "text"
         },
         "Ngày tháng năm sinh": {
-            "x": 558,
-            "y": 257,
+            "x": 601,
+            "y": 245,
             "size": 30,
             "enable": true,
             "font": "Arial",
