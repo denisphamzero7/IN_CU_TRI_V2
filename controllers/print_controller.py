@@ -233,8 +233,8 @@ class PrintController:
                 if "00:00:00" in val: val = val.split(" ")[0]
                 if cfg.get("upper", False): val = val.upper()
                 
-                font_size = int(cfg.get("size", 30) * scale)
-                font_path = FontManager.get_path(cfg.get("font", "Arial"), cfg.get("bold", False))
+                font_size = int(cfg.get("size", 21) * scale)
+                font_path = FontManager.get_path(cfg.get("font", "Times New Roman"), cfg.get("bold", True))
                 try: font = ImageFont.truetype(font_path, font_size)
                 except: font = ImageFont.load_default()
                 

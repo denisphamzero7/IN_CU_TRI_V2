@@ -1,152 +1,153 @@
 {
     "global": {
         "signature_img": {
-            "x": 645,
-            "y": 513,
+            "x": 658,
+            "y": 490,
             "w": 150,
             "h": 80,
             "enable": true,
             "type": "image",
             "path": "C:/Users/Admin/Documents/TINTUC/inra/Chữ ký Mr Quân_Không con dấu.png"
         },
-        "Stt": {
-            "x": 26,
-            "y": 160,
-            "size": 20,
-            "enable": true,
-            "font": "Arial",
-            "color": "Black",
-            "type": "text",
-            "bold": true,
-            "upper": false
-        },
-        "Tên đơn vị": {
-            "x": 248,
-            "y": 44,
-            "size": 21,
-            "enable": true,
-            "font": "Arial",
-            "color": "Black",
-            "type": "text",
-            "bold": true,
-            "upper": false
-        },
-        "Họ tên": {
-            "x": 665,
-            "y": 214,
+        "STT": {
+            "x": 359,
+            "y": 392,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": false,
-            "upper": false
+            "bold": true
         },
-        "Ngày sinh": {
-            "x": 666,
+        "Họ và tên": {
+            "x": 721,
+            "y": 217,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ngày tháng năm sinh": {
+            "x": 734,
             "y": 244,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
-            "upper": false
+            "bold": true
         },
         "Giới tính": {
-            "x": 655,
+            "x": 755,
             "y": 276,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
-            "upper": false
+            "bold": true
         },
-        "Nơi cư trú": {
-            "x": 661,
-            "y": 315,
+        "Số Căn cước": {
+            "x": 724,
+            "y": 347,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
-            "upper": false
+            "bold": true
         },
-        "Số cccd": {
-            "x": 702,
-            "y": 349,
+        "Nơi ở": {
+            "x": 621,
+            "y": 317,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
-            "upper": false
+            "bold": true
         },
-        "Số thẻ cử tri": {
-            "x": 371,
-            "y": 391,
-            "size": 21,
-            "enable": true,
-            "font": "Arial",
-            "color": "Black",
-            "type": "text",
-            "bold": true,
-            "upper": false
-        },
-        "Khu vực bỏ phiếu": {
-            "x": 380,
-            "y": 426,
+        "Ủy ban nhân dân": {
+            "x": 258,
+            "y": 42,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
-            "upper": true
+            "bold": true
         },
-        "Thành phố": {
-            "x": 344,
-            "y": 455,
+        "PHường xã đặc khu": {
+            "x": 319,
+            "y": 453,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
-            "upper": false
+            "bold": true
+        },
+        "KHu vực bỏ phiếu": {
+            "x": 352,
+            "y": 429,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ký thay": {
+            "x": 555,
+            "y": 473,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Chức danh ký thay": {
+            "x": 663,
+            "y": 551,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ngày ký": {
+            "x": 577,
+            "y": 375,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Tháng ký": {
+            "x": 670,
+            "y": 377,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
         },
         "Người ký": {
-            "x": 649,
-            "y": 573,
+            "x": 666,
+            "y": 572,
             "size": 21,
             "enable": true,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "type": "text",
-            "bold": true,
-            "upper": false
-        },
-        "Hình ảnh chữ ký": {
-            "x": 50,
-            "y": 50,
-            "size": 30,
-            "enable": false,
-            "font": "Arial",
-            "color": "Black",
-            "type": "text"
-        },
-        "Xã/phường/đặc khu": {
-            "x": 50,
-            "y": 50,
-            "size": 30,
-            "enable": false,
-            "font": "Arial",
-            "color": "Black",
-            "type": "text"
+            "bold": true
         }
     },
     "custom": {}

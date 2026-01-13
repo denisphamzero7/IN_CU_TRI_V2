@@ -73,10 +73,22 @@ class RightPanelView(ttk.Frame):
     # [ĐÃ XÓA]: Hàm _require_license không còn cần thiết nữa
 
     def _bind_placeholder(self, widget, var, placeholder_text):
-        """Hàm tạo hiệu ứng placeholder cho Spinbox"""
-        var.set(placeholder_text)
-        try: widget.configure(foreground="#888888")
-        except: pass
+        """Hàm tạo hiệu ứng placeholder cho Spinbox (ĐÃ SỬA)"""
+        
+        # --- [SỬA ĐOẠN NÀY] ---
+        # Kiểm tra giá trị hiện tại trước khi gán placeholder
+        current_val = var.get()
+        
+        if not current_val or current_val == "":
+            # Nếu rỗng thì gán chữ mờ (Placeholder)
+            var.set(placeholder_text)
+            try: widget.configure(foreground="#888888")
+            except: pass
+        else:
+            # Nếu đã có giá trị (ví dụ: 21) thì giữ nguyên và dùng màu đen
+            try: widget.configure(foreground="#333333")
+            except: pass
+        # ----------------------
 
         def on_focus_in(event):
             if var.get() == placeholder_text:
@@ -188,13 +200,13 @@ class RightPanelView(ttk.Frame):
         self.fr_text_props.pack(side=LEFT, fill=X, expand=YES)
 
         # Font - [SỬA]: Gọi trực tiếp router
-        self.combo_font = ttk.Combobox(self.fr_text_props, values=["Arial", "Times New Roman", "Calibri", "Segoe UI", "Tahoma"], width=15, state="readonly", font=TB_FONT)
-        self.combo_font.set("Font") 
+        self.combo_font = ttk.Combobox(self.fr_text_props, values=[ "Times New Roman", "Arial","Calibri", "Segoe UI", "Tahoma"], width=15, state="readonly", font=TB_FONT)
+        self.combo_font.set("Times New Roman") 
         self.combo_font.pack(side=LEFT, padx=(2, 10))
         self.combo_font.bind("<<ComboboxSelected>>", self.router.on_prop_change)
 
         # Size - [SỬA]: Gọi trực tiếp router
-        self.var_font_size = tk.StringVar()
+        self.var_font_size = tk.StringVar(value="21")
         self.spin_size = ttk.Spinbox(self.fr_text_props, from_=5, to=300, textvariable=self.var_font_size, width=5, 
                                      command=self.router.on_prop_change, 
                                      style="Compact.TSpinbox")
@@ -203,7 +215,7 @@ class RightPanelView(ttk.Frame):
         self.spin_size.bind("<Return>", self.router.on_prop_change)
 
         # Bold / Upper - [SỬA]: Gọi trực tiếp router
-        self.chk_bold_var = tk.BooleanVar()
+        self.chk_bold_var = tk.BooleanVar(value=True)
         self.chk_upper_var = tk.BooleanVar()
         ttk.Checkbutton(self.fr_text_props, text="B", variable=self.chk_bold_var, style="Toolbar.TCheckbutton", 
                         command=self.router.on_prop_change).pack(side=LEFT, padx=(0, 10))
@@ -270,8 +282,8 @@ class RightPanelView(ttk.Frame):
         else:
             self.fr_img_props.pack_forget()
             self.fr_text_props.pack(side=LEFT, fill=X, expand=YES)
-            self.combo_font.set(cfg.get("font", "Arial"))
-            self.spin_size.set(cfg.get("size", 30))
-            self.chk_bold_var.set(cfg.get("bold", False))
+            self.combo_font.set(cfg.get("font", "Times New Roman"))
+            self.spin_size.set(cfg.get("size", 21))
+            self.chk_bold_var.set(cfg.get("bold", True))
             self.chk_upper_var.set(cfg.get("upper", False))
             self.combo_color.set(cfg.get("color", "Black"))

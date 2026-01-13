@@ -148,9 +148,11 @@ class CanvasController:
                 display_val = val if val.strip() != "" else f"[{col}]"
                 is_placeholder = (val.strip() == "")
 
-                f_size = max(1, int(cfg.get("size", 30) * self.scale_factor)) 
+                # 1. Sửa số 30 thành 21
+                f_size = max(1, int(cfg.get("size", 21) * self.scale_factor)) 
                 
-                font_path = FontManager.get_path(cfg.get("font", "Arial"), cfg.get("bold", False))
+                # 2. Sửa "Arial" thành "Times New Roman" và False thành True (nếu muốn mặc định in đậm)
+                font_path = FontManager.get_path(cfg.get("font", "Times New Roman"), cfg.get("bold", True))
                 try: pil_font = ImageFont.truetype(font_path, f_size)
                 except: pil_font = ImageFont.load_default()
 

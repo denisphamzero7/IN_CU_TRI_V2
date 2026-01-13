@@ -86,7 +86,7 @@ class VoterModel:
         # Khởi tạo config cho các cột mới (Giữ nguyên code cũ)
         for col in self.df.columns:
             if col not in self.global_config:
-                self.global_config[col] = {"x": 50, "y": 50, "size": 30, "enable": False, "font": "Arial", "color": "Black", "type": "text"}
+                self.global_config[col] = {"x": 50, "y": 50, "size": 21, "enable": False, "font": "Times New Roman", "color": "Black", "type": "text","bold": True,}
         if "signature_img" not in self.global_config:
              self.global_config["signature_img"] = {"x": 300, "y": 300, "w": 150, "h": 80, "enable": True, "type": "image"} 
         self.save_config()
