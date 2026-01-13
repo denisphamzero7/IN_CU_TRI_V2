@@ -251,7 +251,6 @@ class AppRouter:
         self.refresh_mid_table()
 
     def on_search_action(self, event=None):
-        # [THAY ĐỔI] Hàm này giờ xử lý việc chọn Cột Tìm Kiếm
         if not self.has_template(): return
         if self.view: self.view.master.config(cursor="watch")
         try:

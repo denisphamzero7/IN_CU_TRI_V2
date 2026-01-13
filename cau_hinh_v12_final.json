@@ -158,6 +158,66 @@
             "color": "Black",
             "type": "text",
             "bold": true
+        },
+        "Stt": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Họ tên": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ngày sinh": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Nơi cư trú": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Số cccd": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Số thẻ cử tri": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
         }
     },
     "custom": {}
