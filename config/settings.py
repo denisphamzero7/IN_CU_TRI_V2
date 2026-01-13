@@ -1,7 +1,12 @@
 # config/settings.py
 
 CONFIG_FILE = "cau_hinh_v12_final.json"
-
+STATIC_FIELDS_LIST = [
+    "Tên đơn vị", 
+    "Người ký", 
+    "Khu vực bỏ phiếu", 
+    "Xã/phường/đặc khu"
+]
 # --- [MỚI] CẤU HÌNH MÀU SẮC GIAO DIỆN MISA ---
 # 1. Màu nền chính (Xanh tím nhạt)
 APP_BG_COLOR = "#D9E1F2"

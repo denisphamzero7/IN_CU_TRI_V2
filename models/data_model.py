@@ -4,7 +4,7 @@ import os
 import math 
 from PIL import Image
 from copy import deepcopy
-from config.settings import CONFIG_FILE
+from config.settings import CONFIG_FILE, STATIC_FIELDS_LIST
 
 class VoterModel:
     def __init__(self):
@@ -18,7 +18,7 @@ class VoterModel:
         self.unique_areas = []   
         
         # --- [SỬA] Đặt mặc định là từ khóa này ---
-        self.current_area_filter = "Lọc theo khu vực"
+        self.current_area_filter = "Khu vực"
         # -----------------------------------------
         
         self.current_search_keyword = "" 
@@ -36,6 +36,23 @@ class VoterModel:
                     self.global_config = data.get("global", {})
                     self.custom_configs = {int(k): v for k, v in data.get("custom", {}).items()}
             except: pass
+            # --- [MỚI] KHỞI TẠO CÁC TRƯỜNG CỐ ĐỊNH (STATIC) ---
+        # Đặt tọa độ mặc định để người dùng thấy ngay
+        default_y = 100
+        for field in STATIC_FIELDS_LIST :
+            if field not in self.global_config:
+                self.global_config[field] = {
+                    "x": 100, 
+                    "y": default_y, 
+                    "size": 14, 
+                    "enable": True, # Mặc định bật luôn
+                    "font": "Arial", 
+                    "color": "Black", 
+                    "bold": True,
+                    "text": field, # Giá trị mặc định là tên trường
+                    "type": "text"
+                }
+                default_y += 50 # Xếp chồng lên nhau
         if "signature_img" not in self.global_config:
             self.global_config["signature_img"] = {"x": 300, "y": 300, "w": 150, "h": 80, "enable": True, "type": "image"}
 

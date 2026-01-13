@@ -12,7 +12,7 @@ from helpers.ui_helpers import apply_window_icon
 from helpers.font_manager import FontManager
 import tkinter as tk
 from tkinter import Toplevel, ttk
-
+from config.settings import STATIC_FIELDS_LIST
 class PrintController:
     PAPER_IDS = {"A4": 9, "A5": 11, "A6": 70}
 
@@ -228,7 +228,17 @@ class PrintController:
                     sig = sig.resize((w, h), Image.Resampling.LANCZOS)
                     img.paste(sig, (x - w//2, y - h//2), sig)
             else:
-                val = str(row.get(col, "")).replace("nan", "")
+                # --- [SỬA ĐỔI TỪ ĐÂY] ---
+                
+                # 1. Xác định nội dung cần in (val)
+                if col in STATIC_FIELDS_LIST:
+                    # Nếu là trường tĩnh -> Lấy text từ cấu hình (do người dùng nhập ở panel trái)
+                    val = cfg.get("text", "")
+                else:
+                    # Nếu là trường Excel -> Lấy từ dòng dữ liệu
+                    val = str(row.get(col, "")).replace("nan", "")
+                
+                # 2. Xử lý format chung (giống nhau cho cả 2 loại)
                 if not val: continue
                 if "00:00:00" in val: val = val.split(" ")[0]
                 if cfg.get("upper", False): val = val.upper()

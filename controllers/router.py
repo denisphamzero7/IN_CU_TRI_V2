@@ -1,3 +1,4 @@
+
 import os
 from tkinter import filedialog
 from models.data_model import VoterModel
@@ -284,11 +285,32 @@ class AppRouter:
         is_on = self.view.p_left.field_vars[col].get()
         self.model.update_config_value(self.current_idx, "global", col, "enable", is_on)
         self.render_canvas_safe()
+    def on_static_text_change(self, col, new_text):
+        if not self.has_template(): return
+        
+        # Luôn lưu vào Global config cho các trường này
+        self.model.update_config_value(0, "global", col, "text", new_text)
+        self.render_canvas_safe()
 
-    def select_field(self, col):
+    def select_field(self, col, from_input=False):
+        """
+        Chọn trường dữ liệu.
+        from_input: 
+            - True: Nếu gọi từ sự kiện Focus của ô Input (không cần focus lại).
+            - False: Nếu gọi từ sự kiện Click vào danh sách (cần ép focus vào ô Input).
+        """
         self.selected_field = col
+        
+        # Load thông tin cấu hình (Font, size...) sang panel phải
         self.load_field_props_to_ui()
-
+        
+        # Highlight UI bên trái
+        if self.view and hasattr(self.view, 'p_left'):
+            # Logic: Nếu KHÔNG PHẢI từ input (tức là click list) -> Thì hãy Focus vào Input
+            should_focus = not from_input
+            # self.view.p_left.highlight_selected_field(col, focus_input=should_focus)
+            # Gọi hàm highlight bên View (Hàm này đã có logic kiểm tra xem trường đó có Input hay không)
+            self.view.p_left.highlight_selected_field(col, focus_input=should_focus)
     def load_field_props_to_ui(self):
         if not self.selected_field: return
         self.is_loading_ui = True 

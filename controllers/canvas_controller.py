@@ -2,7 +2,7 @@ from PIL import Image, ImageTk, ImageFont, ImageDraw
 import tkinter as tk
 from helpers.font_manager import FontManager
 from helpers.image_utils import rotate_pil_image, get_column_from_tags, create_text_image
-
+from config.settings import STATIC_FIELDS_LIST
 class CanvasController:
     def __init__(self, router):
         self.router = router
@@ -141,7 +141,18 @@ class CanvasController:
                 canvas.create_rectangle(sx-disp_w/2, sy-disp_h/2, sx+disp_w/2, sy+disp_h/2, outline="#3498db", dash=(2, 4), tags=("draggable", tag_id))
 
             else:
-                val = str(row.get(col, "")).replace("nan", "")
+                if col in STATIC_FIELDS_LIST:
+                    # Nếu là trường tĩnh -> Lấy từ config "text"
+                    val = cfg.get("text", "")
+                else:
+                    # Nếu là trường Excel -> Lấy từ dataframe row
+                    # Cần check xem row có tồn tại không (phòng trường hợp chưa load excel nhưng vẫn hiện trường tĩnh)
+                    if self.model.df is not None and not self.model.df.empty and idx < len(self.model.df):
+                         row = self.model.df.iloc[idx]
+                         val = str(row.get(col, "")).replace("nan", "")
+                    else:
+                        val = "" # Không có dữ liệu excel
+
                 if "00:00:00" in val: val = val.split(" ")[0]
                 if cfg.get("upper", False): val = val.upper()
                 
