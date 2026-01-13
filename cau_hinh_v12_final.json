@@ -148,6 +148,16 @@
             "color": "Black",
             "type": "text",
             "bold": true
+        },
+        "Nơi ở hiện tại": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
         }
     },
     "custom": {}

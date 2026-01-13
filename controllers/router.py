@@ -219,14 +219,14 @@ class AppRouter:
             self.view.p_mid.update_data(df_page, self.model.custom_configs)
             self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
             
-            # --- [THÊM MỚI] Cập nhật ô "Đến" bằng tổng số dòng dữ liệu ---
-            # total_rows = len(self.model.df)
-            # if hasattr(self.view.p_right, 'var_print_to'):
-            #     self.view.p_right.var_print_to.set(str(total_rows))
-            # -------------------------------------------------------------
-
-            if list(self.view.p_mid.cbb_filter['values']) != self.model.unique_areas:
-                 self.view.p_mid.cbb_filter['values'] = self.model.unique_areas
+            # --- [THAY ĐỔI] Cập nhật danh sách Cột vào Combobox thay vì Khu vực ---
+            # Lưu ý: tên biến cbb_filter ở View có thể giữ nguyên để đỡ phải sửa nhiều, 
+            # nhưng ý nghĩa giờ là cbb_column
+            if list(self.view.p_mid.cbb_filter['values']) != self.model.searchable_columns:
+                 self.view.p_mid.cbb_filter['values'] = self.model.searchable_columns
+                 self.view.p_mid.cbb_filter.set("Tất cả")
+            # ----------------------------------------------------------------------
+            
         except Exception as e: print(f"Lỗi refresh table: {e}")
         finally: self.is_bulk_updating = False
 
@@ -237,12 +237,21 @@ class AppRouter:
         if self.model.set_page(self.model.current_page - 1): self.refresh_mid_table()
 
     def on_filter_change(self, event):
+        # [THAY ĐỔI] Hàm này giờ xử lý việc chọn Cột Tìm Kiếm
         if not self.has_template(): return 
-        self.model.filter_data(self.view.p_mid.cbb_filter.get())
+        
+        # Lấy tên cột user vừa chọn trong Combobox
+        selected_column = self.view.p_mid.cbb_filter.get()
+        
+        # Cập nhật vào model
+        self.model.set_search_column(selected_column)
+        
+        # Reset selection và refresh lại bảng
         self.deselect_all()
         self.refresh_mid_table()
 
     def on_search_action(self, event=None):
+        # [THAY ĐỔI] Hàm này giờ xử lý việc chọn Cột Tìm Kiếm
         if not self.has_template(): return
         if self.view: self.view.master.config(cursor="watch")
         try:

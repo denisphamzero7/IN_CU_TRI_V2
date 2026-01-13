@@ -17,13 +17,13 @@ class HeaderView(ttk.Frame):
         style.configure('HeaderTitle.TLabel', 
                         background=WHITE, 
                         foreground=MISA_BLUE, 
-                        font=("Segoe UI", 8, "bold"), 
+                        font=("Segoe UI", 9, "bold"), 
                         anchor="center",
                         justify="center")
         
         # Nội dung: Font 9
-        style.configure('InfoMisa.TLabel', background=WHITE, foreground=BLACK, font=("Segoe UI", 7))
-        style.configure('InfoNormal.TLabel', background=WHITE, foreground=BLACK, font=("Segoe UI", 7))
+        style.configure('InfoMisa.TLabel', background=WHITE, foreground=BLACK, font=("Segoe UI", 8))
+        style.configure('InfoNormal.TLabel', background=WHITE, foreground=BLACK, font=("Segoe UI", 8))
 
         # 2. KHỞI TẠO FRAME
         super().__init__(parent, style='Header.TFrame', padding=5)

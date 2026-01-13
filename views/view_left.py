@@ -120,10 +120,10 @@ class LeftPanelView(ttk.Frame):
         fr_footer = ttk.Labelframe(self, text="Thông tin liên hệ", padding=5)
         fr_footer.pack(side=BOTTOM, fill=X, pady=(10, 0))
 
-        lbl_credit = ttk.Label(fr_footer, text=APP_CREDIT, font=("Segoe UI", 7, "bold", "italic"), foreground="#d35400", anchor="center")
+        lbl_credit = ttk.Label(fr_footer, text=APP_CREDIT, font=("Segoe UI", 8, "bold", "italic"), foreground="#d35400", anchor="center")
         lbl_credit.pack(fill=X)
 
-        lbl_support = ttk.Label(fr_footer, text=APP_SUPPORT, font=("Segoe UI", 7), foreground=MISA_TEXT_NORMAL, anchor="center")
+        lbl_support = ttk.Label(fr_footer, text=APP_SUPPORT, font=("Segoe UI", 8), foreground=MISA_TEXT_NORMAL, anchor="center")
         lbl_support.pack(fill=X)
 
     def refresh_field_list(self, cols, global_config):

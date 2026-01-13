@@ -123,7 +123,8 @@ class MidPanelView(ttk.Frame):
 
     def _setup_toolbar(self):
         from views.view_search import SearchView
-
+        # Ép cỡ chữ cho danh sách xổ xuống (Listbox) của Combobox
+        self.option_add('*TCombobox*Listbox.font', ("Segoe UI", 7))
         toolbar = ttk.Frame(self, style='Misa.TFrame')
         toolbar.pack(fill=X, pady=(0, 5)) 
         
@@ -135,20 +136,25 @@ class MidPanelView(ttk.Frame):
         container_left = ttk.Frame(toolbar, style='Misa.TFrame')
         container_left.grid(row=0, column=0, sticky="ew", padx=(0, 5))
         
-        self.search_view = SearchView(container_left, self.router)
-        self.search_view.pack(side=LEFT, fill=X, expand=YES)
+        # --- [THAY ĐỔI] Đảo vị trí: Combobox (Chọn cột) TRƯỚC -> Search View SAU ---
         
+        # 1. Combobox chọn cột (Tên biến giữ nguyên cbb_filter để đỡ sửa code cũ)
         self.cbb_filter = ttk.Combobox(
             container_left, 
             state="readonly", 
             bootstyle="info", 
             justify="left", 
-            width=10,
+            width=15, # Tăng width xíu để hiển thị tên cột dài
             font=("Segoe UI", 7)
         ) 
-        self.cbb_filter.pack(side=LEFT, padx=(0))
-        self.cbb_filter.set("Khu vực") 
+        self.cbb_filter.pack(side=LEFT, padx=(0, 5))
+        self.cbb_filter.set("Tất cả") # Mặc định
         self.cbb_filter.bind("<<ComboboxSelected>>", self.router.on_filter_change)
+
+        # 2. Ô tìm kiếm
+        self.search_view = SearchView(container_left, self.router)
+        self.search_view.pack(side=LEFT, fill=X, expand=YES)
+        # --------------------------------------------------------------------------
 
         # === 2. GROUP GIỮA (PHÂN TRANG) ===
         fr_page = ttk.Frame(toolbar, style='Misa.TFrame')
