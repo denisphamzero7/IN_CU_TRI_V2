@@ -8,13 +8,17 @@ from helpers.text_helper import format_cccd
 class MidPanelView(ttk.Frame):
     def __init__(self, parent, router):
         # --- CẤU HÌNH STYLE (GIỮ NGUYÊN) ---
+        super().__init__(parent, padding=5, style='Misa.TFrame')
+        self.parent = parent
+        self.router = router
         style = ttk.Style()
         style.configure('Misa.TFrame', background=APP_BG_COLOR)
         style.configure('Misa.TLabel', background=APP_BG_COLOR, foreground="#333333", font=("Segoe UI", 8))
         style.configure('MisaTotal.TLabel', background=APP_BG_COLOR, foreground="#333333", font=("Segoe UI", 8, "bold"))
         style.configure("Small.primary.Treeview", font=("Segoe UI", 8), rowheight=28)
         style.configure("Small.primary.Treeview.Heading", font=("Segoe UI", 8, "bold"))
-
+        # 3. [FIX] Bây giờ gọi option_add mới hợp lệ vì self đã được khởi tạo
+        self.option_add('*TCombobox*Listbox.font', ("Segoe UI", 8))
         # Setup style phân trang
         BTN_BG_COLOR = "#FFFFFF"
         BTN_FG_COLOR = "#888888"
@@ -30,8 +34,8 @@ class MidPanelView(ttk.Frame):
 
         style.configure('Small.TCombobox', font=("Segoe UI", 9))
         style.configure('TEntry', font=("Segoe UI", 9))
-
-        super().__init__(parent, padding=5, style='Misa.TFrame')
+        
+       
         self.pack(fill=BOTH, expand=YES)
         self.parent = parent
         self.router = router
