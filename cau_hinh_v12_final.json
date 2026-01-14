@@ -10,8 +10,8 @@
             "path": "C:/Users/Admin/Documents/TINTUC/inra/Chữ ký Mr Quân_Không con dấu.png"
         },
         "STT": {
-            "x": 358,
-            "y": 391,
+            "x": 283,
+            "y": 393,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -21,7 +21,7 @@
             "upper": false
         },
         "Họ và tên": {
-            "x": 384,
+            "x": 431,
             "y": 217,
             "size": 21,
             "enable": true,
@@ -31,8 +31,8 @@
             "bold": true
         },
         "Ngày tháng năm sinh": {
-            "x": 498,
-            "y": 247,
+            "x": 433,
+            "y": 249,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -41,7 +41,7 @@
             "bold": true
         },
         "Giới tính": {
-            "x": 527,
+            "x": 403,
             "y": 282,
             "size": 21,
             "enable": true,
@@ -51,8 +51,8 @@
             "bold": true
         },
         "Số Căn cước": {
-            "x": 314,
-            "y": 347,
+            "x": 439,
+            "y": 349,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -61,7 +61,7 @@
             "bold": true
         },
         "Nơi ở": {
-            "x": 268,
+            "x": 445,
             "y": 317,
             "size": 21,
             "enable": true,
@@ -71,8 +71,8 @@
             "bold": true
         },
         "Ủy ban nhân dân": {
-            "x": 210,
-            "y": 43,
+            "x": 209,
+            "y": 45,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -122,8 +122,8 @@
             "bold": true
         },
         "Ngày ký": {
-            "x": 596,
-            "y": 389,
+            "x": 597,
+            "y": 393,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -133,7 +133,7 @@
         },
         "Tháng ký": {
             "x": 678,
-            "y": 389,
+            "y": 391,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",

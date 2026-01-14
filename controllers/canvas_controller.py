@@ -3,6 +3,10 @@ import tkinter as tk
 from helpers.font_manager import FontManager
 from helpers.image_utils import rotate_pil_image, get_column_from_tags, create_text_image
 
+# --- IMPORT HELPER ---
+from helpers.date_helpers import format_date_text_vn
+from helpers.text_helper import format_cccd
+
 class CanvasController:
     def __init__(self, router):
         self.router = router
@@ -28,12 +32,9 @@ class CanvasController:
     def screen_to_data_coords(self, screen_x, screen_y):
         rel_x = screen_x - self.img_origin_x
         rel_y = screen_y - self.img_origin_y
-        
         if self.scale_factor == 0: return 0, 0
-        
         data_x = rel_x / self.scale_factor
         data_y = rel_y / self.scale_factor
-        
         return data_x, data_y
 
     def on_resize(self, event):
@@ -50,9 +51,7 @@ class CanvasController:
         except:
             is_landscape_mode = False
         
-        # Luôn lấy A4 làm chuẩn hiển thị màn hình
         STD_W, STD_H = 595, 842 
-
         if is_landscape_mode:
             paper_w, paper_h = STD_H, STD_W  
         else:
@@ -76,22 +75,18 @@ class CanvasController:
         self.img_origin_x = paper_x1
         self.img_origin_y = paper_y1
 
-        # canvas.create_rectangle(paper_x1 + 5, paper_y1 + 5, paper_x1 + disp_w + 5, paper_y1 + disp_h + 5, fill="#2f3640", outline="", tags="bg_shadow")
         canvas.create_rectangle(paper_x1, paper_y1, paper_x1 + disp_w, paper_y1 + disp_h, fill="white", outline="#bdc3c7", width=2, tags="draggable_paper")
 
         if self.model.template_path:
             try:
                 pil_img = Image.open(self.model.template_path)
                 pil_img = rotate_pil_image(pil_img, self.router.template_rotation)
-                
-                # Ép ảnh về kích thước chuẩn A4 bằng LANCZOS (Chất lượng cao)
                 pil_img = pil_img.resize((int(paper_w), int(paper_h)), Image.Resampling.LANCZOS)
                 
                 if disp_w > 0 and disp_h > 0:
                     img_display = pil_img.resize((disp_w, disp_h), Image.Resampling.LANCZOS)
                     self.tk_image = ImageTk.PhotoImage(img_display)
                     canvas.create_image(paper_x1, paper_y1, image=self.tk_image, anchor="nw", tags="draggable_paper")
-                
             except Exception as e:
                 print(f"Render Error: {e}")
         else:
@@ -126,7 +121,6 @@ class CanvasController:
             if col == "signature_img":
                 w = int(cfg.get("w", 150) * self.scale_factor)
                 h = int(cfg.get("h", 80) * self.scale_factor)
-                
                 sig_img = self.model.get_signature_image(idx)
                 if not sig_img:
                     sig_img = self._create_placeholder_image(w, h, text="Chữ ký")
@@ -135,31 +129,45 @@ class CanvasController:
 
                 self.sig_refs[col] = ImageTk.PhotoImage(sig_img)
                 canvas.create_image(sx, sy, image=self.sig_refs[col], anchor="center", tags=("draggable", tag_id))
-                
                 disp_w = sig_img.width
                 disp_h = sig_img.height
                 canvas.create_rectangle(sx-disp_w/2, sy-disp_h/2, sx+disp_w/2, sy+disp_h/2, outline="#3498db", dash=(2, 4), tags=("draggable", tag_id))
 
             else:
-                val = str(row.get(col, "")).replace("nan", "")
-                if "00:00:00" in val: val = val.split(" ")[0]
+                raw_val = row.get(col, "")
+                val = ""
+                
+                # --- [FIX QUAN TRỌNG]: Kiểm tra bằng vị trí cột (Index) ---
+                col_idx = -1
+                if self.model.df is not None:
+                    try:
+                        # Lấy số thứ tự của cột trong file Excel
+                        col_idx = self.model.df.columns.get_loc(col)
+                    except:
+                        pass
+                
+                # Cột index 2 (tức là cột thứ 3 trong Excel) -> Ngày sinh
+                if col_idx == 2:
+                    val = format_date_text_vn(raw_val) 
+                # Cột index 4 (tức là cột thứ 5 trong Excel) -> CCCD
+                elif col_idx == 4:
+                    val = format_cccd(raw_val)         
+                else:
+                    if str(raw_val).lower() == "nan": val = ""
+                    else: val = str(raw_val)
+
                 if cfg.get("upper", False): val = val.upper()
                 
                 display_val = val if val.strip() != "" else f"[{col}]"
                 is_placeholder = (val.strip() == "")
 
-                # 1. Sửa số 30 thành 21
                 f_size = max(1, int(cfg.get("size", 21) * self.scale_factor)) 
-                
-                # 2. Sửa "Arial" thành "Times New Roman" và False thành True (nếu muốn mặc định in đậm)
                 font_path = FontManager.get_path(cfg.get("font", "Times New Roman"), cfg.get("bold", True))
                 try: pil_font = ImageFont.truetype(font_path, f_size)
                 except: pil_font = ImageFont.load_default()
 
                 fill_color = cfg.get("color", "black")
-
                 txt_img = create_text_image(display_val, pil_font, fill_color, is_placeholder)
-                
                 tk_txt_img = ImageTk.PhotoImage(txt_img)
                 self.text_img_refs.append(tk_txt_img)
                 
@@ -183,7 +191,6 @@ class CanvasController:
                     new_items = canvas.find_withtag(f"col:{col_name}")
                     if new_items: self.drag_data["item"] = new_items[0]
                 return
-            
             items_under = canvas.find_overlapping(event.x, event.y, event.x, event.y)
             for i in items_under:
                 t = canvas.gettags(i)
@@ -216,31 +223,20 @@ class CanvasController:
             return
         item_id = self.drag_data["item"]
         canvas = self.router.view.p_right.canvas
-        try:
-            tags = canvas.gettags(item_id)
+        try: tags = canvas.gettags(item_id)
         except: return
-        
         col_name = get_column_from_tags(tags)
         if col_name:
             try:
                 cur_coords = canvas.coords(item_id)
-                if len(cur_coords) == 2:
-                    screen_x, screen_y = cur_coords[0], cur_coords[1]
-                elif len(cur_coords) == 4:
-                    screen_x = (cur_coords[0] + cur_coords[2]) / 2
-                    screen_y = (cur_coords[1] + cur_coords[3]) / 2
+                if len(cur_coords) == 2: screen_x, screen_y = cur_coords[0], cur_coords[1]
+                elif len(cur_coords) == 4: screen_x, screen_y = (cur_coords[0]+cur_coords[2])/2, (cur_coords[1]+cur_coords[3])/2
                 else: return
-
                 raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
-                
                 self.router.update_field_config("x", int(raw_x))
                 self.router.update_field_config("y", int(raw_y))
-                
-                if self.router.selected_field == col_name:
-                    self.router.load_field_props_to_ui()
-            except Exception as e:
-                print(f"Lỗi drag_end: {e}")
-
+                if self.router.selected_field == col_name: self.router.load_field_props_to_ui()
+            except Exception as e: print(f"Lỗi drag_end: {e}")
         self.render()
         self.drag_data["item"] = None
 
@@ -254,89 +250,50 @@ class CanvasController:
         img = Image.new("RGBA", (w, h), (200, 200, 200, 100))
         draw = ImageDraw.Draw(img)
         draw.rectangle([0, 0, w-1, h-1], outline="red", width=2)
-        try:
-            f = ImageFont.truetype("arial.ttf", 20)
-        except:
-            f = ImageFont.load_default()
+        try: f = ImageFont.truetype("arial.ttf", 20)
+        except: f = ImageFont.load_default()
         bbox = draw.textbbox((0,0), text, font=f)
         tw = bbox[2]-bbox[0]
         th = bbox[3]-bbox[1]
         draw.text(((w-tw)/2, (h-th)/2), text, font=f, fill="red")
         return img
     
-    # --- [HÀM HỖ TRỢ DI CHUYỂN MƯỢT] ---
     def visual_move_selection(self, dx, dy):
-        """Di chuyển hình ảnh trên màn hình (Rất nhẹ, không lưu dữ liệu ngay)"""
         if not self.router.selected_field: return
         canvas = self.router.view.p_right.canvas
         tag_id = f"col:{self.router.selected_field}"
-        # Dùng lệnh move của Canvas (tối ưu hóa phần cứng)
         canvas.move(tag_id, dx, dy)
 
     def commit_selection_position(self):
-        """Khi thả phím -> Tính toán lại tọa độ thật và lưu vào Model"""
         if not self.router.selected_field: return
         canvas = self.router.view.p_right.canvas
         tag_id = f"col:{self.router.selected_field}"
-        
         items = canvas.find_withtag(tag_id)
         if not items: return
-        
-        # Lấy tọa độ mới trên màn hình
         coords = canvas.coords(items[0])
-        
-        # Xử lý tọa độ (Image có 2 điểm, Text/Rect có thể khác)
         if len(coords) == 2: screen_x, screen_y = coords[0], coords[1]
         elif len(coords) == 4: screen_x, screen_y = (coords[0]+coords[2])/2, (coords[1]+coords[3])/2
         else: return
-
-        # Quy đổi từ Pixel màn hình -> Tọa độ dữ liệu gốc
         raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
-
-        # Lưu vào Model
         self.router.update_field_config("x", int(raw_x))
         self.router.update_field_config("y", int(raw_y))
-        
-        # Cập nhật UI thanh bên trái và render lại cho nét
         self.router.load_field_props_to_ui()
         self.render()
+
     def fit_to_window(self):
-        """
-        [MỚI] Hàm này tính toán zoom_multiplier để trang giấy 
-        nằm trọn vẹn trong khung nhìn (Fit to Screen)
-        """
         if not self.router.view: return
         canvas = self.router.view.p_right.canvas
-        
-        # 1. Lấy kích thước khung hiển thị thực tế (View Port)
         cw = canvas.winfo_width()
         ch = canvas.winfo_height()
-
-        # Nếu cửa sổ chưa hiện hoặc quá bé thì bỏ qua
         if cw < 50 or ch < 50: return
-
-        # 2. Xác định kích thước giấy chuẩn (Logic giống hệt hàm render)
-        # Vì ta render dựa trên A4 (595x842) nên ta dùng kích thước này để tính tỷ lệ
         STD_W, STD_H = 595, 842 
         is_landscape_mode = getattr(self.router, 'is_paper_landscape', False)
-        
-        if is_landscape_mode:
-            paper_w, paper_h = STD_H, STD_W  
-        else:
-            paper_w, paper_h = STD_W, STD_H
-
-        # 3. Tính tỷ lệ Zoom để vừa khít
+        if is_landscape_mode: paper_w, paper_h = STD_H, STD_W  
+        else: paper_w, paper_h = STD_W, STD_H
         ratio_w = cw / paper_w
         ratio_h = ch / paper_h
-        
-        # Lấy tỷ lệ nhỏ hơn để đảm bảo chiều dài hay rộng đều lọt lòng
-        # Nhân 0.9 để chừa lề 10% cho đẹp
         new_zoom = min(ratio_w, ratio_h) * 0.9
-
-        # 4. Áp dụng thông số mới
         self.zoom_multiplier = new_zoom
-        self.pan_offset_x = 0  # Reset vị trí về chính giữa (trục X)
-        self.pan_offset_y = 0  # Reset vị trí về chính giữa (trục Y)
-
-        # 5. Vẽ lại ngay lập tức
+        self.pan_offset_x = 0
+        self.pan_offset_y = 0
         self.render()

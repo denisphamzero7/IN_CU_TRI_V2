@@ -6,12 +6,15 @@ import win32ui
 import win32con
 import win32gui
 from datetime import datetime, timedelta
-from PIL import Image, ImageWin, ImageDraw, ImageFont, ImageFilter # <--- THÊM ImageFilter
+from PIL import Image, ImageWin, ImageDraw, ImageFont, ImageFilter
+import tkinter as tk
+from tkinter import Toplevel, ttk
+
 from helpers.msg_helper import MsgHelper
 from helpers.ui_helpers import apply_window_icon
 from helpers.font_manager import FontManager
-import tkinter as tk
-from tkinter import Toplevel, ttk
+from helpers.date_helpers import format_date_text_vn
+from helpers.text_helper import format_cccd
 
 class PrintController:
     PAPER_IDS = {"A4": 9, "A5": 11, "A6": 70}
@@ -84,8 +87,8 @@ class PrintController:
 
     def _run_print_process(self, selection, output_folder, is_landscape, printer_name, paper_size, print_mode):
         hDC = None
-        BATCH_SIZE = 50  # <--- [QUAN TRỌNG] Gửi xuống máy in mỗi lần 50 trang
-        import gc # Import thư viện dọn rác bộ nhớ
+        BATCH_SIZE = 50
+        import gc 
 
         try:
             # 1. Khởi tạo DC
@@ -97,7 +100,7 @@ class PrintController:
                 hDC = win32ui.CreateDC()
                 hDC.CreatePrinterDC(printer_name)
 
-            # 2. Tính toán kích thước (giữ nguyên code cũ)
+            # 2. Tính toán kích thước
             REF_A4_W, REF_A4_H = 595, 842
             SIZE_MAP = {"A4": (595, 842), "A5": (420, 595), "A6": (298, 420), "TheCuTri": (298, 420)}
             target_base_w, target_base_h = SIZE_MAP.get(paper_size, (595, 842))
@@ -115,7 +118,7 @@ class PrintController:
             final_print_w = int(target_w * DPI_SCALE)
             final_print_h = int(target_h * DPI_SCALE)
 
-            # 3. Chuẩn bị ảnh nền (Giữ nguyên code cũ)
+            # 3. Chuẩn bị ảnh nền
             try:
                 original_template = Image.open(self.model.template_path).convert("RGB")
                 rot = getattr(self.router, 'template_rotation', 0)
@@ -134,22 +137,19 @@ class PrintController:
             total = len(selection)
             start_time = time.time()
             
-            # --- BẮT ĐẦU VÒNG LẶP XỬ LÝ ---
-            is_job_active = False # Cờ kiểm tra xem có đang StartDoc không
+            is_job_active = False 
 
             for i, idx in enumerate(selection):
                 if self.stop_event.is_set(): break
                 
-                # [QUAN TRỌNG] Bắt đầu Batch mới
                 if i % BATCH_SIZE == 0:
                     batch_num = (i // BATCH_SIZE) + 1
-                    # Tên job hiển thị trong hàng đợi máy in: "Batch 1 (Tu 1 - 50)"
                     job_name = f"Misa Job {batch_num} (Row {i+1}-...)" 
                     hDC.StartDoc(job_name)
                     is_job_active = True
 
                 try:
-                    # --- Render trang in ---
+                    # Render trang in
                     img_to_print = bg_img.copy()
                     self._draw_data_scaled(img_to_print, int(idx), TOTAL_SCALE)
                     
@@ -159,17 +159,14 @@ class PrintController:
                     elif not is_landscape and final_img.width > final_img.height:
                         final_img = final_img.transpose(Image.ROTATE_90)
 
-                    # Đẩy dữ liệu xuống DC
                     self._direct_print_to_dc(hDC, final_img)
                     
-                    # Giải phóng bộ nhớ ảnh ngay lập tức
                     del img_to_print
                     del final_img
 
                 except Exception as e:
                     self.errors_log.append(f"Row {idx}: {e}")
 
-                # Cập nhật UI
                 elapsed = time.time() - start_time
                 if i > 0:
                     avg_time = elapsed / i
@@ -179,18 +176,12 @@ class PrintController:
                     eta = "..."
                 self._update_ui_label(f"Đang xử lý: {i+1}/{total} (ETA: {eta})", i+1)
 
-                # [QUAN TRỌNG] Kết thúc Batch hiện tại -> Đẩy xuống máy in thật
                 if (i + 1) % BATCH_SIZE == 0:
                     hDC.EndDoc()
                     is_job_active = False
-                    
-                    # Dọn dẹp bộ nhớ RAM ép buộc để tránh Memory Leak
                     gc.collect() 
-                    
-                    # Nghỉ 1 chút để Spooler Windows kịp "thở"
                     time.sleep(0.5) 
 
-            # Kết thúc những trang lẻ còn lại (ví dụ 50.005 trang thì còn dư 5 trang cuối)
             if is_job_active:
                 hDC.EndDoc()
                 gc.collect()
@@ -198,7 +189,7 @@ class PrintController:
             self._finish_ui(True, output_folder, f"Đã gửi {total} thẻ xuống máy in!")
 
         except Exception as e:
-            if hDC and is_job_active: # Chỉ Abort nếu đang StartDoc
+            if hDC and is_job_active:
                 try: hDC.AbortDoc()
                 except: pass
             self._finish_ui(False, output_folder, f"Lỗi hệ thống in: {e}")
@@ -224,13 +215,33 @@ class PrintController:
                 if sig:
                     w = int(cfg.get("w", 150) * scale)
                     h = int(cfg.get("h", 80) * scale)
-                    # Chữ ký cũng cần Lanczos để nét
                     sig = sig.resize((w, h), Image.Resampling.LANCZOS)
                     img.paste(sig, (x - w//2, y - h//2), sig)
             else:
-                val = str(row.get(col, "")).replace("nan", "")
+                raw_val = row.get(col, "")
+                
+                # --- [FIX QUAN TRỌNG]: Kiểm tra bằng vị trí cột (Index) ---
+                col_idx = -1
+                if self.model.df is not None:
+                    try:
+                        col_idx = self.model.df.columns.get_loc(col)
+                    except:
+                        pass
+                
+                val = ""
+                # Cột index 2 (tức là cột thứ 3 trong Excel) -> Ngày sinh
+                if col_idx == 2:
+                    val = format_date_text_vn(raw_val) 
+                # Cột index 4 (tức là cột thứ 5 trong Excel) -> CCCD
+                elif col_idx == 4:
+                    val = format_cccd(raw_val)         
+                else:
+                    if str(raw_val).lower() == "nan": val = ""
+                    else: val = str(raw_val)
+                
+                # Nếu rỗng thì bỏ qua
                 if not val: continue
-                if "00:00:00" in val: val = val.split(" ")[0]
+
                 if cfg.get("upper", False): val = val.upper()
                 
                 font_size = int(cfg.get("size", 21) * scale)
@@ -239,7 +250,7 @@ class PrintController:
                 except: font = ImageFont.load_default()
                 
                 draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="mm")
-
+                
     def _direct_print_to_dc(self, hDC, pil_image):
         hDC.StartPage()
         printer_w = hDC.GetDeviceCaps(win32con.HORZRES)

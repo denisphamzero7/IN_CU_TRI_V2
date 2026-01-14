@@ -46,13 +46,14 @@ class VoterModel:
 
     def load_excel(self, path):
         try:
-            self.df = pd.read_excel(path, engine="calamine").fillna("")
+            self.df = pd.read_excel(path, engine="calamine",dtype=str).fillna("")
         except ImportError:
             print("Chưa cài 'python-calamine'. Đang dùng engine mặc định...")
             self.df = pd.read_excel(path).fillna("")
         except Exception as e:
             self.df = pd.read_excel(path).fillna("")
-
+        # Sau khi đọc xong, xóa các chữ "nan" vô nghĩa nếu có
+        self.df = self.df.replace(["nan", "NaN"], "", regex=True)
         self.df.columns = self.df.columns.str.strip()
         
         # --- [THAY ĐỔI] Lấy danh sách Header cho ComboBox ---

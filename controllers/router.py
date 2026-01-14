@@ -76,12 +76,22 @@ class AppRouter:
         if self.model.df is None or self.model.df.empty: return MsgHelper.show_warning("Chưa có dữ liệu!")
 
         try:
+            # --- [SỬA ĐOẠN NÀY] ---
             val_from = self.view.p_right.var_print_from.get().strip()
             val_to = self.view.p_right.var_print_to.get().strip()
-            if not val_from or not val_to: return MsgHelper.show_warning("Vui lòng nhập số thứ tự Từ - Đến!")
+
+            # Nếu giá trị là Placeholder mặc định thì coi như là rỗng
+            if val_from == "Từ": val_from = ""
+            if val_to == "Đến": val_to = ""
+            # ----------------------
+
+            if not val_from or not val_to: 
+                return MsgHelper.show_warning("Vui lòng nhập số thứ tự Từ - Đến!")
             
             start_row = int(val_from)
             end_row = int(val_to)
+            
+            # ... (Phần code phía dưới giữ nguyên) ...
             max_row = len(self.model.df)
             start_row = max(1, min(start_row, max_row))
             end_row = max(1, min(end_row, max_row))
@@ -90,8 +100,9 @@ class AppRouter:
 
             custom_indices = list(range(start_row - 1, end_row))
             self.ctrl_print.print_batch(custom_indices)
+            
         except ValueError:
-            return MsgHelper.show_error("Vui lòng nhập số trang in?")
+            return MsgHelper.show_error("Vui lòng nhập đúng định dạng số!")
 
     def rotate_template_right(self):
         # Ví dụ: Xoay ảnh cũng cần bản quyền

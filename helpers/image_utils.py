@@ -25,20 +25,44 @@ def get_column_from_tags(tags):
             return t.split(":")[1]
     return None
 def create_text_image(text, font, color="black", is_placeholder=False):
-    """Tạo ảnh trong suốt chứa text."""
+    """
+    Tạo ảnh trong suốt chứa text.
+    ĐÃ FIX: Tự động căn chỉnh tọa độ để không bị mất chân chữ (g, y, q...) hoặc ngọn chữ.
+    """
     if is_placeholder: color = "#bdc3c7"
     
-    # 1. Tạo ảnh tạm để đo kích thước
+    # 1. Tạo ảnh tạm để tính toán kích thước chính xác
+    # Dùng mode RGBA 1x1 để khởi tạo draw
     dummy_draw = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
-    bbox = dummy_draw.textbbox((0, 0), text, font=font)
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
     
-    # 2. Tạo ảnh thật
-    # Cộng thêm padding để chữ không bị cắt
-    img = Image.new('RGBA', (width + 10, height + 10), (255, 255, 255, 0))
+    # Lấy hộp bao quanh text (left, top, right, bottom)
+    bbox = dummy_draw.textbbox((0, 0), text, font=font)
+    
+    # Tính kích thước thực tế của nét chữ
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    
+    # 2. Thiết lập Padding (vùng đệm)
+    # Tăng padding lên để an toàn cho các font thư pháp hoặc in nghiêng
+    padding = 10 
+    
+    img_w = int(text_width + padding)
+    img_h = int(text_height + padding)
+    
+    # 3. Tạo ảnh thật
+    img = Image.new('RGBA', (img_w, img_h), (255, 255, 255, 0))
     d = ImageDraw.Draw(img)
-    d.text((5, 5), text, font=font, fill=color)
+    
+    # --- [QUAN TRỌNG] TÍNH TOÁN TỌA ĐỘ VẼ ---
+    # Thay vì vẽ tại (5,5), ta phải trừ đi bbox[0] và bbox[1] 
+    # để đưa nội dung text về gốc tọa độ, sau đó cộng thêm nửa padding để căn giữa.
+    # Công thức: x = (Padding / 2) - Left_Bbox
+    #            y = (Padding / 2) - Top_Bbox
+    
+    draw_x = (padding / 2) - bbox[0]
+    draw_y = (padding / 2) - bbox[1]
+    
+    d.text((draw_x, draw_y), text, font=font, fill=color)
     
     return img
 def screen_to_data_coords(self, screen_x, screen_y):

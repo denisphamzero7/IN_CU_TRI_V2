@@ -3,6 +3,8 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from config.settings import APP_BG_COLOR, APP_TEXT_COLOR
 
+from helpers.date_helpers import format_date_text_vn
+from helpers.text_helper import format_cccd
 class MidPanelView(ttk.Frame):
     def __init__(self, parent, router):
         # --- CẤU HÌNH STYLE (GIỮ NGUYÊN) ---
@@ -191,6 +193,7 @@ class MidPanelView(ttk.Frame):
     # HÀM UPDATE DATA (Đã có fix ngày tháng và 5 cột)
     # =======================================================
     def update_data(self, df, custom_configs):
+        # Xóa dữ liệu cũ trong bảng
         for i in self.tree.get_children(): 
             self.tree.delete(i)
             
@@ -208,7 +211,7 @@ class MidPanelView(ttk.Frame):
         else:
             self.lbl_placeholder.place_forget()
             
-            # 1. Update Header theo tên cột Excel
+            # 1. Update Header (Tiêu đề cột)
             total_excel_cols = len(df.columns)
             limit = min(5, total_excel_cols)
             excel_headers = df.columns[:limit]
@@ -217,24 +220,39 @@ class MidPanelView(ttk.Frame):
                 col_id = f"col{idx}" 
                 self.tree.heading(col_id, text=str(header_text))
 
+            # Xóa text các cột thừa nếu file excel ít cột hơn 5
             for idx in range(limit, 5):
                 self.tree.heading(f"col{idx}", text="")
 
-            # 2. Đổ dữ liệu
+            # 2. Đổ dữ liệu và Format
             for i, row in df.iterrows():
                 tag = ('custom',) if i in custom_configs else ()
                 
                 vals = []
+                # Duyệt qua 5 cột hiển thị (0->4)
                 for k in range(5):
                     if k < total_excel_cols:
                         val = row.iloc[k]
+                        val_str = ""
+
+                        # --- [XỬ LÝ FORMAT DỮ LIỆU TẠI ĐÂY] ---
+                        if k == 2: 
+                            # Cột 2: Ngày tháng năm sinh -> Dùng helper date
+                            # Lưu ý: Nếu muốn hiện dạng ngắn (16/04/1996) thì dùng format_date_vn
+                            # Nếu muốn hiện dạng dài (Ngày 16...) thì dùng format_date_text_vn như bạn import
+                            val_str = format_date_text_vn(val)
                         
-                        # Fix lỗi ngày tháng 00:00:00
-                        str_val = str(val)
-                        if " 00:00:00" in str_val:
-                            str_val = str_val.replace(" 00:00:00", "")
+                        elif k == 4:
+                            # Cột 4: Số CCCD -> Dùng helper text
+                            val_str = format_cccd(val)
                             
-                        vals.append(str_val)
+                        else:
+                            # Các cột khác (STT, Tên, Giới tính...): Giữ nguyên
+                            val_str = str(val)
+                            if val_str.lower() == "nan":
+                                val_str = ""
+                        
+                        vals.append(val_str)
                     else:
                         vals.append("")
                 
