@@ -221,22 +221,43 @@ class CanvasController:
         if mode == "pan" or not self.drag_data["item"]:
             self.drag_data["item"] = None
             return
+            
         item_id = self.drag_data["item"]
         canvas = self.router.view.p_right.canvas
-        try: tags = canvas.gettags(item_id)
-        except: return
+        
+        try: 
+            tags = canvas.gettags(item_id)
+        except: 
+            return
+            
         col_name = get_column_from_tags(tags)
         if col_name:
             try:
                 cur_coords = canvas.coords(item_id)
-                if len(cur_coords) == 2: screen_x, screen_y = cur_coords[0], cur_coords[1]
-                elif len(cur_coords) == 4: screen_x, screen_y = (cur_coords[0]+cur_coords[2])/2, (cur_coords[1]+cur_coords[3])/2
-                else: return
+                screen_x, screen_y = 0, 0
+                
+                # Xử lý lấy tâm dựa trên loại item (Text/Image: 2 coords, Rect: 4 coords)
+                if len(cur_coords) == 2: 
+                    screen_x, screen_y = cur_coords[0], cur_coords[1]
+                elif len(cur_coords) == 4: 
+                    screen_x, screen_y = (cur_coords[0]+cur_coords[2])/2, (cur_coords[1]+cur_coords[3])/2
+                else: 
+                    return
+                
                 raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
-                self.router.update_field_config("x", int(raw_x))
-                self.router.update_field_config("y", int(raw_y))
-                if self.router.selected_field == col_name: self.router.load_field_props_to_ui()
-            except Exception as e: print(f"Lỗi drag_end: {e}")
+                
+                # --- [FIX QUAN TRỌNG] ---
+                # Thay int() bằng round() để làm tròn chuẩn xác
+                # Tránh việc kéo xuống 0.9px bị làm tròn về 0
+                self.router.update_field_config("x", int(round(raw_x)))
+                self.router.update_field_config("y", int(round(raw_y)))
+                # ------------------------
+
+                if self.router.selected_field == col_name: 
+                    self.router.load_field_props_to_ui()
+            except Exception as e: 
+                print(f"Lỗi drag_end: {e}")
+        
         self.render()
         self.drag_data["item"] = None
 
@@ -270,16 +291,29 @@ class CanvasController:
         tag_id = f"col:{self.router.selected_field}"
         items = canvas.find_withtag(tag_id)
         if not items: return
-        coords = canvas.coords(items[0])
-        if len(coords) == 2: screen_x, screen_y = coords[0], coords[1]
-        elif len(coords) == 4: screen_x, screen_y = (coords[0]+coords[2])/2, (coords[1]+coords[3])/2
-        else: return
+        
+        # Lấy item đầu tiên (thường là Image/Text)
+        cur_coords = canvas.coords(items[0])
+        
+        screen_x, screen_y = 0, 0
+        if len(cur_coords) == 2: 
+            screen_x, screen_y = cur_coords[0], cur_coords[1]
+        elif len(cur_coords) == 4: 
+            screen_x, screen_y = (cur_coords[0]+cur_coords[2])/2, (cur_coords[1]+cur_coords[3])/2
+        else: 
+            return
+            
         raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
-        self.router.update_field_config("x", int(raw_x))
-        self.router.update_field_config("y", int(raw_y))
+        
+        # --- [FIX QUAN TRỌNG] ---
+        self.router.update_field_config("x", int(round(raw_x)))
+        self.router.update_field_config("y", int(round(raw_y)))
+        # ------------------------
+        
         self.router.load_field_props_to_ui()
         self.render()
 
+        
     def fit_to_window(self):
         if not self.router.view: return
         canvas = self.router.view.p_right.canvas
