@@ -5,6 +5,7 @@ import win32print
 import win32ui
 import win32con
 import win32gui
+import gc
 from datetime import datetime, timedelta
 from PIL import Image, ImageWin, ImageDraw, ImageFont, ImageFilter
 import tkinter as tk
@@ -25,6 +26,7 @@ class PrintController:
         self.stop_event = threading.Event()
         self.errors_log = []
         self.prog_win = None
+        self.font_cache = {} # [TỐI ƯU] Cache font để không load lại nhiều lần
 
     def _get_parent_window(self):
         try: return self.router.view.winfo_toplevel()
@@ -58,6 +60,7 @@ class PrintController:
         if not os.path.exists(session_folder): os.makedirs(session_folder)
 
         self.stop_event.clear()
+        self.font_cache = {} # Reset cache trước khi in
         self.show_progress_window(len(selection))
 
         thread = threading.Thread(
@@ -87,9 +90,8 @@ class PrintController:
 
     def _run_print_process(self, selection, output_folder, is_landscape, printer_name, paper_size, print_mode):
         hDC = None
-        BATCH_SIZE = 50
-        import gc 
-
+        BATCH_SIZE = 50 # Giữ nguyên batch size này là ổn
+        
         try:
             # 1. Khởi tạo DC
             devmode = self._get_devmode(printer_name, paper_size, is_landscape)
@@ -100,7 +102,7 @@ class PrintController:
                 hDC = win32ui.CreateDC()
                 hDC.CreatePrinterDC(printer_name)
 
-            # 2. Tính toán kích thước
+            # 2. Tính toán kích thước & Chuẩn bị ảnh nền
             REF_A4_W, REF_A4_H = 595, 842
             SIZE_MAP = {"A4": (595, 842), "A5": (420, 595), "A6": (298, 420), "TheCuTri": (298, 420)}
             target_base_w, target_base_h = SIZE_MAP.get(paper_size, (595, 842))
@@ -118,7 +120,7 @@ class PrintController:
             final_print_w = int(target_w * DPI_SCALE)
             final_print_h = int(target_h * DPI_SCALE)
 
-            # 3. Chuẩn bị ảnh nền
+            # Load Template
             try:
                 original_template = Image.open(self.model.template_path).convert("RGB")
                 rot = getattr(self.router, 'template_rotation', 0)
@@ -136,21 +138,22 @@ class PrintController:
 
             total = len(selection)
             start_time = time.time()
-            
             is_job_active = False 
 
+            # --- VÒNG LẶP CHÍNH ---
             for i, idx in enumerate(selection):
                 if self.stop_event.is_set(): break
                 
+                # Bắt đầu Job in (Batching)
                 if i % BATCH_SIZE == 0:
                     batch_num = (i // BATCH_SIZE) + 1
-                    job_name = f"Misa Job {batch_num} (Row {i+1}-...)" 
+                    job_name = f"Job {batch_num} (Row {i+1}-{min(i+BATCH_SIZE, total)})" 
                     hDC.StartDoc(job_name)
                     is_job_active = True
 
                 try:
                     # Render trang in
-                    img_to_print = bg_img.copy()
+                    img_to_print = bg_img.copy() # [TỐN RAM NHẤT Ở ĐÂY NHƯNG CẦN THIẾT]
                     self._draw_data_scaled(img_to_print, int(idx), TOTAL_SCALE)
                     
                     final_img = img_to_print
@@ -161,12 +164,15 @@ class PrintController:
 
                     self._direct_print_to_dc(hDC, final_img)
                     
+                    # Giải phóng RAM ngay lập tức cho ảnh vừa in
                     del img_to_print
                     del final_img
 
                 except Exception as e:
                     self.errors_log.append(f"Row {idx}: {e}")
+                    print(f"Error Row {idx}: {e}")
 
+                # Cập nhật UI & Tính thời gian
                 elapsed = time.time() - start_time
                 if i > 0:
                     avg_time = elapsed / i
@@ -174,19 +180,22 @@ class PrintController:
                     eta = str(timedelta(seconds=remain_sec))
                 else:
                     eta = "..."
-                self._update_ui_label(f"Đang xử lý: {i+1}/{total} (ETA: {eta})", i+1)
+                
+                # [TỐI ƯU] Cập nhật UI an toàn qua thread-safe wrapper
+                self._safe_update_ui(f"Đang xử lý: {i+1}/{total} (Còn: {eta})", i+1)
 
+                # Kết thúc Batch
                 if (i + 1) % BATCH_SIZE == 0:
                     hDC.EndDoc()
                     is_job_active = False
-                    gc.collect() 
-                    time.sleep(0.5) 
+                    gc.collect() # Dọn rác bộ nhớ sau mỗi 50 trang
+                    time.sleep(0.1) # Nghỉ nhẹ để CPU thở
 
             if is_job_active:
                 hDC.EndDoc()
                 gc.collect()
 
-            self._finish_ui(True, output_folder, f"Đã gửi {total} thẻ xuống máy in!")
+            self._finish_ui(True, output_folder, f"Hoàn thành {total} thẻ!")
 
         except Exception as e:
             if hDC and is_job_active:
@@ -195,6 +204,7 @@ class PrintController:
             self._finish_ui(False, output_folder, f"Lỗi hệ thống in: {e}")
         
         finally:
+            self.font_cache.clear() # Xóa cache font
             if hDC:
                 try: hDC.DeleteDC()
                 except: pass
@@ -215,39 +225,43 @@ class PrintController:
                 if sig:
                     w = int(cfg.get("w", 150) * scale)
                     h = int(cfg.get("h", 80) * scale)
+                    # [TỐI ƯU] Resize chữ ký cũng tốn CPU, nhưng khó cache vì chữ ký mỗi người khác nhau
                     sig = sig.resize((w, h), Image.Resampling.LANCZOS)
                     img.paste(sig, (x - w//2, y - h//2), sig)
             else:
                 raw_val = row.get(col, "")
                 
-                # --- [FIX QUAN TRỌNG]: Kiểm tra bằng vị trí cột (Index) ---
                 col_idx = -1
                 if self.model.df is not None:
-                    try:
-                        col_idx = self.model.df.columns.get_loc(col)
-                    except:
-                        pass
+                    try: col_idx = self.model.df.columns.get_loc(col)
+                    except: pass
                 
                 val = ""
-                # Cột index 2 (tức là cột thứ 3 trong Excel) -> Ngày sinh
-                if col_idx == 2:
-                    val = format_date_text_vn(raw_val) 
-                # Cột index 4 (tức là cột thứ 5 trong Excel) -> CCCD
-                elif col_idx == 4:
-                    val = format_cccd(raw_val)         
+                # Ưu tiên index cứng như bạn yêu cầu
+                if col_idx == 2: val = format_date_text_vn(raw_val) 
+                elif col_idx == 4: val = format_cccd(raw_val)         
                 else:
                     if str(raw_val).lower() == "nan": val = ""
                     else: val = str(raw_val)
                 
-                # Nếu rỗng thì bỏ qua
                 if not val: continue
-
                 if cfg.get("upper", False): val = val.upper()
                 
-                font_size = int(cfg.get("size", 21) * scale)
-                font_path = FontManager.get_path(cfg.get("font", "Times New Roman"), cfg.get("bold", True))
-                try: font = ImageFont.truetype(font_path, font_size)
-                except: font = ImageFont.load_default()
+                # --- [TỐI ƯU CỰC MẠNH]: Caching Font ---
+                font_key = (cfg.get("font", "Times New Roman"), cfg.get("bold", True), int(cfg.get("size", 21) * scale))
+                
+                if font_key in self.font_cache:
+                    font = self.font_cache[font_key]
+                else:
+                    # Chỉ load từ ổ cứng nếu chưa có trong cache
+                    font_size = font_key[2]
+                    font_path = FontManager.get_path(font_key[0], font_key[1])
+                    try: 
+                        font = ImageFont.truetype(font_path, font_size)
+                    except: 
+                        font = ImageFont.load_default()
+                    self.font_cache[font_key] = font
+                # ----------------------------------------
                 
                 draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="mm")
                 
@@ -287,10 +301,19 @@ class PrintController:
         self.prog_win.transient(parent)
         self.prog_win.grab_set()
 
-    def _update_ui_label(self, text, val):
+    # --- [HÀM MỚI]: Cập nhật UI an toàn từ Thread ---
+    def _safe_update_ui(self, text, val):
         if hasattr(self, 'prog_win') and self.prog_win and self.prog_win.winfo_exists():
-            self.lbl_status.config(text=text)
-            self.progress_bar["value"] = val
+            # Dùng after để đẩy lệnh cập nhật về luồng chính (Main Thread)
+            self.prog_win.after(0, lambda: self._update_ui_label_impl(text, val))
+
+    def _update_ui_label_impl(self, text, val):
+        # Hàm này chạy ở Main Thread nên an toàn
+        try:
+            if self.lbl_status.winfo_exists():
+                self.lbl_status.config(text=text)
+                self.progress_bar["value"] = val
+        except: pass
 
     def _finish_ui(self, s, f, m):
         if self.router.view:
