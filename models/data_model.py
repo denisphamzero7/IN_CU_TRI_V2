@@ -129,26 +129,53 @@ class VoterModel:
     # ... (Các hàm sort_data, get_effective_config... giữ nguyên) ...
     def sort_data(self, col_key, reverse=False):
         if self.df_filtered is None or self.df_filtered.empty: return
+        
         target_col = None
-        if col_key == "stt":
-            for col in self.df.columns:
-                if "stt" in col.lower():
-                    target_col = col
-                    break
-            if not target_col: target_col = self.df.columns[0]
-            self.df_filtered = self.df_filtered.sort_values(by=target_col, ascending=not reverse)
-        elif col_key == "name":
-            for col in self.df.columns:
-                if "họ tên" in col.lower() or "name" in col.lower():
-                    target_col = col
-                    break
-            if target_col:
+        
+        # 1. Xác định tên cột thực tế trong DataFrame dựa trên col_key (col0, col1...)
+        if col_key.startswith("col"):
+            try:
+                # Lấy số thứ tự từ chuỗi "col1" -> 1
+                idx = int(col_key.replace("col", ""))
+                # Kiểm tra xem index có nằm trong danh sách cột của Excel không
+                if 0 <= idx < len(self.df.columns):
+                    target_col = self.df.columns[idx]
+            except ValueError:
+                pass
+        
+        # (Fallback) Hỗ trợ logic cũ nếu truyền vào "stt" hoặc "name"
+        if not target_col:
+            if col_key == "stt": target_col = self.df.columns[0]
+            elif col_key == "name": 
+                 target_col = next((c for c in self.df.columns if "họ tên" in c.lower() or "name" in c.lower()), None)
+
+        # 2. Thực hiện sắp xếp
+        if target_col:
+            # A. Nếu là cột TÊN (Họ và tên): Sắp xếp theo Tên (từ cuối cùng)
+            is_name_col = "họ tên" in target_col.lower() or "name" in target_col.lower()
+            
+            if is_name_col:
                 try:
+                    # Tạo cột tạm chứa Tên (tách từ Họ và Tên) để sort
                     self.df_filtered['_sort_key'] = self.df_filtered[target_col].astype(str).apply(lambda x: x.strip().split(' ')[-1])
+                    # Sort theo Tên trước, sau đó đến cả cụm Họ Tên
                     self.df_filtered = self.df_filtered.sort_values(by=['_sort_key', target_col], ascending=not reverse)
                     self.df_filtered.drop(columns=['_sort_key'], inplace=True)
                 except:
                     self.df_filtered = self.df_filtered.sort_values(by=target_col, ascending=not reverse)
+            
+            # B. Nếu không phải cột Tên, kiểm tra xem có phải cột SỐ không (STT, Năm sinh...)
+            else:
+                try:
+                    # Thử chuyển sang số để sort (để tránh lỗi 1, 10, 2...)
+                    self.df_filtered['_sort_tmp'] = pd.to_numeric(self.df_filtered[target_col])
+                    self.df_filtered = self.df_filtered.sort_values(by='_sort_tmp', ascending=not reverse)
+                    self.df_filtered.drop(columns=['_sort_tmp'], inplace=True)
+                except:
+                    # C. Nếu không phải số, sort theo Text bình thường
+                    self.df_filtered = self.df_filtered.sort_values(by=target_col, ascending=not reverse)
+
+        # Reset về trang 1 sau khi sort
         self.current_page = 1
 
     def get_effective_config(self, idx):

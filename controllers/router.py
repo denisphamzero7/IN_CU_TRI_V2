@@ -12,6 +12,8 @@ class AppRouter:
     def __init__(self):
         self.model = VoterModel()
         self.view = None
+        self.sort_reverse = False # Biến theo dõi trạng thái tăng/giảm
+        self.last_sort_col = None # Biến theo dõi cột vừa sort
         self.ctrl_data = DataController(self)
         self.ctrl_canvas = CanvasController(self)
         self.ctrl_print = PrintController(self)
@@ -333,17 +335,32 @@ class AppRouter:
         self.model.selected_indices.clear()
         self.is_bulk_updating = False
 
-    def on_header_click(self, col):
-        if not self.has_template(): return
-        if self.sort_state["col"] == col:
-            self.sort_state["reverse"] = not self.sort_state["reverse"]
+    def on_header_click(self, col_id):
+        # --- [THÊM MỚI] KIỂM TRA DỮ LIỆU ---
+        # Nếu chưa có dữ liệu hoặc dữ liệu rỗng thì thoát luôn, không cho sort
+        if self.model.df is None or self.model.df.empty:
+            return 
+        # -----------------------------------
+        # 1. Kiểm tra logic đảo chiều
+        if self.last_sort_col == col_id:
+            self.sort_reverse = not self.sort_reverse 
         else:
-            self.sort_state["col"] = col
-            self.sort_state["reverse"] = False
-        self.model.sort_data(col, self.sort_state["reverse"])
-        if self.view and hasattr(self.view, 'p_mid'):
-            self.view.p_mid.update_header_arrow(col, self.sort_state["reverse"])
-        self.refresh_mid_table()
+            self.sort_reverse = False 
+            self.last_sort_col = col_id
+
+        # 2. Gọi Model để sắp xếp dữ liệu
+        self.model.sort_data(col_id, self.sort_reverse) 
+
+        # 3. Cập nhật lại giao diện
+        if hasattr(self.view, 'p_mid'):
+            # --- [SỬA ĐỔI QUAN TRỌNG] ---
+            # BƯỚC 1: Cập nhật dữ liệu bảng trước (Hàm này sẽ reset text header về mặc định)
+            df_page = self.model.get_current_page_data()
+            self.view.p_mid.update_data(df_page, self.model.custom_configs)
+            
+            # BƯỚC 2: Sau đó mới cập nhật mũi tên đè lên text header đã reset
+            self.view.p_mid.update_header_arrow(col_id, self.sort_reverse)
+            # ----------------------------
 
     # --- CANVAS & KEYBOARD (Di chuyển trên Canvas cũng có thể check bản quyền nếu muốn) ---
     def on_shift_zoom(self, e): 
