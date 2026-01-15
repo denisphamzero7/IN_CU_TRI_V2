@@ -424,3 +424,34 @@ class AppRouter:
         if 'Right' in self.pressed_keys: dx += speed
         if dx != 0 or dy != 0:
             self.ctrl_canvas.visual_move_selection(dx, dy)
+    
+    # 1. Hàm nhận sự kiện từ View
+    def on_canvas_right_click(self, event):
+        if self.has_template():
+            self.ctrl_canvas.handle_right_click(event)
+
+    # 2. Hàm thực hiện logic Xóa (Disable)
+    def disable_field(self, field_name):
+        # A. Cập nhật Model (Data)
+        # Tùy logic bạn muốn tắt ở config chung hay riêng
+        mode = "global"
+        try: mode = self.edit_mode.get()
+        except: pass
+        
+        self.model.update_config_value(self.current_idx, mode, field_name, "enable", False)
+
+        # B. Cập nhật giao diện bên Trái (Left Panel)
+        # Router ra lệnh cho LeftPanel bỏ tick
+        if hasattr(self.view, 'p_left'):
+            # Kiểm tra xem field đó có trong danh sách checkbox không
+            if field_name in self.view.p_left.field_vars:
+                self.view.p_left.field_vars[field_name].set(False)
+            
+            # Nếu đang chọn field đó thì bỏ highlight luôn
+            if self.selected_field == field_name:
+                self.view.p_left.highlight_selected_field(None)
+                self.selected_field = None
+
+        # C. Cập nhật giao diện bên Phải (Canvas)
+        # Vẽ lại hình (Lúc này field đã enable=False nên sẽ tự mất)
+        self.render_canvas_safe()

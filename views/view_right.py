@@ -59,6 +59,8 @@ class RightPanelView(ttk.Frame):
         self.canvas.tag_bind("draggable", "<ButtonPress-1>", self._on_canvas_click)
         self.canvas.tag_bind("draggable", "<B1-Motion>", router.on_drag_motion)
         self.canvas.tag_bind("draggable", "<ButtonRelease-1>", router.on_drag_end)
+        # Bind chuột phải vào các thẻ có tag "draggable"
+        self.canvas.tag_bind("draggable", "<Button-3>", self.router.on_canvas_right_click)
         self.canvas.bind("<Shift-MouseWheel>", router.on_shift_zoom)
         self.canvas.bind("<Control-MouseWheel>", router.on_shift_zoom)
         self.canvas.bind("<Configure>", router.on_canvas_resize)

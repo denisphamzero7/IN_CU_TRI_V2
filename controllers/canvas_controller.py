@@ -1,14 +1,17 @@
 from PIL import Image, ImageTk, ImageFont, ImageDraw
 import tkinter as tk
+import ttkbootstrap as ttk
 from helpers.font_manager import FontManager
 from helpers.image_utils import rotate_pil_image, get_column_from_tags, create_text_image
 
 # --- IMPORT HELPER ---
 from helpers.date_helpers import format_date_text_vn
 from helpers.text_helper import format_cccd
-
+from helpers.msg_helper import MsgHelper
 class CanvasController:
     def __init__(self, router):
+     
+
         self.router = router
         self.model = router.model
         
@@ -313,7 +316,7 @@ class CanvasController:
         self.router.load_field_props_to_ui()
         self.render()
 
-        
+
     def fit_to_window(self):
         if not self.router.view: return
         canvas = self.router.view.p_right.canvas
@@ -331,3 +334,55 @@ class CanvasController:
         self.pan_offset_x = 0
         self.pan_offset_y = 0
         self.render()
+
+    def handle_right_click(self, event):
+        canvas = self.router.view.p_right.canvas
+        
+        # 1. Quét vùng nhỏ để bắt dính item
+        # find_overlapping trả về: (dưới cùng, ..., trên cùng)
+        items = canvas.find_overlapping(event.x-2, event.y-2, event.x+2, event.y+2)
+        
+        # Đảo ngược: [Trên cùng, ..., Dưới cùng]
+        # Để ưu tiên xử lý cái người dùng nhìn thấy trước
+        items = list(items)
+        items.reverse() 
+
+        target_to_delete = None
+
+        for item_id in items:
+            tags = canvas.gettags(item_id)
+            col_name = get_column_from_tags(tags)
+            
+            # Bỏ qua nếu không phải trường dữ liệu
+            if not col_name: continue 
+            
+            # --- KIỂM TRA DỮ LIỆU ---
+            has_data = False
+            
+            if col_name == "signature_img":
+                if self.model.get_signature_image(self.router.current_idx):
+                    has_data = True
+            else:
+                try:
+                    if self.model.df is not None and not self.model.df.empty:
+                        raw_val = self.model.df.iloc[self.router.current_idx].get(col_name, "")
+                        if str(raw_val).strip().lower() not in ("nan", "none", ""):
+                            has_data = True
+                except: pass
+
+            # --- QUYẾT ĐỊNH ---
+            if has_data:
+                # Nếu có dữ liệu -> BỎ QUA, nhưng KHÔNG ĐƯỢC DỪNG (không break)
+                # Để vòng lặp tiếp tục tìm cái rỗng bên dưới (nếu có)
+                continue 
+            
+            else:
+                # Nếu RỖNG -> Tìm thấy mục tiêu!
+                target_to_delete = col_name
+                break # Tìm thấy cái rỗng đầu tiên là dừng ngay để xóa nó
+
+        # 2. THỰC HIỆN XÓA (Nếu tìm được mục tiêu)
+        if target_to_delete:
+            question = f"Bạn muốn ẩn trường rỗng '{target_to_delete}' không?"
+            if MsgHelper.ask_yes_no(question, title="Xác nhận xóa", parent=self.router.view):
+                self.router.disable_field(target_to_delete)
