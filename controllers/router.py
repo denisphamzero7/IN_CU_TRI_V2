@@ -99,7 +99,18 @@ class AppRouter:
             end_row = max(1, min(end_row, max_row))
 
             if start_row > end_row: return MsgHelper.show_error("Số 'Từ' không được lớn hơn 'Đến'!")
-
+            # ============================================================
+            # 4. [MỚI] CHECK MÁY IN (CHỈ CHECK KHI SỐ TRANG ĐÃ HỢP LỆ)
+            # ============================================================
+            try:
+                printer_name = self.view.p_right.cbb_printer.get()
+                invalid_names = ["", "Chọn máy in...", "Không có máy in"]
+                
+                if not printer_name or printer_name in invalid_names:
+                    return MsgHelper.show_warning("Vui lòng chọn máy in trước khi in!", title="Chưa chọn máy in")
+            except:
+                return MsgHelper.show_warning("Không tìm thấy danh sách máy in!")
+            # ============================================================
             custom_indices = list(range(start_row - 1, end_row))
             self.ctrl_print.print_batch(custom_indices)
             
