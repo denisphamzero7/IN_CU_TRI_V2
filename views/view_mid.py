@@ -54,7 +54,7 @@ class MidPanelView(ttk.Frame):
         # col1 sẽ là Họ tên (để width lớn = 150)
         self.cols_def = [
             ("col0", "STT", 20),   # Cột đầu tiên của Excel (Thường là STT)
-            ("col1", "Họ và tên", 120),  # Cột thứ 2 (Thường là Tên)
+            ("col1", "Họ và tên", 90),  # Cột thứ 2 (Thường là Tên)
             ("col2", "Ngày tháng năm sinh", 80), 
             ("col3", "Giới tính",  50),
             ("col4", "Số căn Cước", 80)
