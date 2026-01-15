@@ -53,11 +53,11 @@ class MidPanelView(ttk.Frame):
         # col0 sẽ đóng vai trò là cột STT của Excel (để width nhỏ = 40)
         # col1 sẽ là Họ tên (để width lớn = 150)
         self.cols_def = [
-            ("col0", "STT", 20),   # Cột đầu tiên của Excel (Thường là STT)
-            ("col1", "Họ và tên", 90),  # Cột thứ 2 (Thường là Tên)
-            ("col2", "Ngày tháng năm sinh", 80), 
-            ("col3", "Giới tính",  50),
-            ("col4", "Số căn Cước", 80)
+            ("col0", "", 20),   # Cột đầu tiên của Excel (Thường là STT)
+            ("col1", "", 90),  # Cột thứ 2 (Thường là Tên)
+            ("col2", "", 80), 
+            ("col3", "",  50),
+            ("col4", "", 80)
         ]
         
         self.tree = ttk.Treeview(

@@ -44,7 +44,7 @@
             "x": 403,
             "y": 282,
             "size": 21,
-            "enable": true,
+            "enable": false,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
@@ -173,8 +173,8 @@
             "bold": true
         },
         "Họ tên": {
-            "x": 50,
-            "y": 50,
+            "x": 61,
+            "y": 67,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
@@ -183,8 +183,8 @@
             "bold": true
         },
         "Ngày sinh": {
-            "x": 50,
-            "y": 50,
+            "x": 64,
+            "y": 103,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
@@ -193,8 +193,8 @@
             "bold": true
         },
         "Nơi cư trú": {
-            "x": 50,
-            "y": 50,
+            "x": 128,
+            "y": 100,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
@@ -203,6 +203,16 @@
             "bold": true
         },
         "Số cccd": {
+            "x": 443,
+            "y": 348,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Số thẻ cử tri": {
             "x": 50,
             "y": 50,
             "size": 21,
@@ -212,7 +222,47 @@
             "type": "text",
             "bold": true
         },
-        "Số thẻ cử tri": {
+        "Tên đơn vị": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Khu vực bỏ phiếu": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Thành phố": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Hình ảnh chữ ký": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Xã/phường/đặc khu": {
             "x": 50,
             "y": 50,
             "size": 21,
