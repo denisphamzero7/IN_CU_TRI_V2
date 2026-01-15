@@ -246,3 +246,33 @@ class VoterModel:
             self.current_page = page
             return True
         return False
+    
+
+    def delete_field_permanently(self, field_name):
+        """Xóa trường khỏi config và LƯU NGAY vào file JSON"""
+        is_changed = False
+        
+        # 1. Xóa khỏi cấu hình Global (Cấu hình chung)
+        # [SỬA LỖI]: Dùng đúng biến self.global_config
+        if field_name in self.global_config:
+            del self.global_config[field_name]
+            is_changed = True
+            
+        # 2. Xóa khỏi các cấu hình Custom (Cấu hình riêng lẻ)
+        # [SỬA LỖI]: Dùng đúng biến self.custom_configs
+        for idx in self.custom_configs:
+            if field_name in self.custom_configs[idx]:
+                del self.custom_configs[idx][field_name]
+                is_changed = True
+        
+        # 3. Lưu lại vào CONFIG_FILE
+        if is_changed:
+            try:
+                # Gọi lại hàm save_config() có sẵn để ghi vào CONFIG_FILE an toàn
+                self.save_config()
+                print(f"Đã xóa vĩnh viễn trường '{field_name}' trong CONFIG_FILE")
+                return True
+            except Exception as e:
+                print(f"Lỗi không lưu được file JSON: {e}")
+                return False
+        return False

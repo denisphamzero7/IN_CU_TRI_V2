@@ -338,14 +338,10 @@ class CanvasController:
     def handle_right_click(self, event):
         canvas = self.router.view.p_right.canvas
         
-        # 1. Quét vùng nhỏ để bắt dính item
-        # find_overlapping trả về: (dưới cùng, ..., trên cùng)
+        # 1. Quét vùng 4x4 pixel (xuyên thấu)
         items = canvas.find_overlapping(event.x-2, event.y-2, event.x+2, event.y+2)
-        
-        # Đảo ngược: [Trên cùng, ..., Dưới cùng]
-        # Để ưu tiên xử lý cái người dùng nhìn thấy trước
         items = list(items)
-        items.reverse() 
+        items.reverse() # Duyệt từ trên xuống dưới
 
         target_to_delete = None
 
@@ -353,36 +349,33 @@ class CanvasController:
             tags = canvas.gettags(item_id)
             col_name = get_column_from_tags(tags)
             
-            # Bỏ qua nếu không phải trường dữ liệu
             if not col_name: continue 
             
             # --- KIỂM TRA DỮ LIỆU ---
-            has_data = False
+            is_protected = False
             
             if col_name == "signature_img":
                 if self.model.get_signature_image(self.router.current_idx):
-                    has_data = True
+                    is_protected = True
             else:
                 try:
                     if self.model.df is not None and not self.model.df.empty:
                         raw_val = self.model.df.iloc[self.router.current_idx].get(col_name, "")
                         if str(raw_val).strip().lower() not in ("nan", "none", ""):
-                            has_data = True
+                            is_protected = True
                 except: pass
 
             # --- QUYẾT ĐỊNH ---
-            if has_data:
-                # Nếu có dữ liệu -> BỎ QUA, nhưng KHÔNG ĐƯỢC DỪNG (không break)
-                # Để vòng lặp tiếp tục tìm cái rỗng bên dưới (nếu có)
-                continue 
-            
+            if is_protected:
+                continue # Có dữ liệu -> Bỏ qua, tìm tiếp thằng dưới
             else:
-                # Nếu RỖNG -> Tìm thấy mục tiêu!
                 target_to_delete = col_name
-                break # Tìm thấy cái rỗng đầu tiên là dừng ngay để xóa nó
+                break # Tìm thấy thằng rỗng -> Chốt đơn
 
-        # 2. THỰC HIỆN XÓA (Nếu tìm được mục tiêu)
+        # 2. HÀNH ĐỘNG XÓA VĨNH VIỄN
         if target_to_delete:
-            question = f"Bạn muốn ẩn trường rỗng '{target_to_delete}' không?"
-            if MsgHelper.ask_yes_no(question, title="Xác nhận xóa", parent=self.router.view):
+            # Câu thông báo nhấn mạnh việc xóa khỏi file JSON
+            question = f"CẢNH BÁO: Bạn có muốn XÓA VĨNH VIỄN trường '{target_to_delete}' khỏi file cấu hình không?"
+            
+            if MsgHelper.ask_yes_no(question, title="Xóa dữ liệu", parent=self.router.view):
                 self.router.disable_field(target_to_delete)

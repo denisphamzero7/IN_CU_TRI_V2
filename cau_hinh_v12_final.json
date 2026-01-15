@@ -13,7 +13,7 @@
             "x": 286,
             "y": 397,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
@@ -21,10 +21,10 @@
             "upper": false
         },
         "Họ và tên": {
-            "x": 418,
-            "y": 282,
+            "x": 431,
+            "y": 217,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
@@ -34,15 +34,15 @@
             "x": 433,
             "y": 249,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
             "bold": true
         },
         "Giới tính": {
-            "x": 402,
-            "y": 284,
+            "x": 403,
+            "y": 282,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -71,8 +71,8 @@
             "bold": true
         },
         "Ủy ban nhân dân": {
-            "x": 201,
-            "y": 48,
+            "x": 209,
+            "y": 45,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -132,10 +132,10 @@
             "bold": true
         },
         "Tháng ký": {
-            "x": 50,
-            "y": 50,
+            "x": 678,
+            "y": 391,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
@@ -173,8 +173,8 @@
             "bold": true
         },
         "Họ tên": {
-            "x": 508,
-            "y": 221,
+            "x": 61,
+            "y": 67,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
@@ -183,18 +183,18 @@
             "bold": true
         },
         "Ngày sinh": {
-            "x": 167,
+            "x": 64,
             "y": 103,
             "size": 21,
-            "enable": true,
+            "enable": false,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
             "bold": true
         },
         "Nơi cư trú": {
-            "x": 445,
-            "y": 311,
+            "x": 128,
+            "y": 100,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
@@ -223,8 +223,8 @@
             "bold": true
         },
         "Tên đơn vị": {
-            "x": 190,
-            "y": 46,
+            "x": 50,
+            "y": 50,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",

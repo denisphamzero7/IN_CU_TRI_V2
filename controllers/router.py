@@ -432,26 +432,37 @@ class AppRouter:
 
     # 2. Hàm thực hiện logic Xóa (Disable)
     def disable_field(self, field_name):
-        # A. Cập nhật Model (Data)
-        # Tùy logic bạn muốn tắt ở config chung hay riêng
-        mode = "global"
-        try: mode = self.edit_mode.get()
-        except: pass
-        
-        self.model.update_config_value(self.current_idx, mode, field_name, "enable", False)
-
-        # B. Cập nhật giao diện bên Trái (Left Panel)
-        # Router ra lệnh cho LeftPanel bỏ tick
-        if hasattr(self.view, 'p_left'):
-            # Kiểm tra xem field đó có trong danh sách checkbox không
-            if field_name in self.view.p_left.field_vars:
-                self.view.p_left.field_vars[field_name].set(False)
+        # 1. Gọi Model để xóa vĩnh viễn trong JSON
+        if self.model.delete_field_permanently(field_name):
             
-            # Nếu đang chọn field đó thì bỏ highlight luôn
-            if self.selected_field == field_name:
-                self.view.p_left.highlight_selected_field(None)
-                self.selected_field = None
+            # 2. Xóa Checkbox trên giao diện bên Trái (Left Panel)
+            if hasattr(self.view, 'p_left'):
+                # Xóa biến Var (Trạng thái tick)
+                if field_name in self.view.p_left.field_vars:
+                    del self.view.p_left.field_vars[field_name]
+                
+                # Xóa Widget hiển thị (Checkbox)
+                try:
+                    # Kiểm tra xem view_left có lưu danh sách widget không (thường là self.checkboxes hoặc self.field_widgets)
+                    # Nếu code view_left của bạn lưu widget vào dict `field_widgets`, hãy dùng đoạn này:
+                    if hasattr(self.view.p_left, 'field_widgets') and field_name in self.view.p_left.field_widgets:
+                        widget = self.view.p_left.field_widgets[field_name]
+                        widget.destroy() # Xóa khỏi màn hình
+                        del self.view.p_left.field_widgets[field_name]
+                    
+                    # Nếu view_left dùng pack/grid trực tiếp mà không lưu dict, bạn cần reload lại view trái
+                    # self.view.p_left.refresh_ui() (Nếu có hàm này)
+                except Exception as e: 
+                    print(f"Lỗi xóa UI: {e}")
 
-        # C. Cập nhật giao diện bên Phải (Canvas)
-        # Vẽ lại hình (Lúc này field đã enable=False nên sẽ tự mất)
-        self.render_canvas_safe()
+            # 3. Nếu đang chọn trường đó thì bỏ chọn
+            if self.selected_field == field_name:
+                self.selected_field = None
+                if hasattr(self.view.p_left, 'highlight_selected_field'):
+                    self.view.p_left.highlight_selected_field(None)
+
+            # 4. Vẽ lại Canvas (Trường đó sẽ biến mất ngay lập tức)
+            self.render_canvas_safe()
+            
+            # 5. Thông báo thành công
+            MsgHelper.show_info(f"Đã xóa vĩnh viễn trường '{field_name}'", "Thành công")
