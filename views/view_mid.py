@@ -67,13 +67,19 @@ class MidPanelView(ttk.Frame):
             selectmode="extended",
             style="Small.primary.Treeview" 
         )
-        
+        allowed_sort_cols = ["col0", "col1"]
         # Khởi tạo Header
         for c_id, c_name, c_width in self.cols_def:
-            # Cho phép click header để sort trên tất cả các cột
-            self.tree.heading(c_id, text=c_name, command=lambda c=c_id: self.router.on_header_click(c))
             
-            # Căn giữa cho cột đầu tiên (STT), còn lại căn trái
+            # KIỂM TRA QUAN TRỌNG:
+            # Chỉ gắn lệnh click (command) nếu cột nằm trong danh sách cho phép
+            if c_id in allowed_sort_cols:
+                self.tree.heading(c_id, text=c_name, command=lambda c=c_id: self.router.on_header_click(c))
+            else:
+                # Các cột khác (Ngày sinh, CCCD...) KHÔNG gắn command -> Không click được
+                self.tree.heading(c_id, text=c_name)
+            
+            # Căn chỉnh text (STT canh giữa, còn lại canh trái)
             anchor_val = "center" if c_id == "col0" else "w"
             self.tree.column(c_id, width=c_width, anchor=anchor_val)
             
@@ -178,6 +184,7 @@ class MidPanelView(ttk.Frame):
     # =======================================================
     def update_header_arrow(self, sort_col, reverse):
         """Cập nhật mũi tên chỉ thị sắp xếp trên Header"""
+        
         for c_id in [c[0] for c in self.cols_def]:
             # Lấy text hiện tại
             try:
