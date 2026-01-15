@@ -110,7 +110,7 @@ class LeftPanelView(ttk.Frame):
         self.ent_key.pack(side=LEFT, fill=X, expand=YES)
         
         # [SỬA] Nút Activate: Dùng style='Small.danger.TButton' thay vì bootstyle='danger'
-        self.btn_activate = ttk.Button(r2, text="⚠", style="Small.danger.TButton", 
+        self.btn_activate = ttk.Button(r2, text="⚠", width=3, style="Small.danger.TButton", 
                                        command=lambda: self.router.ctrl_license.on_activate())
         self.btn_activate.pack(side=RIGHT, padx=(5,0))
 
