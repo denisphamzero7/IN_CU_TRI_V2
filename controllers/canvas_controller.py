@@ -167,8 +167,13 @@ class CanvasController:
                 try: pil_font = ImageFont.truetype(font_path, f_size)
                 except: pil_font = ImageFont.load_default()
 
-                fill_color = cfg.get("color", "black")
-
+                # fill_color = cfg.get("color", "black")
+                # Logic mới:
+                if is_placeholder:
+                    fill_color = "#bdc3c7"  # Màu xám (khi không có dữ liệu)
+                else:
+                    fill_color = cfg.get("color", "Black") # Màu cấu hình (khi có dữ liệu)
+                # -------------------------------------
                 # [LOGIC MỚI - TỐI ƯU]: Lấy chiều cao chuẩn của Font (Ascent + Descent)
                 # Thay vì đo chiều cao của chữ cái cụ thể.
                 try:
@@ -198,6 +203,9 @@ class CanvasController:
                 
                 if is_placeholder:
                     canvas.create_rectangle(sx, sy, sx+txt_w, sy+std_height, outline="#bdc3c7", dash=(1, 4), tags=("draggable", tag_id))
+
+
+
     def drag_start(self, event):
         canvas = self.router.view.p_right.canvas
         self.drag_data = {"x": event.x, "y": event.y, "item": None, "mode": None}
