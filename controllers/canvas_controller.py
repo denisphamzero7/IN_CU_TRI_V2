@@ -109,6 +109,10 @@ class CanvasController:
         limit_w = self.orig_w 
         limit_h = self.orig_h 
 
+        # Tạo dummy draw để đo chiều rộng text
+        dummy_img = Image.new("RGBA", (1, 1))
+        dummy_draw = ImageDraw.Draw(dummy_img)
+
         for col, cfg in config.items():
             if not cfg.get("enable", False): continue
             
@@ -121,40 +125,34 @@ class CanvasController:
             
             tag_id = f"col:{col}"
             
+            # --- 1. XỬ LÝ ẢNH (CHỮ KÝ) ---
             if col == "signature_img":
                 w = int(cfg.get("w", 150) * self.scale_factor)
                 h = int(cfg.get("h", 80) * self.scale_factor)
                 sig_img = self.model.get_signature_image(idx)
+                
                 if not sig_img:
                     sig_img = self._create_placeholder_image(w, h, text="Chữ ký")
                 else:
                     sig_img = sig_img.resize((w, h), Image.Resampling.LANCZOS)
 
                 self.sig_refs[col] = ImageTk.PhotoImage(sig_img)
-                canvas.create_image(sx, sy, image=self.sig_refs[col], anchor="center", tags=("draggable", tag_id))
-                disp_w = sig_img.width
-                disp_h = sig_img.height
-                canvas.create_rectangle(sx-disp_w/2, sy-disp_h/2, sx+disp_w/2, sy+disp_h/2, outline="#3498db", dash=(2, 4), tags=("draggable", tag_id))
+                # Ảnh dùng anchor="nw" (Góc trái trên) là chuẩn nhất cho ảnh
+                canvas.create_image(sx, sy, image=self.sig_refs[col], anchor="nw", tags=("draggable", tag_id))
+                canvas.create_rectangle(sx, sy, sx + w, sy + h, outline="#3498db", dash=(2, 4), tags=("draggable", tag_id))
 
+            # --- 2. XỬ LÝ TEXT (DÙNG FONT METRICS ĐỂ FIX LỆCH) ---
             else:
                 raw_val = row.get(col, "")
                 val = ""
                 
-                # --- [FIX QUAN TRỌNG]: Kiểm tra bằng vị trí cột (Index) ---
                 col_idx = -1
                 if self.model.df is not None:
-                    try:
-                        # Lấy số thứ tự của cột trong file Excel
-                        col_idx = self.model.df.columns.get_loc(col)
-                    except:
-                        pass
+                    try: col_idx = self.model.df.columns.get_loc(col)
+                    except: pass
                 
-                # Cột index 2 (tức là cột thứ 3 trong Excel) -> Ngày sinh
-                if col_idx == 2:
-                    val = format_date_text_vn(raw_val) 
-                # Cột index 4 (tức là cột thứ 5 trong Excel) -> CCCD
-                elif col_idx == 4:
-                    val = format_cccd(raw_val)         
+                if col_idx == 2: val = format_date_text_vn(raw_val) 
+                elif col_idx == 4: val = format_cccd(raw_val)         
                 else:
                     if str(raw_val).lower() == "nan": val = ""
                     else: val = str(raw_val)
@@ -170,14 +168,36 @@ class CanvasController:
                 except: pil_font = ImageFont.load_default()
 
                 fill_color = cfg.get("color", "black")
-                txt_img = create_text_image(display_val, pil_font, fill_color, is_placeholder)
+
+                # [LOGIC MỚI - TỐI ƯU]: Lấy chiều cao chuẩn của Font (Ascent + Descent)
+                # Thay vì đo chiều cao của chữ cái cụ thể.
+                try:
+                    ascent, descent = pil_font.getmetrics()
+                except:
+                    ascent, descent = f_size, f_size // 3 # Fallback
+                
+                std_height = ascent + descent
+                
+                # Đo chiều rộng text
+                txt_w = dummy_draw.textlength(display_val, font=pil_font)
+                
+                # Tạo ảnh trong suốt đủ chứa
+                txt_img = Image.new("RGBA", (int(txt_w) + 10, std_height), (255, 255, 255, 0))
+                d = ImageDraw.Draw(txt_img)
+                
+                # [QUAN TRỌNG]: anchor="la" (Left-Ascender)
+                # Đảm bảo đỉnh của dòng chữ (Ascender line) luôn nằm ở y=0 của ảnh
+                d.text((0, 0), display_val, font=pil_font, fill=fill_color, anchor="la")
+                
                 tk_txt_img = ImageTk.PhotoImage(txt_img)
                 self.text_img_refs.append(tk_txt_img)
                 
-                canvas.create_image(sx, sy, image=tk_txt_img, anchor="center", tags=("draggable", tag_id))
+                # Vẽ ảnh lên Canvas tại toạ độ (sx, sy)
+                # Lúc này (sx, sy) sẽ khớp với đỉnh dòng chữ (Ascender line)
+                canvas.create_image(sx, sy, image=tk_txt_img, anchor="nw", tags=("draggable", tag_id))
+                
                 if is_placeholder:
-                    canvas.create_rectangle(canvas.bbox(tag_id), outline="#bdc3c7", dash=(1, 4), tags=("draggable", tag_id))
-
+                    canvas.create_rectangle(sx, sy, sx+txt_w, sy+std_height, outline="#bdc3c7", dash=(1, 4), tags=("draggable", tag_id))
     def drag_start(self, event):
         canvas = self.router.view.p_right.canvas
         self.drag_data = {"x": event.x, "y": event.y, "item": None, "mode": None}
@@ -227,37 +247,24 @@ class CanvasController:
             
         item_id = self.drag_data["item"]
         canvas = self.router.view.p_right.canvas
-        
         try: 
             tags = canvas.gettags(item_id)
-        except: 
-            return
+        except: return
             
         col_name = get_column_from_tags(tags)
         if col_name:
             try:
-                cur_coords = canvas.coords(item_id)
-                screen_x, screen_y = 0, 0
-                
-                # Xử lý lấy tâm dựa trên loại item (Text/Image: 2 coords, Rect: 4 coords)
-                if len(cur_coords) == 2: 
-                    screen_x, screen_y = cur_coords[0], cur_coords[1]
-                elif len(cur_coords) == 4: 
-                    screen_x, screen_y = (cur_coords[0]+cur_coords[2])/2, (cur_coords[1]+cur_coords[3])/2
-                else: 
-                    return
-                
-                raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
-                
-                # --- [FIX QUAN TRỌNG] ---
-                # Thay int() bằng round() để làm tròn chuẩn xác
-                # Tránh việc kéo xuống 0.9px bị làm tròn về 0
-                self.router.update_field_config("x", int(round(raw_x)))
-                self.router.update_field_config("y", int(round(raw_y)))
-                # ------------------------
+                # Dùng bbox để luôn lấy góc Trái-Trên của item làm chuẩn
+                bbox = canvas.bbox(item_id)
+                if bbox:
+                    screen_x, screen_y = bbox[0], bbox[1]
+                    raw_x, raw_y = self.screen_to_data_coords(screen_x, screen_y)
+                    
+                    self.router.update_field_config("x", int(round(raw_x)))
+                    self.router.update_field_config("y", int(round(raw_y)))
 
-                if self.router.selected_field == col_name: 
-                    self.router.load_field_props_to_ui()
+                    if self.router.selected_field == col_name: 
+                        self.router.load_field_props_to_ui()
             except Exception as e: 
                 print(f"Lỗi drag_end: {e}")
         
@@ -338,25 +345,38 @@ class CanvasController:
     def handle_right_click(self, event):
         canvas = self.router.view.p_right.canvas
         
-        # 1. Quét vùng 4x4 pixel (xuyên thấu)
+        # 1. Quét vùng chạm 4x4 pixel (tìm tất cả layer tại điểm click)
         items = canvas.find_overlapping(event.x-2, event.y-2, event.x+2, event.y+2)
         items = list(items)
-        items.reverse() # Duyệt từ trên xuống dưới
+        
+        # 2. Đảo ngược để duyệt từ TRÊN CÙNG xuống DƯỚI CÙNG
+        # (Ưu tiên xử lý cái mắt người dùng đang nhìn thấy trước)
+        items.reverse() 
 
         target_to_delete = None
 
         for item_id in items:
             tags = canvas.gettags(item_id)
-            col_name = get_column_from_tags(tags)
             
+            # --- [CHUẨN] CHẶN XÓA ẢNH PHÔI ---
+            if "draggable_paper" in tags:
+                continue 
+            # ---------------------------------
+
+            col_name = get_column_from_tags(tags)
             if not col_name: continue 
+            # 2. [MỚI] CHẶN XÓA CHỮ KÝ (Nếu bạn muốn cấm tiệt việc xóa khung chữ ký bằng chuột phải)
+            if col_name == "signature_img":
+                continue
             
             # --- KIỂM TRA DỮ LIỆU ---
             is_protected = False
             
+            # Check chữ ký
             if col_name == "signature_img":
                 if self.model.get_signature_image(self.router.current_idx):
                     is_protected = True
+            # Check text
             else:
                 try:
                     if self.model.df is not None and not self.model.df.empty:
@@ -367,15 +387,17 @@ class CanvasController:
 
             # --- QUYẾT ĐỊNH ---
             if is_protected:
-                continue # Có dữ liệu -> Bỏ qua, tìm tiếp thằng dưới
+                # [QUAN TRỌNG] Gặp thằng có dữ liệu -> Bỏ qua, đi xuyên xuống thằng dưới
+                continue 
             else:
+                # Tìm thấy thằng Rỗng -> Bắt dính ngay!
                 target_to_delete = col_name
-                break # Tìm thấy thằng rỗng -> Chốt đơn
+                break # Dừng lại, không xóa tiếp các thằng rỗng khác bên dưới (nếu có)
 
-        # 2. HÀNH ĐỘNG XÓA VĨNH VIỄN
+        # 3. THỰC HIỆN HÀNH ĐỘNG
         if target_to_delete:
-            # Câu thông báo nhấn mạnh việc xóa khỏi file JSON
             question = f"CẢNH BÁO: Bạn có muốn XÓA VĨNH VIỄN trường '{target_to_delete}' khỏi file cấu hình không?"
             
             if MsgHelper.ask_yes_no(question, title="Xóa dữ liệu", parent=self.router.view):
+                # Gọi Router để xóa key trong JSON và xóa checkbox
                 self.router.disable_field(target_to_delete)

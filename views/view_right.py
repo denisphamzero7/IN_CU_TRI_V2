@@ -125,7 +125,7 @@ class RightPanelView(ttk.Frame):
         row1.pack(fill=X, side=TOP, pady=(2, 1))
 
         # NÚT PRINT
-        btn_print = ttk.Button(row1, text="🖨️", width=2, command=self.router.start_print, bootstyle="danger")
+        btn_print = ttk.Button(row1, text="🖨️", width=3, command=self.router.start_print, bootstyle="danger")
         btn_print.pack(side=RIGHT, padx=(2, 2))
         
         # --- MÁY IN ---

@@ -225,19 +225,18 @@ class PrintController:
                 if sig:
                     w = int(cfg.get("w", 150) * scale)
                     h = int(cfg.get("h", 80) * scale)
-                    # [TỐI ƯU] Resize chữ ký cũng tốn CPU, nhưng khó cache vì chữ ký mỗi người khác nhau
                     sig = sig.resize((w, h), Image.Resampling.LANCZOS)
-                    img.paste(sig, (x - w//2, y - h//2), sig)
+                    # Vẽ từ góc Trái-Trên
+                    img.paste(sig, (x, y), sig)
+                    
             else:
                 raw_val = row.get(col, "")
-                
                 col_idx = -1
                 if self.model.df is not None:
-                    try: col_idx = self.model.df.columns.get_loc(col)
-                    except: pass
+                     try: col_idx = self.model.df.columns.get_loc(col)
+                     except: pass
                 
                 val = ""
-                # Ưu tiên index cứng như bạn yêu cầu
                 if col_idx == 2: val = format_date_text_vn(raw_val) 
                 elif col_idx == 4: val = format_cccd(raw_val)         
                 else:
@@ -247,23 +246,20 @@ class PrintController:
                 if not val: continue
                 if cfg.get("upper", False): val = val.upper()
                 
-                # --- [TỐI ƯU CỰC MẠNH]: Caching Font ---
                 font_key = (cfg.get("font", "Times New Roman"), cfg.get("bold", True), int(cfg.get("size", 21) * scale))
                 
                 if font_key in self.font_cache:
                     font = self.font_cache[font_key]
                 else:
-                    # Chỉ load từ ổ cứng nếu chưa có trong cache
                     font_size = font_key[2]
                     font_path = FontManager.get_path(font_key[0], font_key[1])
-                    try: 
-                        font = ImageFont.truetype(font_path, font_size)
-                    except: 
-                        font = ImageFont.load_default()
+                    try: font = ImageFont.truetype(font_path, font_size)
+                    except: font = ImageFont.load_default()
                     self.font_cache[font_key] = font
-                # ----------------------------------------
-                
-                draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="mm")
+
+                # [FIX - TỐI ƯU]: anchor="la" (Left-Ascender)
+                # Đảm bảo in ra giống hệt màn hình
+                draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="la")
                 
     def _direct_print_to_dc(self, hDC, pil_image):
         hDC.StartPage()
