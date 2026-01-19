@@ -18,6 +18,7 @@ from helpers.date_helpers import format_date_text_vn
 from helpers.text_helper import format_cccd
 
 class PrintController:
+    # ID chuẩn của Windows: A4=9, A5=11, A6=70 (Dùng cho các máy in hiện đại)
     PAPER_IDS = {"A4": 9, "A5": 11, "A6": 70}
 
     def __init__(self, router):
@@ -38,6 +39,7 @@ class PrintController:
             return MsgHelper.show_warning("Chưa chọn hàng!", parent=parent_ui)
         
         try:
+            # Lấy thông tin từ UI (RightPanelView)
             printer = self.router.view.p_right.cbb_printer.get()
             size = self.router.view.p_right.var_paper_size.get() 
             mode = self.router.view.p_right.cbb_print_mode.get() 
@@ -70,7 +72,25 @@ class PrintController:
         thread.daemon = True
         thread.start()
 
+    def _is_paper_id_supported(self, printer_name, target_id):
+        """
+        Hỏi Driver xem có hỗ trợ ID khổ giấy này không.
+        Trả về True nếu hỗ trợ, False nếu không.
+        """
+        try:
+            # DC_PAPERS = 2: Lấy danh sách các ID khổ giấy hỗ trợ
+            # DeviceCapabilities trả về một tuple các ID
+            supported_ids = win32print.DeviceCapabilities(printer_name, "", 2)
+            return target_id in supported_ids
+        except Exception as e:
+            print(f"Lỗi check support: {e}")
+            # Nếu lỗi không check được, mặc định trả về False để dùng Safe Mode (Custom)
+            return False
     def _get_devmode(self, printer_name, paper_size, is_landscape):
+        """
+        Hàm cấu hình máy in (DevMode).
+        Tự động phát hiện Canon LBP2900 để xử lý khổ A6 riêng biệt.
+        """
         try:
             hPrinter = win32print.OpenPrinter(printer_name)
             try:
@@ -79,34 +99,58 @@ class PrintController:
             finally:
                 win32print.ClosePrinter(hPrinter)
             
-            if paper_size in self.PAPER_IDS:
+            # --- LOGIC XỬ LÝ KHỔ GIẤY ---
+            # 1. Phát hiện máy in Canon LBP2900 (Thường tên có chữ "2900")
+            is_canon_2900 = "2900" in printer_name
+            
+            # 2. Xử lý logic
+            if paper_size == "A6" and is_canon_2900:
+                # [ĐẶC BIỆT] Với Canon 2900 in A6: Dùng Custom Size (256) + Kích thước thật
+                # Nếu dùng ID 70, driver Canon sẽ không hiểu và tự nhảy về A4.
+                devmode.PaperSize = 256  # DMPAPER_USER
+                devmode.PaperWidth = 1050  # 105.0 mm (Chiều rộng A6)
+                devmode.PaperLength = 1480 # 148.0 mm (Chiều dài A6)
+                
+                # Bắt buộc bật cờ DM_PAPERWIDTH | DM_PAPERLENGTH để driver nhận diện kích thước custom
+                devmode.Fields |= win32con.DM_PAPERLENGTH | win32con.DM_PAPERWIDTH
+                
+            elif paper_size in self.PAPER_IDS:
+                # [MẶC ĐỊNH] Các máy in khác (HP, Brother...) dùng ID chuẩn Windows
                 devmode.PaperSize = self.PAPER_IDS[paper_size]
+
+            # 3. Thiết lập hướng giấy
             devmode.Orientation = 2 if is_landscape else 1
+            
+            # 4. Kích hoạt các trường đã thay đổi
             devmode.Fields |= (win32con.DM_PAPERSIZE | win32con.DM_ORIENTATION)
+            
             return devmode
         except Exception as e:
             print(f"Lỗi Get DevMode: {e}")
             return None
 
+    
     def _run_print_process(self, selection, output_folder, is_landscape, printer_name, paper_size, print_mode):
         hDC = None
-        BATCH_SIZE = 50 # Giữ nguyên batch size này là ổn
+        BATCH_SIZE = 50 
         
         try:
-            # 1. Khởi tạo DC
+            # 1. Khởi tạo DC với DevMode đã cấu hình
             devmode = self._get_devmode(printer_name, paper_size, is_landscape)
             if devmode:
                 hdc_handle = win32gui.CreateDC("WINSPOOL", printer_name, devmode)
                 hDC = win32ui.CreateDCFromHandle(hdc_handle)
             else:
+                # Fallback nếu không lấy được DevMode
                 hDC = win32ui.CreateDC()
                 hDC.CreatePrinterDC(printer_name)
 
             # 2. Tính toán kích thước & Chuẩn bị ảnh nền
             REF_A4_W, REF_A4_H = 595, 842
             SIZE_MAP = {"A4": (595, 842), "A5": (420, 595), "A6": (298, 420), "TheCuTri": (298, 420)}
-            target_base_w, target_base_h = SIZE_MAP.get(paper_size, (595, 842))
+            target_base_w, target_base_h = SIZE_MAP.get(paper_size, (298, 420))
 
+            # Xử lý xoay kích thước logic
             if is_landscape:
                 ref_w, ref_h = REF_A4_H, REF_A4_W
                 target_w, target_h = target_base_h, target_base_w
@@ -120,7 +164,7 @@ class PrintController:
             final_print_w = int(target_w * DPI_SCALE)
             final_print_h = int(target_h * DPI_SCALE)
 
-            # Load Template
+            # Load Template (Phôi)
             try:
                 original_template = Image.open(self.model.template_path).convert("RGB")
                 rot = getattr(self.router, 'template_rotation', 0)
@@ -140,11 +184,11 @@ class PrintController:
             start_time = time.time()
             is_job_active = False 
 
-            # --- VÒNG LẶP CHÍNH ---
+            # --- VÒNG LẶP IN TỪNG THẺ ---
             for i, idx in enumerate(selection):
                 if self.stop_event.is_set(): break
                 
-                # Bắt đầu Job in (Batching)
+                # Bắt đầu Job in (Gom nhóm Batching để máy in nhận lệnh nhanh hơn)
                 if i % BATCH_SIZE == 0:
                     batch_num = (i // BATCH_SIZE) + 1
                     job_name = f"Job {batch_num} (Row {i+1}-{min(i+BATCH_SIZE, total)})" 
@@ -152,19 +196,21 @@ class PrintController:
                     is_job_active = True
 
                 try:
-                    # Render trang in
-                    img_to_print = bg_img.copy() # [TỐN RAM NHẤT Ở ĐÂY NHƯNG CẦN THIẾT]
+                    # Render dữ liệu lên ảnh
+                    img_to_print = bg_img.copy() 
                     self._draw_data_scaled(img_to_print, int(idx), TOTAL_SCALE)
                     
                     final_img = img_to_print
+                    # Tự động xoay ảnh khớp với khổ giấy (nếu cần)
                     if is_landscape and final_img.height > final_img.width:
                         final_img = final_img.transpose(Image.ROTATE_90)
                     elif not is_landscape and final_img.width > final_img.height:
                         final_img = final_img.transpose(Image.ROTATE_90)
 
+                    # Gửi lệnh in xuống Driver
                     self._direct_print_to_dc(hDC, final_img)
                     
-                    # Giải phóng RAM ngay lập tức cho ảnh vừa in
+                    # Giải phóng RAM ngay lập tức
                     del img_to_print
                     del final_img
 
@@ -172,7 +218,7 @@ class PrintController:
                     self.errors_log.append(f"Row {idx}: {e}")
                     print(f"Error Row {idx}: {e}")
 
-                # Cập nhật UI & Tính thời gian
+                # Cập nhật UI & Tính thời gian dự kiến
                 elapsed = time.time() - start_time
                 if i > 0:
                     avg_time = elapsed / i
@@ -181,16 +227,16 @@ class PrintController:
                 else:
                     eta = "..."
                 
-                # [TỐI ƯU] Cập nhật UI an toàn qua thread-safe wrapper
                 self._safe_update_ui(f"Đang xử lý: {i+1}/{total} (Còn: {eta})", i+1)
 
-                # Kết thúc Batch
+                # Kết thúc Batch (mỗi 50 trang gửi 1 lần)
                 if (i + 1) % BATCH_SIZE == 0:
                     hDC.EndDoc()
                     is_job_active = False
-                    gc.collect() # Dọn rác bộ nhớ sau mỗi 50 trang
-                    time.sleep(0.1) # Nghỉ nhẹ để CPU thở
+                    gc.collect() 
+                    time.sleep(0.1)
 
+            # Kết thúc Job cuối cùng nếu còn dư
             if is_job_active:
                 hDC.EndDoc()
                 gc.collect()
@@ -198,18 +244,20 @@ class PrintController:
             self._finish_ui(True, output_folder, f"Hoàn thành {total} thẻ!")
 
         except Exception as e:
+            # Nếu lỗi, cố gắng hủy lệnh in đang treo
             if hDC and is_job_active:
                 try: hDC.AbortDoc()
                 except: pass
             self._finish_ui(False, output_folder, f"Lỗi hệ thống in: {e}")
         
         finally:
-            self.font_cache.clear() # Xóa cache font
+            self.font_cache.clear()
             if hDC:
                 try: hDC.DeleteDC()
                 except: pass
 
     def _draw_data_scaled(self, img, idx, scale):
+        """Vẽ dữ liệu lên ảnh với tỉ lệ Scale (để in nét)"""
         draw = ImageDraw.Draw(img)
         row = self.model.df.iloc[idx]
         config = self.model.get_effective_config(idx)
@@ -226,7 +274,6 @@ class PrintController:
                     w = int(cfg.get("w", 150) * scale)
                     h = int(cfg.get("h", 80) * scale)
                     sig = sig.resize((w, h), Image.Resampling.LANCZOS)
-                    # Vẽ từ góc Trái-Trên
                     img.paste(sig, (x, y), sig)
                     
             else:
@@ -237,6 +284,7 @@ class PrintController:
                      except: pass
                 
                 val = ""
+                # Format dữ liệu đặc thù
                 if col_idx == 2: val = format_date_text_vn(raw_val) 
                 elif col_idx == 4: val = format_cccd(raw_val)         
                 else:
@@ -257,11 +305,10 @@ class PrintController:
                     except: font = ImageFont.load_default()
                     self.font_cache[font_key] = font
 
-                # [FIX - TỐI ƯU]: anchor="la" (Left-Ascender)
-                # Đảm bảo in ra giống hệt màn hình
                 draw.text((x, y), val, font=font, fill=cfg.get("color", "black"), anchor="la")
                 
     def _direct_print_to_dc(self, hDC, pil_image):
+        """Đẩy ảnh PIL trực tiếp xuống DC máy in"""
         hDC.StartPage()
         printer_w = hDC.GetDeviceCaps(win32con.HORZRES)
         printer_h = hDC.GetDeviceCaps(win32con.VERTRES)
@@ -297,14 +344,11 @@ class PrintController:
         self.prog_win.transient(parent)
         self.prog_win.grab_set()
 
-    # --- [HÀM MỚI]: Cập nhật UI an toàn từ Thread ---
     def _safe_update_ui(self, text, val):
         if hasattr(self, 'prog_win') and self.prog_win and self.prog_win.winfo_exists():
-            # Dùng after để đẩy lệnh cập nhật về luồng chính (Main Thread)
             self.prog_win.after(0, lambda: self._update_ui_label_impl(text, val))
 
     def _update_ui_label_impl(self, text, val):
-        # Hàm này chạy ở Main Thread nên an toàn
         try:
             if self.lbl_status.winfo_exists():
                 self.lbl_status.config(text=text)

@@ -1,8 +1,8 @@
 {
     "global": {
         "signature_img": {
-            "x": 611,
-            "y": 463,
+            "x": 599,
+            "y": 457,
             "w": 150,
             "h": 80,
             "enable": true,
@@ -10,7 +10,7 @@
             "path": "C:/Users/Admin/Documents/TINTUC/inra/Chữ ký Mr Quân_Không con dấu.png"
         },
         "STT": {
-            "x": 286,
+            "x": 348,
             "y": 386,
             "size": 21,
             "enable": true,
@@ -21,7 +21,7 @@
             "upper": false
         },
         "Họ và tên": {
-            "x": 368,
+            "x": 571,
             "y": 205,
             "size": 21,
             "enable": true,
@@ -31,7 +31,7 @@
             "bold": true
         },
         "Ngày tháng năm sinh": {
-            "x": 372,
+            "x": 570,
             "y": 238,
             "size": 21,
             "enable": true,
@@ -41,7 +41,7 @@
             "bold": true
         },
         "Giới tính": {
-            "x": 373,
+            "x": 570,
             "y": 272,
             "size": 21,
             "enable": true,
@@ -51,7 +51,7 @@
             "bold": true
         },
         "Số Căn cước": {
-            "x": 371,
+            "x": 573,
             "y": 339,
             "size": 21,
             "enable": true,
@@ -61,8 +61,8 @@
             "bold": true
         },
         "Nơi ở": {
-            "x": 370,
-            "y": 306,
+            "x": 565,
+            "y": 305,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -72,7 +72,7 @@
         },
         "Ủy ban nhân dân": {
             "x": 119,
-            "y": 34,
+            "y": 35,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -82,7 +82,7 @@
         },
         "PHường xã đặc khu": {
             "x": 246,
-            "y": 447,
+            "y": 438,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
