@@ -20,6 +20,16 @@ from helpers.text_helper import format_cccd
 class PrintController:
     # ID chuẩn của Windows: A4=9, A5=11, A6=70 (Dùng cho các máy in hiện đại)
     PAPER_IDS = {"A4": 9, "A5": 11, "A6": 70}
+    # 2. Kích thước chuẩn cho chế độ Custom (Đơn vị 0.1mm)
+    # Dùng khi máy in không hỗ trợ ID chuẩn (Fallback)
+    PAPER_SIZES_MM = {
+        "A3": (2970, 4200),
+        "A4": (2100, 2970),
+        "A5": (1480, 2100),
+        "A6": (1050, 1480),
+        "Letter": (2159, 2794),
+        "K80": (800, 2970) # Hóa đơn
+    }
 
     def __init__(self, router):
         self.router = router
@@ -28,7 +38,7 @@ class PrintController:
         self.errors_log = []
         self.prog_win = None
         self.font_cache = {} # [TỐI ƯU] Cache font để không load lại nhiều lần
-
+        self._printer_caps_cache = {}
     def _get_parent_window(self):
         try: return self.router.view.winfo_toplevel()
         except: return self.router.view.master
@@ -74,23 +84,20 @@ class PrintController:
 
     def _is_paper_id_supported(self, printer_name, target_id):
         """
-        Hỏi Driver xem có hỗ trợ ID khổ giấy này không.
-        Trả về True nếu hỗ trợ, False nếu không.
+        Kiểm tra ID có được hỗ trợ không (Có Cache để chạy nhanh)
         """
-        try:
-            # DC_PAPERS = 2: Lấy danh sách các ID khổ giấy hỗ trợ
-            # DeviceCapabilities trả về một tuple các ID
-            supported_ids = win32print.DeviceCapabilities(printer_name, "", 2)
-            return target_id in supported_ids
-        except Exception as e:
-            print(f"Lỗi check support: {e}")
-            # Nếu lỗi không check được, mặc định trả về False để dùng Safe Mode (Custom)
-            return False
+        # Nếu chưa có trong cache thì mới đi hỏi Driver
+        if printer_name not in self._printer_caps_cache:
+            try:
+                # DC_PAPERS = 2
+                caps = win32print.DeviceCapabilities(printer_name, "", 2)
+                self._printer_caps_cache[printer_name] = set(caps) if caps else set()
+            except Exception:
+                self._printer_caps_cache[printer_name] = set()
+        
+        return target_id in self._printer_caps_cache[printer_name]
+    
     def _get_devmode(self, printer_name, paper_size, is_landscape):
-        """
-        Hàm cấu hình máy in (DevMode).
-        Tự động phát hiện Canon LBP2900 để xử lý khổ A6 riêng biệt.
-        """
         try:
             hPrinter = win32print.OpenPrinter(printer_name)
             try:
@@ -98,35 +105,48 @@ class PrintController:
                 devmode = p_info["pDevMode"]
             finally:
                 win32print.ClosePrinter(hPrinter)
-            
-            # --- LOGIC XỬ LÝ KHỔ GIẤY ---
-            # 1. Phát hiện máy in Canon LBP2900 (Thường tên có chữ "2900")
-            is_canon_2900 = "2900" in printer_name
-            
-            # 2. Xử lý logic
-            if paper_size == "A6" and is_canon_2900:
-                # [ĐẶC BIỆT] Với Canon 2900 in A6: Dùng Custom Size (256) + Kích thước thật
-                # Nếu dùng ID 70, driver Canon sẽ không hiểu và tự nhảy về A4.
-                devmode.PaperSize = 256  # DMPAPER_USER
-                devmode.PaperWidth = 1050  # 105.0 mm (Chiều rộng A6)
-                devmode.PaperLength = 1480 # 148.0 mm (Chiều dài A6)
-                
-                # Bắt buộc bật cờ DM_PAPERWIDTH | DM_PAPERLENGTH để driver nhận diện kích thước custom
-                devmode.Fields |= win32con.DM_PAPERLENGTH | win32con.DM_PAPERWIDTH
-                
-            elif paper_size in self.PAPER_IDS:
-                # [MẶC ĐỊNH] Các máy in khác (HP, Brother...) dùng ID chuẩn Windows
-                devmode.PaperSize = self.PAPER_IDS[paper_size]
 
-            # 3. Thiết lập hướng giấy
-            devmode.Orientation = 2 if is_landscape else 1
+            target_id = self.PAPER_IDS.get(paper_size, 9)
             
-            # 4. Kích hoạt các trường đã thay đổi
+            # Kiểm tra support
+            is_supported = self._is_paper_id_supported(printer_name, target_id)
+
+            # --- TRƯỜNG HỢP A: KHÔNG HỖ TRỢ ID (Dùng Custom Size) ---
+            if not is_supported:
+                # Lấy kích thước từ Dictionary (Tối ưu hơn if/else nhiều dòng)
+                w_mm, h_mm = self.PAPER_SIZES_MM.get(paper_size, (2100, 2970))
+                
+                devmode.PaperSize = 256 # Custom
+                devmode.PaperWidth = w_mm
+                devmode.PaperLength = h_mm
+                
+                # Bật cờ kích thước
+                devmode.Fields |= (win32con.DM_PAPERWIDTH | win32con.DM_PAPERLENGTH)
+                
+                # [TỐI ƯU 2] Xử lý Khay giấy cho Canon 2900/Máy cũ
+                # Khi in khổ lạ, ép về DMBIN_FORMSOURCE (Khay ưu tiên) hoặc DMBIN_AUTO
+                # Để tránh máy in ngừng lại hỏi xác nhận giấy.
+                devmode.DefaultSource = win32con.DMBIN_FORMSOURCE
+                devmode.Fields |= win32con.DM_DEFAULTSOURCE
+
+            # --- TRƯỜNG HỢP B: CÓ HỖ TRỢ ID ---
+            else:
+                devmode.PaperSize = target_id
+                # Xóa sạch cờ Custom để tránh xung đột
+                devmode.Fields &= ~(win32con.DM_PAPERWIDTH | win32con.DM_PAPERLENGTH)
+                
+                # Với chế độ chuẩn, thường để Auto Select khay giấy
+                devmode.DefaultSource = win32con.DMBIN_AUTO
+                devmode.Fields |= win32con.DM_DEFAULTSOURCE
+
+            # Thiết lập hướng giấy
+            devmode.Orientation = 2 if is_landscape else 1
             devmode.Fields |= (win32con.DM_PAPERSIZE | win32con.DM_ORIENTATION)
             
             return devmode
+
         except Exception as e:
-            print(f"Lỗi Get DevMode: {e}")
+            print(f"DevMode Error: {e}")
             return None
 
     

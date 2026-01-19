@@ -11,7 +11,7 @@
         },
         "STT": {
             "x": 348,
-            "y": 386,
+            "y": 388,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -21,8 +21,8 @@
             "upper": false
         },
         "Họ và tên": {
-            "x": 571,
-            "y": 205,
+            "x": 351,
+            "y": 204,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -31,8 +31,8 @@
             "bold": true
         },
         "Ngày tháng năm sinh": {
-            "x": 570,
-            "y": 238,
+            "x": 358,
+            "y": 237,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -41,8 +41,8 @@
             "bold": true
         },
         "Giới tính": {
-            "x": 570,
-            "y": 272,
+            "x": 364,
+            "y": 271,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -51,8 +51,8 @@
             "bold": true
         },
         "Số Căn cước": {
-            "x": 573,
-            "y": 339,
+            "x": 360,
+            "y": 333,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -61,8 +61,8 @@
             "bold": true
         },
         "Nơi ở": {
-            "x": 565,
-            "y": 305,
+            "x": 358,
+            "y": 306,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -71,8 +71,8 @@
             "bold": true
         },
         "Ủy ban nhân dân": {
-            "x": 119,
-            "y": 35,
+            "x": 92,
+            "y": 38,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -92,7 +92,7 @@
         },
         "KHu vực bỏ phiếu": {
             "x": 323,
-            "y": 420,
+            "y": 422,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -122,8 +122,8 @@
             "bold": true
         },
         "Ngày ký": {
-            "x": 588,
-            "y": 382,
+            "x": 571,
+            "y": 368,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -132,8 +132,8 @@
             "bold": true
         },
         "Tháng ký": {
-            "x": 678,
-            "y": 382,
+            "x": 667,
+            "y": 370,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",

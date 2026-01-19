@@ -1,0 +1,153 @@
+{
+    "global": {
+        "signature_img": {
+            "x": 580,
+            "y": 455,
+            "w": 150,
+            "h": 80,
+            "enable": true,
+            "type": "image"
+        },
+        "STT": {
+            "x": 229,
+            "y": 369,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Họ và tên": {
+            "x": 328,
+            "y": 201,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ngày tháng năm sinh": {
+            "x": 332,
+            "y": 233,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Giới tính": {
+            "x": 339,
+            "y": 266,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Số Căn cước": {
+            "x": 336,
+            "y": 329,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Nơi ở": {
+            "x": 337,
+            "y": 296,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ủy ban nhân dân": {
+            "x": 88,
+            "y": 37,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "PHường xã đặc khu": {
+            "x": 216,
+            "y": 429,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "KHu vực bỏ phiếu": {
+            "x": 291,
+            "y": 398,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ký thay": {
+            "x": 526,
+            "y": 472,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Chức danh ký thay": {
+            "x": 595,
+            "y": 538,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Ngày ký": {
+            "x": 567,
+            "y": 366,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Tháng ký": {
+            "x": 656,
+            "y": 364,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Người ký": {
+            "x": 591,
+            "y": 563,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        }
+    },
+    "custom": {}
+}
