@@ -57,26 +57,38 @@ class DataController:
                 self.router.view.after(0, lambda: self._on_load_error(str(e)))
 
     def _on_load_success(self):
-        """Hàm này chạy trên Main Thread để update UI"""
         try:
             total_count = len(self.model.df) if self.model.df is not None else 0
             
+            # Update UI cơ bản
             if self.router.view and hasattr(self.router.view, 'p_mid'):
                 self.router.view.p_mid.set_total_count(total_count)
-
             self.router.view.p_left.refresh_field_list(self.model.df.columns, self.model.global_config)
-            self.router.refresh_mid_table()
             
-            # Render lại canvas (nếu đã có phôi thì render đè dữ liệu lên)
+            # --- [MỚI] NẠP DỮ LIỆU CHO 2 BỘ LỌC ---
+            
+            # 1. Nạp bộ lọc Ngày sinh
+            date_opts = self.model.get_date_options() # [("Text", "key"), ...]
+            self.router.view.p_mid.cbb_date['values'] = [opt[0] for opt in date_opts]
+            self.router.view.p_mid.cbb_date.current(0)
+            self.router.map_date = {opt[0]: opt[1] for opt in date_opts} # Lưu map
+
+            # 2. Nạp bộ lọc CCCD
+            cccd_opts = self.model.get_cccd_options()
+            self.router.view.p_mid.cbb_cccd['values'] = [opt[0] for opt in cccd_opts]
+            self.router.view.p_mid.cbb_cccd.current(0)
+            self.router.map_cccd = {opt[0]: opt[1] for opt in cccd_opts} # Lưu map
+            # --------------------------------------
+
+            self.router.refresh_mid_table()
             self.router.ctrl_canvas.render()
             self.router.deselect_all()
             
-            MsgHelper.show_info(f"Đã tải xong {total_count:,} dòng dữ liệu!", "Thành công")
-            
+            MsgHelper.show_info(f"Đã tải {total_count:,} dòng dữ liệu.", "Thành công")
+
         except Exception as e:
-            messagebox.showerror("Lỗi hiển thị", str(e))
+            MsgHelper.show_error(str(e), title="Lỗi hiển thị")
         finally:
-            # Tắt trạng thái Loading
             if self.router.view:
                 self.router.view.master.config(cursor="")
 
@@ -84,4 +96,5 @@ class DataController:
         """Hàm báo lỗi chạy trên Main Thread"""
         if self.router.view:
             self.router.view.master.config(cursor="")
-        messagebox.showerror("Lỗi đọc file", error_msg)
+        # [SỬA]: Dùng MsgHelper
+        MsgHelper.show_error(error_msg, title="Lỗi đọc file")

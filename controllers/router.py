@@ -239,17 +239,23 @@ class AppRouter:
         if self.model.df is None: return
         self.is_bulk_updating = True 
         try:
+            # Lấy dữ liệu trang hiện tại (đã bị lọc) để hiển thị lên bảng
             df_page = self.model.get_current_page_data()
             self.view.p_mid.update_data(df_page, self.model.custom_configs)
+            
+            # Cập nhật số trang (Ví dụ: 1/10) - Cái này thì cần theo dữ liệu lọc
             self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
             
-            # --- [THAY ĐỔI] Cập nhật danh sách Cột vào Combobox thay vì Khu vực ---
-            # Lưu ý: tên biến cbb_filter ở View có thể giữ nguyên để đỡ phải sửa nhiều, 
-            # nhưng ý nghĩa giờ là cbb_column
+            # --- [SỬA LẠI ĐOẠN NÀY] ---
+            # Luôn lấy tổng số dòng của file Excel gốc (model.df), KHÔNG lấy của file đã lọc (model.df_filtered)
+            full_count = len(self.model.df) 
+            self.view.p_mid.set_total_count(full_count)
+            # --------------------------
+            
+            # Cập nhật danh sách cột lọc (nếu cần)
             if list(self.view.p_mid.cbb_filter['values']) != self.model.searchable_columns:
                  self.view.p_mid.cbb_filter['values'] = self.model.searchable_columns
                  self.view.p_mid.cbb_filter.set("Tất cả")
-            # ----------------------------------------------------------------------
             
         except Exception as e: print(f"Lỗi refresh table: {e}")
         finally: self.is_bulk_updating = False
@@ -477,3 +483,24 @@ class AppRouter:
             
             # 5. Thông báo thành công
             MsgHelper.show_info(f"Đã xóa vĩnh viễn trường '{field_name}'", "Thành công")
+    # --- SỰ KIỆN LỌC NGÀY SINH ---
+    def on_date_filter_change(self, event):
+        if not self.has_template(): return
+        
+        text = self.view.p_mid.cbb_date.get()
+        key = self.map_date.get(text, "all")
+        
+        self.model.set_date_filter(key)
+        self.deselect_all()
+        self.refresh_mid_table()
+
+    # --- SỰ KIỆN LỌC CCCD ---
+    def on_cccd_filter_change(self, event):
+        if not self.has_template(): return
+        
+        text = self.view.p_mid.cbb_cccd.get()
+        key = self.map_cccd.get(text, "all")
+        
+        self.model.set_cccd_filter(key)
+        self.deselect_all()
+        self.refresh_mid_table()

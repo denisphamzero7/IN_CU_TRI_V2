@@ -51,8 +51,8 @@
             "bold": true
         },
         "Số Căn cước": {
-            "x": 360,
-            "y": 333,
+            "x": 359,
+            "y": 334,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -72,7 +72,7 @@
         },
         "Ủy ban nhân dân": {
             "x": 92,
-            "y": 38,
+            "y": 36,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -81,8 +81,8 @@
             "bold": true
         },
         "PHường xã đặc khu": {
-            "x": 246,
-            "y": 438,
+            "x": 243,
+            "y": 446,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -122,8 +122,8 @@
             "bold": true
         },
         "Ngày ký": {
-            "x": 571,
-            "y": 368,
+            "x": 574,
+            "y": 371,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -132,8 +132,8 @@
             "bold": true
         },
         "Tháng ký": {
-            "x": 667,
-            "y": 370,
+            "x": 675,
+            "y": 374,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -263,6 +263,146 @@
             "bold": true
         },
         "Xã/phường/đặc khu": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "ỦY BAN BẦU CỬ": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 1": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 2": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 3": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 4": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 5": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 6": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 8": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 9": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 10": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 11": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 12": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "type": "text",
+            "bold": true
+        },
+        "Unnamed: 13": {
             "x": 50,
             "y": 50,
             "size": 21,

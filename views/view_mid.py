@@ -5,21 +5,25 @@ from config.settings import APP_BG_COLOR, APP_TEXT_COLOR
 
 from helpers.date_helpers import format_date_text_vn
 from helpers.text_helper import format_cccd
+
 class MidPanelView(ttk.Frame):
     def __init__(self, parent, router):
-        # --- CẤU HÌNH STYLE (GIỮ NGUYÊN) ---
+        # --- CẤU HÌNH STYLE ---
         super().__init__(parent, padding=5, style='Misa.TFrame')
         self.parent = parent
         self.router = router
+        
         style = ttk.Style()
         style.configure('Misa.TFrame', background=APP_BG_COLOR)
         style.configure('Misa.TLabel', background=APP_BG_COLOR, foreground="#333333", font=("Segoe UI", 8))
         style.configure('MisaTotal.TLabel', background=APP_BG_COLOR, foreground="#333333", font=("Segoe UI", 8, "bold"))
         style.configure("Small.primary.Treeview", font=("Segoe UI", 8), rowheight=28)
         style.configure("Small.primary.Treeview.Heading", font=("Segoe UI", 8, "bold"))
-        # 3. [FIX] Bây giờ gọi option_add mới hợp lệ vì self đã được khởi tạo
+        
+        # Font cho Listbox của Combobox
         self.option_add('*TCombobox*Listbox.font', ("Segoe UI", 8))
-        # Setup style phân trang
+        
+        # Setup style phân trang (Page Button)
         BTN_BG_COLOR = "#FFFFFF"
         BTN_FG_COLOR = "#888888"
         BTN_BORDER   = "#CCCCCC"
@@ -35,10 +39,7 @@ class MidPanelView(ttk.Frame):
         style.configure('Small.TCombobox', font=("Segoe UI", 9))
         style.configure('TEntry', font=("Segoe UI", 9))
         
-       
         self.pack(fill=BOTH, expand=YES)
-        self.parent = parent
-        self.router = router
         
         # --- 1. TOOLBAR ---
         self._setup_toolbar()
@@ -49,15 +50,13 @@ class MidPanelView(ttk.Frame):
         self.tree_container.rowconfigure(0, weight=1)
         self.tree_container.columnconfigure(0, weight=1)
 
-        # [SỬA LẠI]: Bỏ cột "stt" ảo, chỉ giữ 5 cột dữ liệu col0 -> col4
-        # col0 sẽ đóng vai trò là cột STT của Excel (để width nhỏ = 40)
-        # col1 sẽ là Họ tên (để width lớn = 150)
+        # Định nghĩa 5 cột hiển thị
         self.cols_def = [
-            ("col0", "", 20),   # Cột đầu tiên của Excel (Thường là STT)
-            ("col1", "", 90),  # Cột thứ 2 (Thường là Tên)
-            ("col2", "", 80), 
-            ("col3", "",  50),
-            ("col4", "", 80)
+            ("col0", "", 20),   # STT
+            ("col1", "", 90),   # Họ tên
+            ("col2", "", 80),   # Ngày sinh (Dự kiến)
+            ("col3", "",  50),  # Giới tính (Dự kiến)
+            ("col4", "", 80)    # CCCD (Dự kiến)
         ]
         
         self.tree = ttk.Treeview(
@@ -67,19 +66,15 @@ class MidPanelView(ttk.Frame):
             selectmode="extended",
             style="Small.primary.Treeview" 
         )
+        
+        # Chỉ cho phép click sort cột STT và Tên
         allowed_sort_cols = ["col0", "col1"]
-        # Khởi tạo Header
         for c_id, c_name, c_width in self.cols_def:
-            
-            # KIỂM TRA QUAN TRỌNG:
-            # Chỉ gắn lệnh click (command) nếu cột nằm trong danh sách cho phép
             if c_id in allowed_sort_cols:
                 self.tree.heading(c_id, text=c_name, command=lambda c=c_id: self.router.on_header_click(c))
             else:
-                # Các cột khác (Ngày sinh, CCCD...) KHÔNG gắn command -> Không click được
                 self.tree.heading(c_id, text=c_name)
             
-            # Căn chỉnh text (STT canh giữa, còn lại canh trái)
             anchor_val = "center" if c_id == "col0" else "w"
             self.tree.column(c_id, width=c_width, anchor=anchor_val)
             
@@ -106,72 +101,62 @@ class MidPanelView(ttk.Frame):
         self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
     def _setup_toolbar(self):
-        # (Giữ nguyên phần Toolbar)
         from views.view_search import SearchView
-        toolbar = ttk.Frame(self, style='Misa.TFrame')
-        toolbar.pack(fill=X, pady=(0, 5)) 
         
-        toolbar.columnconfigure(1, weight=1)
-        toolbar.columnconfigure(0, weight=0)
-        toolbar.columnconfigure(2, weight=0)
+        toolbar_container = ttk.Frame(self, style='Misa.TFrame')
+        toolbar_container.pack(fill=X, pady=(0, 5))
 
-        # TRÁI
-        container_left = ttk.Frame(toolbar, style='Misa.TFrame')
-        container_left.grid(row=0, column=0, sticky="ew", padx=(0, 5))
-        # Combobox chọn cột
-        self.cbb_filter = ttk.Combobox(
-            container_left, 
-            state="readonly", 
-            bootstyle="info", 
-            justify="left", 
-            width=15,
-            font=("Segoe UI", 7)
-        ) 
+        # =========================================================
+        # HÀNG 1: [CỘT] + [TÌM KIẾM] + [PHÂN TRANG]
+        # =========================================================
+        row_top = ttk.Frame(toolbar_container, style='Misa.TFrame')
+        row_top.pack(fill=X, pady=(0, 5))
+
+        # 1. CỘT
+        self.cbb_filter = ttk.Combobox(row_top, state="readonly", bootstyle="info", width=10, font=("Segoe UI", 7)) 
         self.cbb_filter.pack(side=LEFT, padx=(0, 5))
         self.cbb_filter.set("Tất cả") 
         self.cbb_filter.bind("<<ComboboxSelected>>", self.router.on_filter_change)
 
-        # Ô tìm kiếm
-        self.search_view = SearchView(container_left, self.router)
-        self.search_view.pack(side=LEFT, fill=X, expand=YES)
+        # 2. Ô TÌM KIẾM
+        self.search_view = SearchView(row_top, self.router)
+        self.search_view.pack(side=LEFT, fill=X, expand=YES, padx=(5, 0))
 
-
-        # GIỮA
-        # === 2. GROUP GIỮA (PHÂN TRANG) ===
-        fr_page = ttk.Frame(toolbar, style='Misa.TFrame')
-        fr_page.grid(row=0, column=1, sticky="e", padx=(0, 5))
+        # 3. PHÂN TRANG
+        fr_right = ttk.Frame(row_top, style='Misa.TFrame')
+        fr_right.pack(side=RIGHT, padx=(10, 0))
         
-        # Nút Prev
-        self.btn_prev = ttk.Button(
-            fr_page, 
-            text="❮", 
-            command=self.router.prev_page,
-            width=4,
-            style="Page.Custom.TButton"
-        )
+        self.btn_prev = ttk.Button(fr_right, text="❮", command=self.router.prev_page, width=4, style="Page.Custom.TButton")
         self.btn_prev.pack(side=LEFT, padx=1)
-        
-        # Label 0/0
-        self.lbl_page_info = ttk.Label(fr_page, text="0/0", width=8, anchor="center", 
-                                       style='Misa.TLabel', font=("Segoe UI", 7, "bold"))
+        self.lbl_page_info = ttk.Label(fr_right, text="0/0", width=8, anchor="center", style='Misa.TLabel', font=("Segoe UI", 7, "bold"))
         self.lbl_page_info.pack(side=LEFT, padx=1)
-        
-        # Nút Next
-        self.btn_next = ttk.Button(
-            fr_page, 
-            text="❯", 
-            command=self.router.next_page, 
-            width=4,
-            style="Page.Custom.TButton"
-        )
-        self.btn_next.pack(side=LEFT, padx=(1,0))
-
-        # PHẢI
-        container_total = ttk.Frame(toolbar, style='Misa.TFrame')
-        container_total.grid(row=0, column=2, sticky="e")
-        ttk.Label(container_total, text="Tổng số:", style='Misa.TLabel').pack(side=LEFT)
-        self.lbl_total_val = ttk.Label(container_total, text="0", style='MisaTotal.TLabel')
+        self.btn_next = ttk.Button(fr_right, text="❯", command=self.router.next_page, width=4, style="Page.Custom.TButton")
+        self.btn_next.pack(side=LEFT, padx=(1, 10))
+        ttk.Label(fr_right, text="Tổng:", style='Misa.TLabel').pack(side=LEFT)
+        self.lbl_total_val = ttk.Label(fr_right, text="0", style='MisaTotal.TLabel')
         self.lbl_total_val.pack(side=LEFT, padx=(5, 0))
+
+        # =========================================================
+        # HÀNG 2: [LỌC NGÀY SINH] + [LỌC CCCD]
+        # =========================================================
+        row_bottom = ttk.Frame(toolbar_container, style='Misa.TFrame')
+        row_bottom.pack(fill=X)
+
+        # 1. Combobox Ngày sinh
+        self.cbb_date = ttk.Combobox(row_bottom, state="readonly", bootstyle="info", width=25, font=("Segoe UI", 7))
+        self.cbb_date.pack(side=LEFT, padx=(0, 15))
+        self.cbb_date.set("") 
+        # Sự kiện này cần có trong Router
+        if hasattr(self.router, 'on_date_filter_change'):
+            self.cbb_date.bind("<<ComboboxSelected>>", self.router.on_date_filter_change)
+
+        # 2. Combobox CCCD
+        self.cbb_cccd = ttk.Combobox(row_bottom, state="readonly", bootstyle="info", width=25, font=("Segoe UI", 7))
+        self.cbb_cccd.pack(side=LEFT)
+        self.cbb_cccd.set("") 
+        # Sự kiện này cần có trong Router
+        if hasattr(self.router, 'on_cccd_filter_change'):
+            self.cbb_cccd.bind("<<ComboboxSelected>>", self.router.on_cccd_filter_change)
 
     def update_pagination_label(self, current, total):
         self.lbl_page_info.config(text=f"{current} / {total}")
@@ -179,89 +164,82 @@ class MidPanelView(ttk.Frame):
     def set_total_count(self, count):
         self.lbl_total_val.config(text=f"{count}")
 
-    # =======================================================
-    # [FIX] ĐÃ THÊM HÀM update_header_arrow ĐỂ SỬA LỖI
-    # =======================================================
     def update_header_arrow(self, sort_col, reverse):
-        """Cập nhật mũi tên chỉ thị sắp xếp trên Header"""
-        
+        """Cập nhật mũi tên sort"""
         for c_id in [c[0] for c in self.cols_def]:
-            # Lấy text hiện tại
             try:
                 current_text = self.tree.heading(c_id, "text")
-                # Xóa mũi tên cũ (nếu có)
                 clean_text = current_text.replace(" ▲", "").replace(" ▼", "")
-
                 if c_id == sort_col:
                     arrow = " ▼" if reverse else " ▲"
                     self.tree.heading(c_id, text=clean_text + arrow)
                 else:
                     self.tree.heading(c_id, text=clean_text)
-            except:
-                pass
+            except: pass
 
     # =======================================================
-    # HÀM UPDATE DATA (Đã có fix ngày tháng và 5 cột)
+    # HÀM UPDATE DATA THÔNG MINH (KHÔNG SET CỨNG VỊ TRÍ)
     # =======================================================
     def update_data(self, df, custom_configs):
-        # Xóa dữ liệu cũ trong bảng
-        for i in self.tree.get_children(): 
-            self.tree.delete(i)
+        # 1. Xóa dữ liệu cũ
+        for i in self.tree.get_children(): self.tree.delete(i)
             
         if df is None:
             self.lbl_placeholder.config(text="📂 Vui lòng chọn File Excel dữ liệu", bootstyle="secondary")
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
             self.lbl_total_val.config(text="0") 
             return
-            
         elif df.empty:
             self.lbl_placeholder.config(text="🔍 Không tìm thấy kết quả nào...", bootstyle="warning")
             self.lbl_placeholder.place(relx=0.5, rely=0.5, anchor="center")
+            # Vẫn cho hiện 0 kết quả
+            self.lbl_total_val.config(text="0")
             return
-            
         else:
             self.lbl_placeholder.place_forget()
             
-            # 1. Update Header (Tiêu đề cột)
+            # --- [LOGIC MỚI] LẤY TÊN CỘT ĐÃ DETECT TỪ MODEL ---
+            # Model phải có biến detected_cols = {'date': 'Ngày sinh', 'cccd': 'Số CCCD'}
+            detected = getattr(self.router.model, 'detected_cols', {})
+            col_date_name = detected.get("date")
+            col_cccd_name = detected.get("cccd")
+            # --------------------------------------------------
+
+            # 2. Update Header Table
             total_excel_cols = len(df.columns)
-            limit = min(5, total_excel_cols)
+            limit = min(5, total_excel_cols) # Chỉ hiện tối đa 5 cột
             excel_headers = df.columns[:limit]
             
             for idx, header_text in enumerate(excel_headers):
-                col_id = f"col{idx}" 
-                self.tree.heading(col_id, text=str(header_text))
-
-            # Xóa text các cột thừa nếu file excel ít cột hơn 5
+                self.tree.heading(f"col{idx}", text=str(header_text))
+            
+            # Xóa text các cột thừa (nếu file < 5 cột)
             for idx in range(limit, 5):
                 self.tree.heading(f"col{idx}", text="")
 
-            # 2. Đổ dữ liệu và Format
+            # 3. Đổ dữ liệu
             for i, row in df.iterrows():
                 tag = ('custom',) if i in custom_configs else ()
-                
                 vals = []
-                # Duyệt qua 5 cột hiển thị (0->4)
+                
+                # Duyệt qua 5 cột hiển thị
                 for k in range(5):
                     if k < total_excel_cols:
                         val = row.iloc[k]
-                        val_str = ""
-
-                        # --- [XỬ LÝ FORMAT DỮ LIỆU TẠI ĐÂY] ---
-                        if k == 2: 
-                            # Cột 2: Ngày tháng năm sinh -> Dùng helper date
-                            # Lưu ý: Nếu muốn hiện dạng ngắn (16/04/1996) thì dùng format_date_vn
-                            # Nếu muốn hiện dạng dài (Ngày 16...) thì dùng format_date_text_vn như bạn import
-                            val_str = format_date_text_vn(val)
+                        col_name_real = df.columns[k] # Lấy tên cột thực tế trong Excel
                         
-                        elif k == 4:
-                            # Cột 4: Số CCCD -> Dùng helper text
-                            val_str = format_cccd(val)
-                            
-                        else:
-                            # Các cột khác (STT, Tên, Giới tính...): Giữ nguyên
-                            val_str = str(val)
-                            if val_str.lower() == "nan":
-                                val_str = ""
+                        val_str = str(val)
+                        if val_str.lower() == "nan": val_str = ""
+
+                        # --- FORMAT DỰA TRÊN TÊN CỘT ---
+                        if col_name_real == col_date_name:
+                             # Format nếu cột này trùng tên với cột Ngày sinh đã detect
+                             val_str = format_date_text_vn(val)
+                        
+                        elif col_name_real == col_cccd_name:
+                             # Format nếu cột này trùng tên với cột CCCD đã detect
+                             val_str = format_cccd(val)
+                        # -------------------------------
                         
                         vals.append(val_str)
                     else:
