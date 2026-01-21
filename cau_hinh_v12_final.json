@@ -10,8 +10,8 @@
             "path": "C:/Users/Admin/Documents/TINTUC/inra/Chữ ký Mr Quân_Không con dấu.png"
         },
         "STT": {
-            "x": 348,
-            "y": 388,
+            "x": 349,
+            "y": 369,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -51,8 +51,8 @@
             "bold": true
         },
         "Số Căn cước": {
-            "x": 359,
-            "y": 334,
+            "x": 358,
+            "y": 339,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -82,7 +82,7 @@
         },
         "PHường xã đặc khu": {
             "x": 243,
-            "y": 446,
+            "y": 433,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -410,6 +410,87 @@
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
+            "bold": true
+        },
+        "Nam": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "Nữ": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "Dân tộc": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": true,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "Bầu cử ĐBQH": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "Bầu cử đại biểu HĐND": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "Ghi chú": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 7": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "ỦY BAN BẦU CỬ\nĐẠI BIỂU HĐND PHƯỜNG HÒA KHÁNH\nNHIỆM KỲ 2026-2031": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Arial",
+            "color": "Black",
             "bold": true
         }
     },

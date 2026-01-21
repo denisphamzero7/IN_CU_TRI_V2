@@ -19,7 +19,7 @@ class MidPanelView(ttk.Frame):
         style.configure('MisaTotal.TLabel', background=APP_BG_COLOR, foreground="#333333", font=("Segoe UI", 8, "bold"))
         style.configure("Small.primary.Treeview", font=("Segoe UI", 8), rowheight=28)
         style.configure("Small.primary.Treeview.Heading", font=("Segoe UI", 8, "bold"))
-        
+        style.configure('Small.info.TButton', font=("Segoe UI", 8), padding=(4, 2))
         # Font cho Listbox của Combobox
         self.option_add('*TCombobox*Listbox.font', ("Segoe UI", 8))
         
@@ -157,6 +157,16 @@ class MidPanelView(ttk.Frame):
         # Sự kiện này cần có trong Router
         if hasattr(self.router, 'on_cccd_filter_change'):
             self.cbb_cccd.bind("<<ComboboxSelected>>", self.router.on_cccd_filter_change)
+       # 3. NÚT XÓA LỌC (Dựa theo mẫu nút Copy HWID)
+        self.btn_clear = ttk.Button(
+            row_bottom,           # Parent là hàng dưới
+            text="⚙",             # Icon dấu X
+            width=5,              # Độ rộng nhỏ = 3
+            style="Small.info.TButton", # Dùng Style đã định nghĩa (để chỉnh font bé)
+            command=self.router.clear_filters
+        )
+        # [ĐÃ CHỈNH SỬA] Tăng padx từ 5 lên 15 để cách xa hơn
+        self.btn_clear.pack(side=LEFT, padx=(15, 0))
 
     def update_pagination_label(self, current, total):
         self.lbl_page_info.config(text=f"{current} / {total}")

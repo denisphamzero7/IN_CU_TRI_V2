@@ -12,8 +12,8 @@ class AppRouter:
     def __init__(self):
         self.model = VoterModel()
         self.view = None
-        self.sort_reverse = False # Biến theo dõi trạng thái tăng/giảm
-        self.last_sort_col = None # Biến theo dõi cột vừa sort
+        self.sort_reverse = False 
+        self.last_sort_col = None 
         self.ctrl_data = DataController(self)
         self.ctrl_canvas = CanvasController(self)
         self.ctrl_print = PrintController(self)
@@ -31,6 +31,9 @@ class AppRouter:
         self.template_rotation = 0   
         self.pressed_keys = set()
         self.move_loop_id = None 
+        # --- MAP ĐỂ TRA CỨU KEY LỌC ĐỘNG ---
+        self.map_date = {}
+        self.map_cccd = {}
 
     def set_view(self, view):
         self.view = view
@@ -51,7 +54,6 @@ class AppRouter:
 
     # --- HÀM VẼ CANVAS AN TOÀN ---
     def render_canvas_safe(self):
-        # Nếu chưa có phôi -> Không cho hiển thị dữ liệu lên canvas.
         if not self.has_template():
             if hasattr(self.ctrl_canvas, 'canvas'):
                 self.ctrl_canvas.canvas.delete("all")
@@ -67,25 +69,21 @@ class AppRouter:
         return False
 
     # -------------------------------------------------------------
-    # CÁC HÀM ACTION - BẠN MUỐN KHÓA CÁI NÀO THÌ THÊM CHECK VÀO
+    # CÁC HÀM ACTION
     # -------------------------------------------------------------
 
     def start_print(self):
-        # 1. CHECK BẢN QUYỀN TRƯỚC
         if not self.check_license(): return 
 
         if not self.has_template(): return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
         if self.model.df is None or self.model.df.empty: return MsgHelper.show_warning("Chưa có dữ liệu!")
 
         try:
-            # --- [SỬA ĐOẠN NÀY] ---
             val_from = self.view.p_right.var_print_from.get().strip()
             val_to = self.view.p_right.var_print_to.get().strip()
 
-            # Nếu giá trị là Placeholder mặc định thì coi như là rỗng
             if val_from == "Từ": val_from = ""
             if val_to == "Đến": val_to = ""
-            # ----------------------
 
             if not val_from or not val_to: 
                 return MsgHelper.show_warning("Vui lòng nhập số thứ tự Từ - Đến!")
@@ -93,24 +91,20 @@ class AppRouter:
             start_row = int(val_from)
             end_row = int(val_to)
             
-            # ... (Phần code phía dưới giữ nguyên) ...
             max_row = len(self.model.df)
             start_row = max(1, min(start_row, max_row))
             end_row = max(1, min(end_row, max_row))
 
             if start_row > end_row: return MsgHelper.show_error("Số 'Từ' không được lớn hơn 'Đến'!")
-            # ============================================================
-            # 4. [MỚI] CHECK MÁY IN (CHỈ CHECK KHI SỐ TRANG ĐÃ HỢP LỆ)
-            # ============================================================
+            
             try:
                 printer_name = self.view.p_right.cbb_printer.get()
                 invalid_names = ["", "Chọn máy in...", "Không có máy in"]
-                
                 if not printer_name or printer_name in invalid_names:
                     return MsgHelper.show_warning("Vui lòng chọn máy in trước khi in!", title="Chưa chọn máy in")
             except:
                 return MsgHelper.show_warning("Không tìm thấy danh sách máy in!")
-            # ============================================================
+            
             custom_indices = list(range(start_row - 1, end_row))
             self.ctrl_print.print_batch(custom_indices)
             
@@ -118,22 +112,13 @@ class AppRouter:
             return MsgHelper.show_error("Vui lòng nhập đúng định dạng số!")
 
     def rotate_template_right(self):
-        # Ví dụ: Xoay ảnh cũng cần bản quyền
-        # if not self.check_license(): return 
-
         self.template_rotation = (self.template_rotation + 90) % 360
         self.render_canvas_safe()
 
     def on_paper_config_change(self, event=None):
-        # Đổi khổ giấy cần bản quyền
-        # if not self.check_license(): 
-        #     # Reset lại combobox về cũ nếu cần (tùy chọn)
-        #     return 
         self.render_canvas_safe()
 
     def on_orientation_change(self, event=None):
-        # if not self.check_license(): return
-        
         val = self.view.p_right.var_orientation.get()
         if val == "Ngang": 
             self.is_paper_landscape = True 
@@ -144,9 +129,6 @@ class AppRouter:
         self.render_canvas_safe()
 
     def on_prop_change(self, event=None):
-        # Chỉnh sửa font/size cần bản quyền
-        # if not self.check_license(): return
-
         if not self.selected_field or self.is_loading_ui: return
         if not self.has_template(): return 
         
@@ -173,8 +155,6 @@ class AppRouter:
         if mode == "individual": self.view.p_mid.tree.item(str(self.current_idx), tags=('custom',))
 
     def pick_manual_signature(self):
-        # if not self.check_license(): return 
-
         if not self.has_template(): return MsgHelper.show_warning("Vui lòng chọn phôi trước!") 
         path = filedialog.askopenfilename(filetypes=[("Image", "*.png;*.jpg;*.jpeg")])
         if path:
@@ -187,8 +167,6 @@ class AppRouter:
             self.render_canvas_safe()
 
     def reset_current_custom(self):
-        # if not self.check_license(): return 
-
         if not self.has_template(): return MsgHelper.show_warning("Chưa có phôi!")
         
         mode = "global"
@@ -214,43 +192,39 @@ class AppRouter:
                 self.load_field_props_to_ui()
                 MsgHelper.show_info("Đã khôi phục mặc định.", "Thành công")
 
-    # -------------------------------------------------------------
-    # CÁC HÀM KHÁC (KHÔNG CẦN BẢN QUYỀN HOẶC TÙY BẠN)
-    # -------------------------------------------------------------
     def select_template(self): 
-        # Thêm dòng này: Nếu chưa active thì dừng luôn
         if not self.check_license(): return 
         self.ctrl_data.select_template()
 
     def select_excel(self): 
-        # Thêm dòng này
         if not self.check_license(): return 
         self.ctrl_data.select_excel()
 
     def select_signature_folder(self): 
-        # Thêm dòng này
         if not self.check_license(): return 
         self.ctrl_data.select_signature_folder()
     
     def exit_app(self):
         if MsgHelper.ask_yes_no("Thoát?", parent=self.view): self.view.master.destroy()
 
+    # --- REFRESH TABLE ---
     def refresh_mid_table(self):
         if self.model.df is None: return
         self.is_bulk_updating = True 
         try:
-            # Lấy dữ liệu trang hiện tại (đã bị lọc) để hiển thị lên bảng
+            # 1. Update Options cho Combobox (lọc động)
+            self.update_filter_options_ui()
+
+            # 2. Update Table
             df_page = self.model.get_current_page_data()
             self.view.p_mid.update_data(df_page, self.model.custom_configs)
             
-            # Cập nhật số trang (Ví dụ: 1/10) - Cái này thì cần theo dữ liệu lọc
+            # Cập nhật số trang
             self.view.p_mid.update_pagination_label(self.model.current_page, self.model.total_pages)
             
-            # --- [SỬA LẠI ĐOẠN NÀY] ---
-            # Luôn lấy tổng số dòng của file Excel gốc (model.df), KHÔNG lấy của file đã lọc (model.df_filtered)
+            # Lấy tổng số dòng của file Excel gốc
             full_count = len(self.model.df) 
             self.view.p_mid.set_total_count(full_count)
-            # --------------------------
             
             # Cập nhật danh sách cột lọc (nếu cần)
             if list(self.view.p_mid.cbb_filter['values']) != self.model.searchable_columns:
@@ -259,6 +233,27 @@ class AppRouter:
             
         except Exception as e: print(f"Lỗi refresh table: {e}")
         finally: self.is_bulk_updating = False
+    
+    def update_filter_options_ui(self):
+        """Hàm helper để cập nhật Map động và Text cho Combobox Filter"""
+        if self.model.df is None or self.model.df.empty: return
+
+        # 1. Date Options
+        date_opts = self.model.get_date_options()
+        self.view.p_mid.cbb_date['values'] = [x[0] for x in date_opts]
+        # Tạo Map: "Text hiển thị" -> "Key logic"
+        self.map_date = {x[0]: x[1] for x in date_opts}
+        
+        if self.view.p_mid.cbb_date.current() == -1 and date_opts:
+             self.view.p_mid.cbb_date.current(0)
+
+        # 2. CCCD Options
+        cccd_opts = self.model.get_cccd_options()
+        self.view.p_mid.cbb_cccd['values'] = [x[0] for x in cccd_opts]
+        self.map_cccd = {x[0]: x[1] for x in cccd_opts}
+        
+        if self.view.p_mid.cbb_cccd.current() == -1 and cccd_opts:
+             self.view.p_mid.cbb_cccd.current(0)
 
     def next_page(self):
         if self.model.set_page(self.model.current_page + 1): self.refresh_mid_table()
@@ -267,16 +262,9 @@ class AppRouter:
         if self.model.set_page(self.model.current_page - 1): self.refresh_mid_table()
 
     def on_filter_change(self, event):
-        # [THAY ĐỔI] Hàm này giờ xử lý việc chọn Cột Tìm Kiếm
         if not self.has_template(): return 
-        
-        # Lấy tên cột user vừa chọn trong Combobox
         selected_column = self.view.p_mid.cbb_filter.get()
-        
-        # Cập nhật vào model
         self.model.set_search_column(selected_column)
-        
-        # Reset selection và refresh lại bảng
         self.deselect_all()
         self.refresh_mid_table()
 
@@ -353,33 +341,20 @@ class AppRouter:
         self.is_bulk_updating = False
 
     def on_header_click(self, col_id):
-        # --- [THÊM MỚI] KIỂM TRA DỮ LIỆU ---
-        # Nếu chưa có dữ liệu hoặc dữ liệu rỗng thì thoát luôn, không cho sort
-        if self.model.df is None or self.model.df.empty:
-            return 
-        # -----------------------------------
-        # 1. Kiểm tra logic đảo chiều
+        if self.model.df is None or self.model.df.empty: return 
         if self.last_sort_col == col_id:
             self.sort_reverse = not self.sort_reverse 
         else:
             self.sort_reverse = False 
             self.last_sort_col = col_id
 
-        # 2. Gọi Model để sắp xếp dữ liệu
         self.model.sort_data(col_id, self.sort_reverse) 
-
-        # 3. Cập nhật lại giao diện
         if hasattr(self.view, 'p_mid'):
-            # --- [SỬA ĐỔI QUAN TRỌNG] ---
-            # BƯỚC 1: Cập nhật dữ liệu bảng trước (Hàm này sẽ reset text header về mặc định)
             df_page = self.model.get_current_page_data()
             self.view.p_mid.update_data(df_page, self.model.custom_configs)
-            
-            # BƯỚC 2: Sau đó mới cập nhật mũi tên đè lên text header đã reset
             self.view.p_mid.update_header_arrow(col_id, self.sort_reverse)
-            # ----------------------------
 
-    # --- CANVAS & KEYBOARD (Di chuyển trên Canvas cũng có thể check bản quyền nếu muốn) ---
+    # --- CANVAS & KEYBOARD ---
     def on_shift_zoom(self, e): 
         if self.has_template(): self.ctrl_canvas.handle_zoom(e)
     def on_drag_start(self, e): 
@@ -391,16 +366,12 @@ class AppRouter:
     def on_canvas_resize(self, e): 
         self.ctrl_canvas.on_resize(e)
     
-    # KEYBOARD
     def on_key_press(self, event):
         key = event.keysym
         valid_keys = ('Up', 'Down', 'Left', 'Right', 'Shift_L', 'Shift_R')
         if key not in valid_keys: return
         if key in self.pressed_keys: return
         
-        # Nếu muốn di chuyển bằng phím cũng cần bản quyền thì thêm dòng này:
-        # if not self.check_license(): return
-
         first_press = (len(self.pressed_keys) == 0)
         self.pressed_keys.add(key)
         if first_press:
@@ -442,48 +413,31 @@ class AppRouter:
         if dx != 0 or dy != 0:
             self.ctrl_canvas.visual_move_selection(dx, dy)
     
-    # 1. Hàm nhận sự kiện từ View
     def on_canvas_right_click(self, event):
         if self.has_template():
             self.ctrl_canvas.handle_right_click(event)
 
-    # 2. Hàm thực hiện logic Xóa (Disable)
     def disable_field(self, field_name):
-        # 1. Gọi Model để xóa vĩnh viễn trong JSON
         if self.model.delete_field_permanently(field_name):
-            
-            # 2. Xóa Checkbox trên giao diện bên Trái (Left Panel)
             if hasattr(self.view, 'p_left'):
-                # Xóa biến Var (Trạng thái tick)
                 if field_name in self.view.p_left.field_vars:
                     del self.view.p_left.field_vars[field_name]
-                
-                # Xóa Widget hiển thị (Checkbox)
                 try:
-                    # Kiểm tra xem view_left có lưu danh sách widget không (thường là self.checkboxes hoặc self.field_widgets)
-                    # Nếu code view_left của bạn lưu widget vào dict `field_widgets`, hãy dùng đoạn này:
                     if hasattr(self.view.p_left, 'field_widgets') and field_name in self.view.p_left.field_widgets:
                         widget = self.view.p_left.field_widgets[field_name]
-                        widget.destroy() # Xóa khỏi màn hình
+                        widget.destroy() 
                         del self.view.p_left.field_widgets[field_name]
-                    
-                    # Nếu view_left dùng pack/grid trực tiếp mà không lưu dict, bạn cần reload lại view trái
-                    # self.view.p_left.refresh_ui() (Nếu có hàm này)
-                except Exception as e: 
-                    print(f"Lỗi xóa UI: {e}")
+                except Exception as e: print(f"Lỗi xóa UI: {e}")
 
-            # 3. Nếu đang chọn trường đó thì bỏ chọn
             if self.selected_field == field_name:
                 self.selected_field = None
                 if hasattr(self.view.p_left, 'highlight_selected_field'):
                     self.view.p_left.highlight_selected_field(None)
 
-            # 4. Vẽ lại Canvas (Trường đó sẽ biến mất ngay lập tức)
             self.render_canvas_safe()
-            
-            # 5. Thông báo thành công
             MsgHelper.show_info(f"Đã xóa vĩnh viễn trường '{field_name}'", "Thành công")
-    # --- SỰ KIỆN LỌC NGÀY SINH ---
+
+    # --- SỰ KIỆN LỌC (DÙNG MAP DYNAMIC) ---
     def on_date_filter_change(self, event):
         if not self.has_template(): return
         
@@ -494,7 +448,6 @@ class AppRouter:
         self.deselect_all()
         self.refresh_mid_table()
 
-    # --- SỰ KIỆN LỌC CCCD ---
     def on_cccd_filter_change(self, event):
         if not self.has_template(): return
         
@@ -502,5 +455,32 @@ class AppRouter:
         key = self.map_cccd.get(text, "all")
         
         self.model.set_cccd_filter(key)
+        self.deselect_all()
+        self.refresh_mid_table()
+
+    # --- [ĐÃ SỬA] XÓA LỌC & XÓA TEXT TÌM KIẾM ---
+    def clear_filters(self):
+        if self.model.df is None or self.model.df.empty: return
+        
+        self.model.filter_state["date"] = "all"
+        self.model.filter_state["cccd"] = "all"
+        self.model.current_search_keyword = ""       
+        self.model.current_search_column = "Tất cả"  
+        
+        try:
+            if len(self.view.p_mid.cbb_date['values']) > 0:
+                self.view.p_mid.cbb_date.current(0)
+            if len(self.view.p_mid.cbb_cccd['values']) > 0:
+                self.view.p_mid.cbb_cccd.current(0)
+            
+            self.view.p_mid.cbb_filter.set("Tất cả")
+
+            # --- [ĐOẠN QUAN TRỌNG] Gọi hàm clear của SearchView ---
+            if hasattr(self.view.p_mid.search_view, 'clear_input'):
+                self.view.p_mid.search_view.clear_input()
+                
+        except Exception: pass
+
+        self.model.apply_filters()
         self.deselect_all()
         self.refresh_mid_table()
