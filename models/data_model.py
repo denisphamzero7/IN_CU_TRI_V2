@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import math 
 import re 
-import numpy as np  # Bắt buộc cài: pip install numpy
+import numpy as np 
 from PIL import Image
 from copy import deepcopy
 from config.settings import CONFIG_FILE
@@ -13,7 +13,7 @@ class VoterModel:
     # --- CONSTANTS (REGEX) ---
     PAT_DATE_VN = re.compile(r"^(?:0?[1-9]|[12][0-9]|3[01])/(?:0?[1-9]|1[0-2])/\d{4}$")
     PAT_DATE_ISO = re.compile(r"^\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])$")
-    PAT_CCCD = re.compile(r"^\d{9,12}$")
+    PAT_CCCD = re.compile(r"^[\d\.]{9,20}$")
 
     def __init__(self):
         self.df = None
@@ -30,14 +30,17 @@ class VoterModel:
         self.selected_indices = set()
         self.detected_cols = {"cccd": None, "date": None} 
         
-        # Mặc định bộ lọc
+        # --- BIẾN CACHE ---
+        self.cached_date_opts = None 
+        self.cached_cccd_opts = None 
+        
         self.filter_state = {
-            "date": "all",  # Mặc định là tất cả
+            "date": "all",
             "cccd": "all"   
         }
         self._load_config()
     
-    # --- HÀM ĐOÁN LOẠI CỘT (TỐI ƯU HÓA) ---
+    # --- HÀM ĐOÁN LOẠI CỘT ---
     def _guess_column_type(self, series):
         sample = series.dropna().astype(str).str.strip()
         sample = sample[sample != ""] 
@@ -47,6 +50,8 @@ class VoterModel:
         if len(sample) > 1000: sample = sample.head(1000)
         
         total = len(sample)
+        if total == 0: return "text"
+
         count_vn = sample.str.match(self.PAT_DATE_VN).sum()
         count_iso = sample.str.match(self.PAT_DATE_ISO).sum()
         count_cccd = sample.str.match(self.PAT_CCCD).sum()
@@ -80,32 +85,37 @@ class VoterModel:
         self.df = self.df.fillna("")
         self.df = self.df.replace(["nan", "NaN", "None"], "", regex=True)
         self.df.columns = self.df.columns.str.strip()
-
+        
         if not self.df.empty:
             col_1_values = self.df.iloc[:, 0].astype(str).str.strip()
             self.df = self.df[col_1_values != ""]
             
         self.df.reset_index(drop=True, inplace=True)
 
-        # Chuẩn hóa ngày tháng
+        self.cached_date_opts = None
+        self.cached_cccd_opts = None
+        self.current_page = 1
+        self.current_search_keyword = ""
+        self.filter_state = {"date": "all", "cccd": "all"}
+
         iso_regex = r"^(\d{4})-(\d{2})-(\d{2})$"
         for col in self.df.columns:
             series_str = self.df[col].astype(str)
+            
             mask_time = series_str.str.contains("-") & series_str.str.contains(" ")
             if mask_time.any():
                 self.df.loc[mask_time, col] = series_str[mask_time].apply(lambda x: x.split(" ")[0])
                 series_str = self.df[col].astype(str)
+            
             mask_float = series_str.str.endswith(".0")
             if mask_float.any():
                 self.df.loc[mask_float, col] = series_str[mask_float].str[:-2]
                 series_str = self.df[col].astype(str)
+
             if series_str.str.match(iso_regex).any():
                 self.df[col] = series_str.str.replace(iso_regex, r"\3/\2/\1", regex=True)
 
-        # Detect cột
         self.detected_cols = {"cccd": None, "date": None}
-        self.filter_state = {"date": "all", "cccd": "all"}
-
         for col in self.df.columns:
             col_type = self._guess_column_type(self.df[col])
             if col_type == "cccd":
@@ -118,48 +128,68 @@ class VoterModel:
 
         self.searchable_columns = ["Tất cả"] + list(self.df.columns)
         self.current_search_column = "Tất cả"
+        
         self.apply_filters()
         
-        # Init Config
         for col in self.df.columns:
             if col not in self.global_config:
                 self.global_config[col] = {"x": 50, "y": 50, "size": 21, "enable": False, "font": "Arial", "color": "Black", "bold": True}
-        if "signature_img" not in self.global_config:
-             self.global_config["signature_img"] = {"x": 300, "y": 300, "w": 150, "h": 80, "enable": True} 
+        
         self.save_config()
 
-    # --- OPTIONS (Đã thêm "Tất cả") ---
+    # --- OPTIONS (ĐÃ SỬA LOGIC) ---
     def get_date_options(self):
-        col = self.detected_cols["date"]
-        if not col or col not in self.df.columns:
-            return [("Tất cả", "all")]
-
-        s = self.df[col].astype(str).str.strip()
-        c_valid = (s.str.match(self.PAT_DATE_VN) | s.str.match(self.PAT_DATE_ISO)).sum()
-        c_invalid = len(self.df) - c_valid 
+        if self.cached_date_opts: return self.cached_date_opts
         
-        return [
-            (f"Tất cả ", "all"),
+        c_valid = 0
+        c_invalid = 0
+        col = self.detected_cols.get("date")
+
+        if self.df is not None and not self.df.empty and col and col in self.df.columns:
+            s = self.df[col].astype(str).str.strip()
+            # Logic: Valid là đúng định dạng
+            is_valid = (s.str.match(self.PAT_DATE_VN) | s.str.match(self.PAT_DATE_ISO))
+            # Logic: Rỗng thì không tính là Sai định dạng (để khi lọc Invalid nó sạch)
+            is_not_empty = s != ""
+            
+            c_valid = is_valid.sum()
+            # Invalid = Không valid VÀ Không rỗng
+            c_invalid = ((~is_valid) & is_not_empty).sum()
+        
+        self.cached_date_opts = [
+            (f"Tất cả", "all"),
             (f"Ngày sinh đúng định dạng ({c_valid})", "valid"),
             (f"Ngày sinh sai định dạng ({c_invalid})", "invalid")
         ]
+        return self.cached_date_opts
 
     def get_cccd_options(self):
-        col = self.detected_cols["cccd"]
-        if not col or col not in self.df.columns:
-            return [("Tất cả", "all")]
+        if self.cached_cccd_opts: return self.cached_cccd_opts
+        
+        c_12 = 0
+        c_other = 0
+        col = self.detected_cols.get("cccd")
 
-        s = self.df[col].astype(str).str.strip()
-        c_12 = (s.str.len() == 12).sum()
-        c_other = len(self.df) - c_12 
+        if self.df is not None and not self.df.empty and col and col in self.df.columns:
+            s = self.df[col].astype(str).str.strip()
+            
+            # Logic 12 số
+            is_12 = (s.str.len() == 12) & (s.str.isdigit())
+            
+            # Logic "Khác": Không phải 12 số VÀ KHÔNG ĐƯỢC RỖNG
+            is_not_empty = s != ""
+            
+            c_12 = is_12.sum()
+            c_other = ((~is_12) & is_not_empty).sum()
 
-        return [
+        self.cached_cccd_opts = [
             (f"Tất cả", "all"),
             (f"Số căn cước 12 số ({c_12})", "12"),
             (f"Số căn cước Khác ({c_other})", "other")
         ]
+        return self.cached_cccd_opts
 
-    # --- BỘ LỌC (TỐI ƯU NUMPY + SMART SEARCH) ---
+    # --- BỘ LỌC (ĐÃ SỬA LOGIC) ---
     def set_date_filter(self, key):
         self.filter_state["date"] = key
         self.apply_filters()
@@ -176,35 +206,57 @@ class VoterModel:
 
         final_mask = np.ones(len(self.df), dtype=bool)
 
-        # 1. Lọc Ngày sinh
+        # ==================================================
+        # 1. SỬA LẠI LOGIC LỌC NGÀY SINH
+        # ==================================================
         date_key = self.filter_state["date"]
         col_date = self.detected_cols["date"]
-        if col_date and col_date in self.df.columns and date_key != "all":
-            s_date = self.df[col_date].astype(str).str.strip()
-            is_valid = (s_date.str.match(self.PAT_DATE_VN) | s_date.str.match(self.PAT_DATE_ISO))
+        
+        # Chỉ xử lý khi user chọn filter khác "all"
+        if date_key != "all":
+            # Nếu CÓ cột ngày sinh -> Lọc bình thường
+            if col_date and col_date in self.df.columns:
+                s_date = self.df[col_date].astype(str).str.strip()
+                is_valid = (s_date.str.match(self.PAT_DATE_VN) | s_date.str.match(self.PAT_DATE_ISO))
+                is_not_empty = s_date != ""
 
-            if date_key == "valid":
-                final_mask &= is_valid.to_numpy()
-            elif date_key == "invalid":
-                final_mask &= (~is_valid).to_numpy()
+                if date_key == "valid":
+                    final_mask &= is_valid.to_numpy()
+                elif date_key == "invalid":
+                    final_mask &= ((~is_valid) & is_not_empty).to_numpy()
+            
+            # [QUAN TRỌNG] Nếu user đòi lọc mà KHÔNG CÓ cột ngày sinh -> Trả về rỗng
+            else:
+                final_mask[:] = False
 
-        # 2. Lọc CCCD
+        # ==================================================
+        # 2. SỬA LẠI LOGIC LỌC CCCD
+        # ==================================================
         cccd_key = self.filter_state["cccd"]
         col_cccd = self.detected_cols["cccd"]
-        if col_cccd and col_cccd in self.df.columns and cccd_key != "all":
-            s_cccd = self.df[col_cccd].astype(str).str.strip()
-            is_12 = (s_cccd.str.len() == 12)
+        
+        # Chỉ xử lý khi user chọn filter khác "all"
+        if cccd_key != "all":
+            # Nếu CÓ cột CCCD -> Lọc bình thường
+            if col_cccd and col_cccd in self.df.columns:
+                s_cccd = self.df[col_cccd].astype(str).str.strip()
+                is_12 = (s_cccd.str.len() == 12) & (s_cccd.str.isdigit())
+                is_not_empty = s_cccd != "" 
+                
+                if cccd_key == "12":
+                    final_mask &= is_12.to_numpy()
+                elif cccd_key == "other":
+                    final_mask &= ((~is_12) & is_not_empty).to_numpy()
             
-            if cccd_key == "12":
-                final_mask &= is_12.to_numpy()
-            elif cccd_key == "other":
-                final_mask &= (~is_12).to_numpy()
+            # [QUAN TRỌNG] Nếu user đòi lọc "12 số" hoặc "Khác"
+            # Nhưng phần mềm KHÔNG tìm thấy cột CCCD nào -> Ép buộc Rỗng (để hiện thông báo)
+            else:
+                final_mask[:] = False
 
-        # 3. Tìm kiếm thông minh (Bỏ dấu cách)
+        # 3. Tìm kiếm (Giữ nguyên)
         kw = self.current_search_keyword.lower().strip()
         if kw:
             kw_nospace = kw.replace(" ", "")
-            
             if self.current_search_column == "Tất cả":
                 search_mask = np.zeros(len(self.df), dtype=bool)
                 for col in self.searchable_columns:
@@ -214,7 +266,6 @@ class VoterModel:
                                 s_col.str.contains(kw_nospace, na=False, regex=False))
                     search_mask |= col_mask.to_numpy()
                 final_mask &= search_mask
-                
             elif self.current_search_column in self.df.columns:
                 s_col = self.df[self.current_search_column].astype(str).str.lower()
                 col_mask = (s_col.str.contains(kw, na=False, regex=False) | 
@@ -229,7 +280,7 @@ class VoterModel:
             self.total_pages = 1
         self.current_page = 1
 
-    # --- HELPERS ---
+    # --- HELPERS (Giữ nguyên) ---
     def set_search_column(self, col_name):
         self.current_search_column = col_name
         self.apply_filters()
@@ -306,6 +357,8 @@ class VoterModel:
     
     def sort_data(self, col_key, reverse=False):
         if self.df_filtered is None or self.df_filtered.empty: return
+        self.df_filtered = self.df_filtered.copy()
+        
         target_col = None
         if col_key.startswith("col"):
             try:
@@ -313,10 +366,12 @@ class VoterModel:
                 if 0 <= idx < len(self.df.columns):
                     target_col = self.df.columns[idx]
             except ValueError: pass
+        
         if not target_col:
             if col_key == "stt": target_col = self.df.columns[0]
             elif col_key == "name": 
                  target_col = next((c for c in self.df.columns if "họ tên" in c.lower() or "name" in c.lower()), None)
+        
         if target_col:
             is_name_col = "họ tên" in target_col.lower() or "name" in target_col.lower()
             if is_name_col:
@@ -333,4 +388,5 @@ class VoterModel:
                     self.df_filtered.drop(columns=['_sort_tmp'], inplace=True)
                 except:
                     self.df_filtered = self.df_filtered.sort_values(by=target_col, ascending=not reverse)
+        
         self.current_page = 1

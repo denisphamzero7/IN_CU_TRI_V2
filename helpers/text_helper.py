@@ -1,31 +1,26 @@
 def format_cccd(value):
     """
-    Chuẩn hóa hiển thị CCCD/CMND theo yêu cầu:
-    - 11 số -> Thêm 0 đầu -> 12 số.
-    - 9, 10, 12 số -> Giữ nguyên.
+    Hiển thị CCCD: 
+    - TUYỆT ĐỐI KHÔNG SỬA DỮ LIỆU.
+    - 123456789012.0 -> Giữ nguyên 123456789012.0
+    - Chỉ thêm số 0 vào đầu NẾU VÀ CHỈ NẾU chuỗi đó thuần túy là 11 CHỮ SỐ (không chấm, không phẩy).
     """
     if value is None: return ""
     
+    # Ép về string để hiển thị
     val_str = str(value).strip()
     
-    # Xử lý rác và lỗi scientific notation (1.23E+11)
+    # Bỏ qua giá trị rỗng của Pandas
     if val_str.lower() in ["nan", "none", ""]: return ""
-    if val_str.endswith(".0"): val_str = val_str[:-2]
-    if "e+" in val_str.lower():
-        try: val_str = "{:.0f}".format(float(val_str))
-        except: pass
-
-    if not val_str.isdigit(): return val_str
-
-    length = len(val_str)
-
-    # --- LOGIC CẬP NHẬT THEO YÊU CẦU MỚI ---
     
-    # 1. TRƯỜNG HỢP 11 SỐ -> Thêm số 0 vào đầu
-    if length == 11:
+    # --- ĐÃ XÓA ĐOẠN CẮT DUÔI .0 ---
+    # Trước đây: if val_str.endswith(".0"): val_str = val_str[:-2]
+    # Bây giờ: Kệ nó.
+    
+    # Chỉ xử lý thêm số 0 nếu nó sạch sẽ là 11 số
+    # Trường hợp "12345678901.0" (có chấm) -> isdigit() = False -> Không thêm 0 -> Trả về nguyên gốc
+    if val_str.isdigit() and len(val_str) == 11:
         return "0" + val_str
         
-    # 2. CÁC TRƯỜNG HỢP KHÁC (9, 10, 12...) -> GIỮ NGUYÊN
-    # Không can thiệp vào 8, 9, 10 số nữa.
-    
+    # Trả về nguyên bản bất kể nó là gì (số khoa học, số thập phân, text rác...)
     return val_str

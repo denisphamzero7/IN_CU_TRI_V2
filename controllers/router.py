@@ -184,9 +184,9 @@ class AppRouter:
         else:
             if not self.selected_field: return MsgHelper.show_warning("Chọn một trường để reset!")
             if MsgHelper.ask_yes_no(f"Reset '{self.selected_field}' về mặc định?", "Xác nhận"):
-                self.model.update_config_value(0, "global", self.selected_field, "font", "Arial")
-                self.model.update_config_value(0, "global", self.selected_field, "size", 14)
-                self.model.update_config_value(0, "global", self.selected_field, "bold", False)
+                self.model.update_config_value(0, "global", self.selected_field, "font", "Times New Roman")
+                self.model.update_config_value(0, "global", self.selected_field, "size", 21)
+                self.model.update_config_value(0, "global", self.selected_field, "bold", True)
                 self.model.update_config_value(0, "global", self.selected_field, "color", "Black")
                 self.render_canvas_safe()
                 self.load_field_props_to_ui()

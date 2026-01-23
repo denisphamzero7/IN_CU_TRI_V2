@@ -53,8 +53,8 @@ class DataController:
             if self.router.view:
                 self.router.view.after(0, self._on_load_success)
         except Exception as e:
-            if self.router.view:
-                self.router.view.after(0, lambda: self._on_load_error(str(e)))
+               err_msg = str(e)  # Lưu lỗi vào biến err_msg trước
+               self.router.view.after(0, lambda: self._on_load_error(err_msg))
 
     def _on_load_success(self):
         try:
