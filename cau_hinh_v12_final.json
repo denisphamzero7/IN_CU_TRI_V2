@@ -20,8 +20,8 @@
             "bold": true
         },
         "Ngày tháng năm sinh": {
-            "x": 358,
-            "y": 237,
+            "x": 355,
+            "y": 235,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -53,17 +53,17 @@
             "x": 64,
             "y": 103,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
             "bold": true
         },
         "Nơi cư trú": {
-            "x": 128,
-            "y": 100,
+            "x": 268,
+            "y": 427,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
@@ -73,7 +73,7 @@
             "x": 443,
             "y": 348,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "type": "text",
@@ -200,16 +200,6 @@
             "bold": true
         },
         "Unnamed: 6": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM": {
             "x": 50,
             "y": 50,
             "size": 21,
@@ -351,21 +341,11 @@
             "color": "Black",
             "bold": true
         },
-        "Số Căn cước": {
-            "x": 346,
-            "y": 334,
+        "Giới tính": {
+            "x": 115,
+            "y": 65,
             "size": 21,
             "enable": true,
-            "font": "Times New Roman",
-            "color": "Black",
-            "bold": true,
-            "upper": false
-        },
-        "Giới tính": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
             "font": "Arial",
             "color": "Black",
             "bold": true
@@ -404,6 +384,15 @@
             "size": 21,
             "enable": false,
             "font": "Arial",
+            "color": "Black",
+            "bold": true
+        },
+        "Số Căn cước": {
+            "x": 358,
+            "y": 293,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         }

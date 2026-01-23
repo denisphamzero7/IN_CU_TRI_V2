@@ -13,6 +13,7 @@ class VoterModel:
     # --- CONSTANTS (REGEX) ---
     PAT_DATE_VN = re.compile(r"^(?:0?[1-9]|[12][0-9]|3[01])/(?:0?[1-9]|1[0-2])/\d{4}$")
     PAT_DATE_ISO = re.compile(r"^\d{4}-(?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])$")
+    # Regex nhận diện cột lỏng để bắt được cả số lỗi
     PAT_CCCD = re.compile(r"^[\d\.]{9,20}$")
 
     def __init__(self):
@@ -120,6 +121,7 @@ class VoterModel:
             col_type = self._guess_column_type(self.df[col])
             if col_type == "cccd":
                 self.detected_cols["cccd"] = col 
+                # Thêm số 0 vào đầu nếu là 11 số chuẩn
                 mask_11 = (self.df[col].str.len() == 11) & (self.df[col].str.isdigit())
                 if mask_11.any():
                     self.df.loc[mask_11, col] = "0" + self.df.loc[mask_11, col]
@@ -133,11 +135,11 @@ class VoterModel:
         
         for col in self.df.columns:
             if col not in self.global_config:
-                self.global_config[col] = {"x": 50, "y": 50, "size": 21, "enable": False, "font": "Arial", "color": "Black", "bold": True}
+                self.global_config[col] = {"x": 50, "y": 50, "size": 21, "enable": False, "font": "Times New Roman", "color": "Black", "bold": True}
         
         self.save_config()
 
-    # --- OPTIONS (ĐÃ SỬA LOGIC) ---
+    # --- OPTIONS: TÍNH TOÁN BAO GỒM CẢ RỖNG ---
     def get_date_options(self):
         if self.cached_date_opts: return self.cached_date_opts
         
@@ -145,16 +147,19 @@ class VoterModel:
         c_invalid = 0
         col = self.detected_cols.get("date")
 
+        # Mặc định invalid bằng tổng số dòng (nếu không tìm thấy cột date)
+        if self.df is not None:
+            c_invalid = len(self.df)
+
         if self.df is not None and not self.df.empty and col and col in self.df.columns:
             s = self.df[col].astype(str).str.strip()
-            # Logic: Valid là đúng định dạng
+            
+            # Logic: Valid là đúng định dạng regex
             is_valid = (s.str.match(self.PAT_DATE_VN) | s.str.match(self.PAT_DATE_ISO))
-            # Logic: Rỗng thì không tính là Sai định dạng (để khi lọc Invalid nó sạch)
-            is_not_empty = s != ""
             
             c_valid = is_valid.sum()
-            # Invalid = Không valid VÀ Không rỗng
-            c_invalid = ((~is_valid) & is_not_empty).sum()
+            # Logic: Sai định dạng = Tổng số - Số đúng (Bao gồm cả Rỗng)
+            c_invalid = len(self.df) - c_valid
         
         self.cached_date_opts = [
             (f"Tất cả", "all"),
@@ -170,17 +175,19 @@ class VoterModel:
         c_other = 0
         col = self.detected_cols.get("cccd")
 
+        # Mặc định other bằng tổng số dòng (nếu không tìm thấy cột cccd)
+        if self.df is not None:
+            c_other = len(self.df)
+
         if self.df is not None and not self.df.empty and col and col in self.df.columns:
             s = self.df[col].astype(str).str.strip()
             
-            # Logic 12 số
+            # Logic: 12 số chuẩn (độ dài 12 và là số)
             is_12 = (s.str.len() == 12) & (s.str.isdigit())
             
-            # Logic "Khác": Không phải 12 số VÀ KHÔNG ĐƯỢC RỖNG
-            is_not_empty = s != ""
-            
             c_12 = is_12.sum()
-            c_other = ((~is_12) & is_not_empty).sum()
+            # Logic: Khác = Tổng số - Số 12 số (Bao gồm cả Rỗng, Rác, 9 số...)
+            c_other = len(self.df) - c_12
 
         self.cached_cccd_opts = [
             (f"Tất cả", "all"),
@@ -189,7 +196,7 @@ class VoterModel:
         ]
         return self.cached_cccd_opts
 
-    # --- BỘ LỌC (ĐÃ SỬA LOGIC) ---
+    # --- BỘ LỌC: LỌC BAO GỒM CẢ RỖNG ---
     def set_date_filter(self, key):
         self.filter_state["date"] = key
         self.apply_filters()
@@ -206,54 +213,57 @@ class VoterModel:
 
         final_mask = np.ones(len(self.df), dtype=bool)
 
-        # ==================================================
-        # 1. SỬA LẠI LOGIC LỌC NGÀY SINH
-        # ==================================================
+        # 1. LỌC NGÀY SINH
         date_key = self.filter_state["date"]
         col_date = self.detected_cols["date"]
         
-        # Chỉ xử lý khi user chọn filter khác "all"
         if date_key != "all":
-            # Nếu CÓ cột ngày sinh -> Lọc bình thường
+            # Nếu có cột Date
             if col_date and col_date in self.df.columns:
                 s_date = self.df[col_date].astype(str).str.strip()
                 is_valid = (s_date.str.match(self.PAT_DATE_VN) | s_date.str.match(self.PAT_DATE_ISO))
-                is_not_empty = s_date != ""
 
                 if date_key == "valid":
                     final_mask &= is_valid.to_numpy()
                 elif date_key == "invalid":
-                    final_mask &= ((~is_valid) & is_not_empty).to_numpy()
+                    # Lấy phủ định của Valid (Tức là lấy Rỗng + Sai format)
+                    final_mask &= (~is_valid).to_numpy()
             
-            # [QUAN TRỌNG] Nếu user đòi lọc mà KHÔNG CÓ cột ngày sinh -> Trả về rỗng
+            # Nếu KHÔNG tìm thấy cột Date
             else:
-                final_mask[:] = False
+                if date_key == "valid":
+                    # Đòi valid mà ko có cột -> Không có kết quả
+                    final_mask[:] = False
+                elif date_key == "invalid":
+                    # Đòi invalid mà ko có cột -> Lấy tất cả (vì coi như tất cả đều sai/rỗng)
+                    pass 
 
-        # ==================================================
-        # 2. SỬA LẠI LOGIC LỌC CCCD
-        # ==================================================
+        # 2. LỌC CCCD
         cccd_key = self.filter_state["cccd"]
         col_cccd = self.detected_cols["cccd"]
         
-        # Chỉ xử lý khi user chọn filter khác "all"
         if cccd_key != "all":
-            # Nếu CÓ cột CCCD -> Lọc bình thường
+            # Nếu có cột CCCD
             if col_cccd and col_cccd in self.df.columns:
                 s_cccd = self.df[col_cccd].astype(str).str.strip()
                 is_12 = (s_cccd.str.len() == 12) & (s_cccd.str.isdigit())
-                is_not_empty = s_cccd != "" 
                 
                 if cccd_key == "12":
                     final_mask &= is_12.to_numpy()
                 elif cccd_key == "other":
-                    final_mask &= ((~is_12) & is_not_empty).to_numpy()
+                    # Lấy phủ định của 12 số (Tức là lấy Rỗng + 9 số + Rác...)
+                    final_mask &= (~is_12).to_numpy()
             
-            # [QUAN TRỌNG] Nếu user đòi lọc "12 số" hoặc "Khác"
-            # Nhưng phần mềm KHÔNG tìm thấy cột CCCD nào -> Ép buộc Rỗng (để hiện thông báo)
+            # Nếu KHÔNG tìm thấy cột CCCD
             else:
-                final_mask[:] = False
+                if cccd_key == "12":
+                    # Đòi 12 số mà không có cột -> Rỗng
+                    final_mask[:] = False
+                elif cccd_key == "other":
+                    # Đòi Khác mà không có cột -> Lấy tất cả (coi như tất cả dòng đều là rỗng/khác)
+                    pass
 
-        # 3. Tìm kiếm (Giữ nguyên)
+        # 3. TÌM KIẾM
         kw = self.current_search_keyword.lower().strip()
         if kw:
             kw_nospace = kw.replace(" ", "")
@@ -280,7 +290,7 @@ class VoterModel:
             self.total_pages = 1
         self.current_page = 1
 
-    # --- HELPERS (Giữ nguyên) ---
+    # ... (Giữ nguyên các hàm helper khác: set_search_column, search_data, get_effective_config...)
     def set_search_column(self, col_name):
         self.current_search_column = col_name
         self.apply_filters()

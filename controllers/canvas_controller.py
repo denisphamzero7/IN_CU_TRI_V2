@@ -353,55 +353,35 @@ class CanvasController:
     def handle_right_click(self, event):
         canvas = self.router.view.p_right.canvas
         
-        # 1. Tìm object tại điểm click (Ưu tiên object nằm trên cùng)
+        # 1. Tìm các object tại điểm click (Ưu tiên cái nằm trên cùng)
         items = list(canvas.find_overlapping(event.x-2, event.y-2, event.x+2, event.y+2))
         items.reverse() 
 
         target_to_delete = None
         
+        # Lấy danh sách cột hiện có (Cache lại để không gọi nhiều lần trong vòng lặp)
+        current_columns = []
+        if self.model.df is not None:
+            current_columns = self.model.df.columns
+
         for item_id in items:
             tags = canvas.gettags(item_id)
             
+            # Bỏ qua khung giấy và chữ ký ảnh
             if "draggable_paper" in tags or "signature_img" in get_column_from_tags(tags):
                 continue 
             
             col_name = get_column_from_tags(tags)
             if not col_name: continue 
             
-            # --- [LOGIC TỐI ƯU TỐC ĐỘ] ---
-            is_protected = False
+            # --- [LOGIC: BẢO VỆ CẤU HÌNH] ---
+            # Nếu tên trường nằm trong file Excel ("Mục 2") -> BẢO VỆ
+            if col_name in current_columns:
+                continue # Bỏ qua, coi như không click vào
             
-            try:
-                df = self.model.df
-                if df is not None and not df.empty and col_name in df.columns:
-                    # Lấy mảng dữ liệu (Numpy Array) thay vì Series -> Nhanh gấp 10 lần
-                    values = df[col_name].to_numpy().astype(str)
-                    
-                    # Danh sách các giá trị coi là "Rỗng"
-                    # Dùng set để tra cứu O(1)
-                    empty_vals = {"nan", "none", "", "nan.0", "null"}
-                    
-                    # Hàm kiểm tra nhanh: Chỉ cần tìm thấy 1 giá trị KHÔNG nằm trong tập rỗng là dừng ngay
-                    # (Không cần quét hết 100% cột nếu đã thấy dữ liệu ở đầu)
-                    has_data = False
-                    for val in values:
-                        # Strip và Lower từng phần tử sẽ chậm, ta kiểm tra thô trước cho nhanh
-                        v_check = val.strip().lower()
-                        if v_check not in empty_vals:
-                            has_data = True
-                            break # Tìm thấy dữ liệu -> Dừng ngay -> Siêu nhanh
-                    
-                    if has_data:
-                        is_protected = True
-
-            except Exception as e:
-                print(f"Check data error: {e}")
-
-            # --- QUYẾT ĐỊNH ---
-            if is_protected:
-                continue # Cột này có dữ liệu (dù dòng này trống) -> Bỏ qua
+            # Nếu tên trường KHÔNG có trong file Excel (trường rác/cũ) -> CHO PHÉP XÓA
             else:
-                target_to_delete = col_name # Cột này trống 100% -> Cho phép xóa
+                target_to_delete = col_name 
                 break
 
         # 3. THỰC HIỆN HÀNH ĐỘNG
