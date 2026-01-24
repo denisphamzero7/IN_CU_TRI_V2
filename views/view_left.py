@@ -7,7 +7,7 @@ from config.settings import APP_SUPPORT, APP_CREDIT, MISA_BG_COLOR, MISA_BORDER_
 
 # --- MÀU CỐ ĐỊNH ---
 LIST_ITEM_BG = "#ffffff"       
-LIST_SELECTED_BG = MISA_BORDER_COLOR,
+LIST_SELECTED_BG = MISA_BORDER_COLOR
 
 class LeftPanelView(ttk.Frame):
     def __init__(self, master, router):

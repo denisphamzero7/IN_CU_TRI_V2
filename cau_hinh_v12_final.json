@@ -1,202 +1,69 @@
 {
     "global": {
         "signature_img": {
-            "x": 599,
-            "y": 457,
+            "x": 568,
+            "y": 452,
             "w": 150,
             "h": 80,
             "enable": true,
-            "type": "image",
-            "path": "C:/Users/Admin/Documents/TINTUC/inra/Chữ ký Mr Quân_Không con dấu.png"
+            "type": "image"
         },
-        "Họ và tên": {
-            "x": 351,
-            "y": 204,
+        "STT": {
+            "x": 143,
+            "y": 45,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
-            "bold": true
+            "bold": true,
+            "upper": false
+        },
+        "Họ và tên": {
+            "x": 294,
+            "y": 197,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true,
+            "upper": false
         },
         "Ngày tháng năm sinh": {
-            "x": 355,
+            "x": 296,
             "y": 235,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
-            "bold": true
+            "bold": true,
+            "upper": false
         },
-        "Nơi ở hiện tại": {
+        "Số Căn cước": {
+            "x": 288,
+            "y": 325,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true,
+            "upper": false
+        },
+        "Dân tộc": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Họ tên": {
-            "x": 61,
-            "y": 67,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Ngày sinh": {
-            "x": 64,
-            "y": 103,
-            "size": 21,
-            "enable": true,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
             "bold": true
         },
         "Nơi cư trú": {
-            "x": 268,
-            "y": 427,
-            "size": 21,
-            "enable": true,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Số cccd": {
-            "x": 443,
-            "y": 348,
-            "size": 21,
-            "enable": true,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Số thẻ cử tri": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Tên đơn vị": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Khu vực bỏ phiếu": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Thành phố": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Hình ảnh chữ ký": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Xã/phường/đặc khu": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "ỦY BAN BẦU CỬ": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Unnamed: 1": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Unnamed: 2": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Unnamed: 3": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Unnamed: 4": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
-            "bold": true
-        },
-        "Unnamed: 5": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Times New Roman",
-            "color": "Black",
-            "type": "text",
             "bold": true
         },
         "Unnamed: 6": {
@@ -206,27 +73,33 @@
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
             "bold": true
         },
-        "Unnamed: 8": {
+        "Unnamed: 7": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
             "bold": true
         },
-        "Unnamed: 9": {
+        "Bầu cử ĐBQH": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
+            "bold": true
+        },
+        "Bầu cử đại biểu HĐND": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
             "bold": true
         },
         "Unnamed: 10": {
@@ -236,7 +109,96 @@
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
+            "bold": true
+        },
+        "Ghi chú": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "ỦY BAN BẦU CỬ": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 1": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 2": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 3": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 4": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 5": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "CỘNG HÒA xÃ HỘI CHỦ NGHĨA VIỆT NAM": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 8": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Unnamed: 9": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
             "bold": true
         },
         "Unnamed: 11": {
@@ -246,7 +208,6 @@
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
             "bold": true
         },
         "Unnamed: 12": {
@@ -256,7 +217,6 @@
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
             "bold": true
         },
         "Unnamed: 13": {
@@ -266,87 +226,86 @@
             "enable": false,
             "font": "Times New Roman",
             "color": "Black",
-            "type": "text",
             "bold": true
         },
-        "Nam": {
+        "Stt": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
-        "Nữ": {
+        "Tên đơn vị": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
-        "Bầu cử ĐBQH": {
+        "Họ tên": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
-        "Bầu cử đại biểu HĐND": {
+        "Ngày sinh": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
-            "font": "Arial",
-            "color": "Black",
-            "bold": true
-        },
-        "Ghi chú": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Arial",
-            "color": "Black",
-            "bold": true
-        },
-        "Unnamed: 7": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Arial",
-            "color": "Black",
-            "bold": true
-        },
-        "ỦY BAN BẦU CỬ\nĐẠI BIỂU HĐND PHƯỜNG HÒA KHÁNH\nNHIỆM KỲ 2026-2031": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Arial",
-            "color": "Black",
-            "bold": true
-        },
-        "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc": {
-            "x": 50,
-            "y": 50,
-            "size": 21,
-            "enable": false,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
         "Giới tính": {
-            "x": 115,
-            "y": 65,
+            "x": 50,
+            "y": 50,
             "size": 21,
-            "enable": true,
-            "font": "Arial",
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Số cccd": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Số thẻ cử tri": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Khu vực bỏ phiếu": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Thành phố": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
@@ -355,43 +314,96 @@
             "y": 50,
             "size": 21,
             "enable": false,
-            "font": "Arial",
-            "color": "Black",
-            "bold": true
-        },
-        "STT": {
-            "x": 346,
-            "y": 376,
-            "size": 21,
-            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
-            "bold": true,
-            "upper": false
+            "bold": true
         },
-        "ĐẠI BIỂU HĐND PHƯỜNG HÒA KHÁNH\nNHIỆM KỲ 2026-2031": {
+        "Hình ảnh chữ ký": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
-        "Stt": {
+        "Xã/phường/đặc khu": {
             "x": 50,
             "y": 50,
             "size": 21,
             "enable": false,
-            "font": "Arial",
+            "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
-        "Số Căn cước": {
-            "x": 358,
-            "y": 293,
+        "Nơi ở": {
+            "x": 50,
+            "y": 50,
             "size": 21,
-            "enable": true,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Ủy ban nhân dân": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "PHường xã đặc khu": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "KHu vực bỏ phiếu": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Ký thay": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Chức danh ký thay": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Ngày ký": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Tháng ký": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
             "font": "Times New Roman",
             "color": "Black",
             "bold": true

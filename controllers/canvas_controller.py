@@ -160,6 +160,10 @@ class CanvasController:
                 if cfg.get("upper", False): val = val.upper()
                 
                 display_val = val if val.strip() != "" else f"[{col}]"
+                # [THÊM DÒNG NÀY ĐỂ FIX LỖI 100%] ---------------------------
+                # Thay thế ký tự xuống dòng bằng khoảng trắng ngay trước khi vẽ
+                display_val = display_val.replace("\r", " ").replace("\n", " ")
+                # -----------------------------------------------------------
                 is_placeholder = (val.strip() == "")
 
                 f_size = max(1, int(cfg.get("size", 21) * self.scale_factor)) 

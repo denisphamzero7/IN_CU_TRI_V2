@@ -1,0 +1,49 @@
+{
+    "global": {
+        "signature_img": {
+            "x": 300,
+            "y": 300,
+            "w": 150,
+            "h": 80,
+            "enable": true,
+            "type": "image"
+        },
+        "STT": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Họ và tên": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Ngày tháng năm sinh": {
+            "x": 103,
+            "y": 42,
+            "size": 21,
+            "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Số Căn cước": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        }
+    },
+    "custom": {}
+}
