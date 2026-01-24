@@ -1,7 +1,7 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-import win32print
+import win32print # type: ignore
 from config.settings import APP_BG_COLOR
 from helpers.msg_helper import MsgHelper
 

@@ -173,6 +173,7 @@ class AppRouter:
         try: mode = self.edit_mode.get()
         except: pass
 
+        # TRƯỜNG HỢP 1: Reset cấu hình riêng (Individual)
         if mode == "individual":
             if self.model.reset_custom_config(self.current_idx):
                 self.view.p_mid.tree.item(str(self.current_idx), tags=())
@@ -181,17 +182,40 @@ class AppRouter:
                 MsgHelper.show_info("Đã xóa cấu hình riêng.", "Thành công")
             else:
                 MsgHelper.show_info("Đang dùng cấu hình chung.", "Thông báo")
+
+        # TRƯỜNG HỢP 2: Reset cấu hình chung (Global) - [ĐÃ TỐI ƯU]
         else:
             if not self.selected_field: return MsgHelper.show_warning("Chọn một trường để reset!")
+            
             if MsgHelper.ask_yes_no(f"Reset '{self.selected_field}' về mặc định?", "Xác nhận"):
-                self.model.update_config_value(0, "global", self.selected_field, "font", "Times New Roman")
-                self.model.update_config_value(0, "global", self.selected_field, "size", 21)
-                self.model.update_config_value(0, "global", self.selected_field, "bold", True)
-                self.model.update_config_value(0, "global", self.selected_field, "color", "Black")
-                self.render_canvas_safe()
-                self.load_field_props_to_ui()
-                MsgHelper.show_info("Đã khôi phục mặc định.", "Thành công")
+                
+                # B1: Gom nhóm thông số mặc định vào Dictionary cho gọn
+                defaults = {}
+                
+                if self.selected_field == "signature_img":
+                    # Mặc định cho Ảnh
+                    defaults = {
+                        "w": 150,
+                        "h": 80
+                    }
+                else:
+                    # Mặc định cho Text
+                    defaults = {
+                        "font": "Times New Roman",
+                        "size": 21,
+                        "bold": True,
+                        "color": "Black",
+                        "upper": False
+                    }
 
+                # B2: Dùng vòng lặp để update (Code sạch hơn, dễ mở rộng sau này)
+                for key, val in defaults.items():
+                    self.model.update_config_value(0, "global", self.selected_field, key, val)
+
+                # B3: Cập nhật lại giao diện
+                self.render_canvas_safe()
+                self.load_field_props_to_ui() # Load lại số liệu lên Spinbox/Combobox ngay lập tức
+                MsgHelper.show_info("Đã khôi phục mặc định.", "Thành công")
     def select_template(self): 
         if not self.check_license(): return 
         self.ctrl_data.select_template()
