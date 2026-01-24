@@ -66,7 +66,24 @@ class DataController:
             self.router.view.p_left.refresh_field_list(self.model.df.columns, self.model.global_config)
             
             # --- [MỚI] NẠP DỮ LIỆU CHO 2 BỘ LỌC ---
-            
+            # --- [MỚI] RESET TOÀN BỘ TRẠNG THÁI LỌC & TÌM KIẾM ---
+            # 1. Reset trạng thái trong Model
+            self.model.filter_state = {"date": "all", "cccd": "all"}
+            self.model.current_search_keyword = ""
+            self.model.current_search_column = "Tất cả"
+            # 2. Reset UI thanh tìm kiếm (Xóa chữ trong ô input)
+            if hasattr(self.router.view.p_mid, 'search_view'):
+                self.router.view.p_mid.search_view.clear_input()
+                
+            # 3. Reset UI Combobox chọn cột tìm kiếm về "Tất cả"
+            if hasattr(self.router.view.p_mid, 'cbb_filter'):
+                 self.router.view.p_mid.cbb_filter.set("Tất cả")
+            # -----------------------------------------------------
+            total_count = len(self.model.df) if self.model.df is not None else 0
+            # Update UI cơ bản
+            if self.router.view and hasattr(self.router.view, 'p_mid'):
+                self.router.view.p_mid.set_total_count(total_count)
+            self.router.view.p_left.refresh_field_list(self.model.df.columns, self.model.global_config)
             # 1. Nạp bộ lọc Ngày sinh
             date_opts = self.model.get_date_options() # [("Text", "key"), ...]
             self.router.view.p_mid.cbb_date['values'] = [opt[0] for opt in date_opts]
@@ -79,7 +96,8 @@ class DataController:
             self.router.view.p_mid.cbb_cccd.current(0)
             self.router.map_cccd = {opt[0]: opt[1] for opt in cccd_opts} # Lưu map
             # --------------------------------------
-
+            
+            self.model.apply_filters()
             self.router.refresh_mid_table()
             self.router.ctrl_canvas.render()
             self.router.deselect_all()

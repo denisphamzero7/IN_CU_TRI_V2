@@ -29,8 +29,8 @@
             "upper": false
         },
         "Ngày tháng năm sinh": {
-            "x": 296,
-            "y": 235,
+            "x": 276,
+            "y": 236,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -39,8 +39,8 @@
             "upper": false
         },
         "Số Căn cước": {
-            "x": 288,
-            "y": 325,
+            "x": 323,
+            "y": 330,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -247,19 +247,19 @@
             "bold": true
         },
         "Họ tên": {
-            "x": 50,
-            "y": 50,
+            "x": 270,
+            "y": 199,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "bold": true
         },
         "Ngày sinh": {
-            "x": 50,
-            "y": 50,
+            "x": 310,
+            "y": 236,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "bold": true
@@ -400,6 +400,33 @@
             "bold": true
         },
         "Tháng ký": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "ỦY BAN BẦU CỬ ĐẠI BIỂU HĐND PHƯỜNG hồA KHÁNH NHIỆM KỲ 2026-2031": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "CỘNG hồA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Số định danh": {
             "x": 50,
             "y": 50,
             "size": 21,
