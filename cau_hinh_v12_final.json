@@ -1,13 +1,13 @@
 {
     "global": {
         "signature_img": {
-            "x": 554,
-            "y": 458,
+            "x": 569,
+            "y": 453,
             "w": 150,
             "h": 80,
             "enable": true,
             "type": "image",
-            "path": "C:/Users/Admin/Pictures/rau/cải ngọt.png",
+            "path": "C:/Users/Admin/Downloads/logo-Photoroom.png",
             "font": "Times New Roman",
             "size": 21,
             "bold": true,
@@ -234,7 +234,7 @@
             "x": 50,
             "y": 50,
             "size": 21,
-            "enable": false,
+            "enable": true,
             "font": "Times New Roman",
             "color": "Black",
             "bold": true
@@ -384,8 +384,8 @@
             "bold": true
         },
         "Họ và tên": {
-            "x": 289,
-            "y": 190,
+            "x": 446,
+            "y": 203,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -393,8 +393,8 @@
             "bold": true
         },
         "Ngày tháng năm sinh": {
-            "x": 359,
-            "y": 237,
+            "x": 446,
+            "y": 235,
             "size": 21,
             "enable": true,
             "font": "Times New Roman",
@@ -403,10 +403,28 @@
             "upper": false
         },
         "Số Căn cước": {
-            "x": 348,
-            "y": 298,
+            "x": 445,
+            "y": 273,
             "size": 21,
             "enable": true,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Họ tên": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
+            "font": "Times New Roman",
+            "color": "Black",
+            "bold": true
+        },
+        "Ngày sinh": {
+            "x": 50,
+            "y": 50,
+            "size": 21,
+            "enable": false,
             "font": "Times New Roman",
             "color": "Black",
             "bold": true
